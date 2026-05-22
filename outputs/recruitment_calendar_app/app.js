@@ -79,6 +79,7 @@ const els = {
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
   calendarGrid: document.querySelector("#calendarGrid"),
   selectedEvents: document.querySelector("#selectedEvents"),
+  addSelectedDateButton: document.querySelector("#addSelectedDateButton"),
   candidateList: document.querySelector("#candidateList"),
   searchResults: document.querySelector("#searchResults"),
   calendarPanel: document.querySelector(".calendar-panel"),
@@ -143,6 +144,7 @@ function bindEvents() {
 
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
+  els.addSelectedDateButton.addEventListener("click", addScheduleForSelectedDate);
   els.addIntervieweeButton.addEventListener("click", () => addIntervieweeRow());
   els.addRecruitmentFieldButton.addEventListener("click", () => addRecruitmentFieldRow());
   els.intervieweeRows.addEventListener("click", (event) => {
@@ -425,7 +427,8 @@ function renderSelectedDay() {
     const item = document.createElement("article");
     item.className = "notice-detail";
     item.innerHTML = renderNoticeDetail(event);
-    item.addEventListener("click", () => fillForm(event.candidate));
+    item.querySelector('[data-action="edit-event"]').addEventListener("click", () => fillForm(event.candidate));
+    item.querySelector('[data-action="delete-event"]').addEventListener("click", () => deleteSelectedEvent(event));
     els.selectedEvents.append(item);
   });
 }
@@ -451,6 +454,10 @@ function renderNoticeDetail(event) {
         <p><strong>공고기간:</strong> ${schedule ? `${escapeHtml(formatShortDate(schedule.documentStartDate))} ~ ${escapeHtml(formatShortDate(schedule.documentEndDate))}` : "미정"}</p>
         <p><strong>다음 일정:</strong> ${schedule ? `서류심사 ${escapeHtml(formatShortDate(schedule.screeningDate))}, 면접 예정 ${escapeHtml(formatShortDate(schedule.plannedInterviewDate))}` : "미정"}</p>
       </div>
+      <div class="event-actions">
+        <button type="button" data-action="edit-event">수정</button>
+        <button type="button" data-action="delete-event">삭제</button>
+      </div>
     `;
   }
   return `
@@ -471,7 +478,41 @@ function renderNoticeDetail(event) {
       ${candidate.memo ? `<p><strong>메모:</strong> ${escapeHtml(candidate.memo)}</p>` : ""}
     </div>
     ${renderIntervieweesHtml(candidate.interviewees || [])}
+    <div class="event-actions">
+      <button type="button" data-action="edit-event">수정</button>
+      <button type="button" data-action="delete-event">삭제</button>
+    </div>
   `;
+}
+
+function addScheduleForSelectedDate() {
+  resetForm();
+  els.confirmedInterviewDate.value = state.selectedDate;
+  els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), -8));
+  els.name.value = `${els.department.value} 직원 채용`;
+  state.rightTab = "day";
+  renderSchedulePreview();
+  els.name.focus();
+}
+
+function deleteSelectedEvent(event) {
+  const candidate = event.candidate;
+  const label = `${displayRecruitmentListTitle(candidate)} ${eventLabels[event.type]}`;
+  const confirmedInterviewDateMatches = event.type === "interview" && candidate.confirmedInterviewDate === event.date;
+  const message = confirmedInterviewDateMatches
+    ? `${label} 일정을 삭제할까요?\n면접 확정일만 비우고 채용건은 유지합니다.`
+    : `${label}을 삭제할까요?\n자동 생성 일정이라 채용건 전체가 삭제됩니다.`;
+  if (!confirm(message)) return;
+
+  if (confirmedInterviewDateMatches) {
+    candidate.confirmedInterviewDate = "";
+    candidate.updatedAt = new Date().toISOString();
+  } else {
+    state.candidates = state.candidates.filter((item) => item.id !== candidate.id);
+    if (els.candidateId.value === candidate.id) resetForm();
+  }
+  persist();
+  render();
 }
 
 function renderCandidateList() {

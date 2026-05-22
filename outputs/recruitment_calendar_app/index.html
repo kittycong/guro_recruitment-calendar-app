@@ -18,7 +18,7 @@
 
         <section class="panel">
           <div class="panel-heading">
-            <h2>지원자 등록</h2>
+            <h2>채용 공고 등록</h2>
             <button class="icon-button" id="resetFormButton" type="button" aria-label="입력 초기화" title="입력 초기화">↺</button>
           </div>
           <form id="candidateForm" class="candidate-form">
@@ -234,6 +234,9 @@
               <button type="button" class="side-tab" data-right-tab="search">검색 결과</button>
             </div>
             <section class="side-pane active" data-right-pane="day">
+              <div class="day-actions">
+                <button type="button" class="primary-button compact-action" id="addSelectedDateButton">면접 일정 추가</button>
+              </div>
               <div id="selectedEvents" class="event-list"></div>
             </section>
             <section class="side-pane" data-right-pane="list">
