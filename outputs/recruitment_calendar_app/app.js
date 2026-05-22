@@ -79,7 +79,8 @@ const els = {
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
   calendarGrid: document.querySelector("#calendarGrid"),
   selectedEvents: document.querySelector("#selectedEvents"),
-  addSelectedDateButton: document.querySelector("#addSelectedDateButton"),
+  addSelectedInterviewButton: document.querySelector("#addSelectedInterviewButton"),
+  addSelectedDeadlineButton: document.querySelector("#addSelectedDeadlineButton"),
   candidateList: document.querySelector("#candidateList"),
   searchResults: document.querySelector("#searchResults"),
   calendarPanel: document.querySelector(".calendar-panel"),
@@ -144,7 +145,8 @@ function bindEvents() {
 
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
-  els.addSelectedDateButton.addEventListener("click", addScheduleForSelectedDate);
+  els.addSelectedInterviewButton.addEventListener("click", addInterviewForSelectedDate);
+  els.addSelectedDeadlineButton.addEventListener("click", addDeadlineForSelectedDate);
   els.addIntervieweeButton.addEventListener("click", () => addIntervieweeRow());
   els.addRecruitmentFieldButton.addEventListener("click", () => addRecruitmentFieldRow());
   els.intervieweeRows.addEventListener("click", (event) => {
@@ -380,10 +382,23 @@ function renderCalendar() {
       .filter(Boolean)
       .join(" ");
     button.setAttribute("aria-label", `${formatDateLong(date)} 일정 ${dayEvents.length}건`);
+    button.dataset.date = dateKey;
     button.addEventListener("click", () => {
       state.selectedDate = dateKey;
       state.currentMonth = startOfMonth(date);
       render();
+    });
+    button.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      button.classList.add("drop-target");
+    });
+    button.addEventListener("dragleave", () => {
+      button.classList.remove("drop-target");
+    });
+    button.addEventListener("drop", (event) => {
+      event.preventDefault();
+      button.classList.remove("drop-target");
+      moveCalendarEvent(event.dataTransfer.getData("text/plain"), dateKey);
     });
 
     const number = document.createElement("div");
@@ -394,6 +409,21 @@ function renderCalendar() {
     dayEvents.slice(0, 3).forEach((event) => {
       const chip = document.createElement("span");
       chip.className = `event-chip ${event.type}`;
+      chip.draggable = true;
+      chip.title = "끌어서 다른 날짜로 이동";
+      chip.addEventListener("click", (clickEvent) => {
+        clickEvent.stopPropagation();
+        state.selectedDate = event.date;
+        state.currentMonth = startOfMonth(parseDate(event.date));
+        state.rightTab = "day";
+        render();
+      });
+      chip.addEventListener("dragstart", (dragEvent) => {
+        dragEvent.dataTransfer.setData("text/plain", JSON.stringify({ candidateId: event.candidate.id, type: event.type, date: event.date }));
+        dragEvent.dataTransfer.effectAllowed = "move";
+        chip.classList.add("dragging");
+      });
+      chip.addEventListener("dragend", () => chip.classList.remove("dragging"));
       chip.textContent =
         event.type === "deadline"
           ? `서류마감 · ${event.candidate.department || event.candidate.name}`
@@ -485,7 +515,7 @@ function renderNoticeDetail(event) {
   `;
 }
 
-function addScheduleForSelectedDate() {
+function addInterviewForSelectedDate() {
   resetForm();
   els.confirmedInterviewDate.value = state.selectedDate;
   els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), -8));
@@ -493,6 +523,42 @@ function addScheduleForSelectedDate() {
   state.rightTab = "day";
   renderSchedulePreview();
   els.name.focus();
+}
+
+function addDeadlineForSelectedDate() {
+  resetForm();
+  els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), els.noticeType.value === "normal" ? -16 : -8));
+  els.name.value = `${els.department.value} 직원 채용`;
+  state.rightTab = "day";
+  renderSchedulePreview();
+  els.name.focus();
+}
+
+function moveCalendarEvent(payload, targetDate) {
+  if (!payload || !targetDate) return;
+  let data;
+  try {
+    data = JSON.parse(payload);
+  } catch {
+    return;
+  }
+  const candidate = state.candidates.find((item) => item.id === data.candidateId);
+  if (!candidate) return;
+
+  if (data.type === "interview") {
+    candidate.confirmedInterviewDate = targetDate;
+  } else if (data.type === "deadline") {
+    const offset = candidate.noticeType === "normal" ? 16 : 8;
+    candidate.noticeDate = toDateKey(addDays(parseDate(targetDate), -offset));
+  } else {
+    return;
+  }
+  candidate.updatedAt = new Date().toISOString();
+  persist();
+  state.selectedDate = targetDate;
+  state.currentMonth = startOfMonth(parseDate(targetDate));
+  state.rightTab = "day";
+  render();
 }
 
 function deleteSelectedEvent(event) {

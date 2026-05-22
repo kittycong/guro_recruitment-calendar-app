@@ -666,6 +666,11 @@ button:focus-visible {
   background: #ecfdf5;
 }
 
+.day-cell.drop-target {
+  background: #d1fae5;
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
 .day-number {
   display: flex;
   justify-content: space-between;
@@ -689,6 +694,15 @@ button:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  user-select: none;
+}
+
+.event-chip[draggable="true"] {
+  cursor: grab;
+}
+
+.event-chip.dragging {
+  opacity: 0.55;
 }
 
 .event-chip .count {
@@ -957,12 +971,17 @@ button:focus-visible {
 }
 
 .day-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
   margin: 10px 0;
 }
 
 .compact-action {
   width: 100%;
   min-height: 36px;
+  padding: 0 6px;
+  font-size: 12px;
 }
 
 .event-actions {
