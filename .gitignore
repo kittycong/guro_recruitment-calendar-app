@@ -1,0 +1,12 @@
+outputs/recruitment_calendar_app/.chrome-*/
+outputs/recruitment_calendar_app/.chrome-*
+outputs/recruitment_calendar_app/generated_notice_sample*.hwpx
+outputs/recruitment_calendar_app/generated_notice_sample*.md
+outputs/recruitment_calendar_app/templates/sample_unzip/
+outputs/recruitment_tracker/
+outputs/*.zip
+node_modules/
+build_recruitment_tracker.*
+generate_sample_hwpx.py
+*.tmp
+*.log
