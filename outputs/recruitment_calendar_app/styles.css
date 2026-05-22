@@ -49,7 +49,7 @@ button {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(510px, 36vw) minmax(0, 1fr);
+  grid-template-columns: minmax(360px, 26vw) minmax(0, 1fr);
 }
 
 .sidebar {
