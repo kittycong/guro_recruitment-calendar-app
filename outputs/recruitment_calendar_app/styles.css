@@ -533,7 +533,7 @@ button:focus-visible {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 230px;
+  grid-template-columns: minmax(0, 1fr) 344px;
   gap: 12px;
   min-height: 0;
 }
@@ -1243,7 +1243,7 @@ hr {
   }
 
   .content-grid {
-    grid-template-columns: minmax(0, 1fr) 230px;
+    grid-template-columns: minmax(0, 1fr) 344px;
   }
 
   .day-panel {
