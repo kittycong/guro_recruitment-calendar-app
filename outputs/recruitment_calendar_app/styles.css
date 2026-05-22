@@ -4,25 +4,26 @@
   --surface: #fffdf9;
   --surface-muted: #edf2f1;
   --text: #2f292b;
-  --muted: #756a6e;
-  --border: #ded4d7;
-  --border-strong: #a99aa0;
+  --muted: #5f5559;
+  --border: #d6c9cd;
+  --border-strong: #8f7f86;
   --primary: #6e2432;
   --primary-dark: #56202a;
   --primary-soft: #f5d0df;
   --notice: #60463e;
-  --document: #8eb0bf;
-  --screening: #a994a0;
+  --document: #5f899b;
+  --screening: #866f7b;
   --interview: #6e2432;
-  --eligibility: #98adab;
-  --hire: #5b7f79;
-  --probation: #d76b9d;
+  --eligibility: #658480;
+  --hire: #4f716b;
+  --probation: #ba4f80;
   --danger: #9d2637;
   --warning-bg: #fff8a8;
   --radius: 8px;
   --shadow: 0 14px 34px rgba(96, 70, 62, 0.12);
   font-family:
     "Malgun Gothic", "Apple SD Gothic Neo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
 }
 
 * {
@@ -36,6 +37,7 @@ body {
     linear-gradient(120deg, rgba(255, 169, 214, 0.18), rgba(142, 173, 191, 0.16) 42%, rgba(241, 236, 149, 0.18)),
     var(--bg);
   color: var(--text);
+  line-height: 1.45;
 }
 
 button,
@@ -143,6 +145,7 @@ textarea {
   color: var(--text);
   padding: 10px 11px;
   min-height: 40px;
+  line-height: 1.35;
 }
 
 .execution-input {
@@ -350,6 +353,7 @@ button:focus-visible {
   background: #fffdf9;
   color: var(--text);
   font-weight: 700;
+  line-height: 1.25;
 }
 
 .primary-button {
@@ -400,7 +404,7 @@ button:focus-visible {
 .eyebrow {
   margin: 0 0 2px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -475,11 +479,11 @@ button:focus-visible {
   flex: 1 1 0;
   border: 1px solid var(--border);
   border-radius: 6px;
-  min-height: 36px;
+  min-height: 38px;
   background: #fffdf9;
   color: var(--muted);
-  padding: 0 5px;
-  font-size: 11px;
+  padding: 0 8px;
+  font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -550,6 +554,7 @@ button:focus-visible {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
+  line-height: 1.4;
 }
 
 .calendar-size-control {
@@ -633,7 +638,7 @@ button:focus-visible {
 }
 
 .calendar-panel.compact .event-chip {
-  font-size: 10px;
+  font-size: 11px;
   padding: 2px 4px;
 }
 
@@ -672,8 +677,9 @@ button:focus-visible {
   background: var(--surface-muted);
   padding: 3px 5px;
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1.35;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -790,7 +796,7 @@ button:focus-visible {
   background: #edf2f1;
   color: var(--text);
   padding: 0 7px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -799,7 +805,7 @@ button:focus-visible {
   gap: 6px;
   color: var(--text);
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.65;
 }
 
 .notice-text p {
@@ -887,19 +893,19 @@ button:focus-visible {
 }
 
 .dept-admin {
-  border-left-color: #8eb0bf;
+  border-left-color: #5f899b;
 }
 
 .dept-activity {
-  border-left-color: #98adab;
+  border-left-color: #658480;
 }
 
 .dept-welfare {
-  border-left-color: #f1ec95;
+  border-left-color: #b8a93e;
 }
 
 .dept-housing {
-  border-left-color: #a994a0;
+  border-left-color: #866f7b;
 }
 
 .candidate-top {
@@ -950,9 +956,11 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 5px;
   background: #fffdf9;
-  padding: 6px 8px;
+  min-height: 32px;
+  padding: 6px 9px;
   font-size: 12px;
   font-weight: 800;
+  color: var(--text);
 }
 
 .danger-action {
@@ -1113,7 +1121,7 @@ button:focus-visible {
   border-radius: 999px;
   color: #ffffff;
   text-align: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 20px;
 }
@@ -1188,14 +1196,14 @@ button:focus-visible {
 }
 
 .full-candidate-main strong {
-  font-size: 14px;
+  font-size: 15px;
   overflow-wrap: anywhere;
 }
 
 .full-candidate-main span,
 .full-candidate-dates span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .full-candidate-dates {
