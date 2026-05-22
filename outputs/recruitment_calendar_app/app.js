@@ -2,6 +2,26 @@ const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
+const RECRUITMENT_FIELD_PRESETS = {
+  admin: {
+    label: "사무행정",
+    department: "사무행정팀",
+    fieldName: "사무행정팀 사무원",
+    duty: "사무행정 및 회계, 인사 관련 업무 담당",
+  },
+  activity: {
+    label: "활동지원",
+    department: "활동지원팀",
+    fieldName: "활동지원팀 활동지원 전담인력",
+    duty: "활동지원사업 행정 및 이용자·활동지원사 관리 업무 담당",
+  },
+  welfare: {
+    label: "복지사업/주택",
+    department: "복지사업팀",
+    fieldName: "복지사업팀 사회복지사",
+    duty: "장애인자립생활지원 및 복지사업 업무 담당",
+  },
+};
 const eventLabels = {
   notice: "공고",
   document: "접수",
@@ -44,6 +64,8 @@ const els = {
   interviewees: document.querySelector("#intervieweesInput"),
   intervieweeRows: document.querySelector("#intervieweeRows"),
   addIntervieweeButton: document.querySelector("#addIntervieweeButton"),
+  recruitmentFieldRows: document.querySelector("#recruitmentFieldRows"),
+  addRecruitmentFieldButton: document.querySelector("#addRecruitmentFieldButton"),
   schedulePreview: document.querySelector("#schedulePreview"),
   deleteButton: document.querySelector("#deleteButton"),
   resetFormButton: document.querySelector("#resetFormButton"),
@@ -76,6 +98,7 @@ const els = {
 
 bindEvents();
 renderIntervieweeRows([]);
+renderRecruitmentFieldRows([]);
 render();
 
 function bindEvents() {
@@ -121,6 +144,7 @@ function bindEvents() {
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.addIntervieweeButton.addEventListener("click", () => addIntervieweeRow());
+  els.addRecruitmentFieldButton.addEventListener("click", () => addRecruitmentFieldRow());
   els.intervieweeRows.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-remove-interviewee]");
     if (!removeButton) return;
@@ -129,6 +153,15 @@ function bindEvents() {
   });
   els.intervieweeRows.addEventListener("input", syncIntervieweeTextarea);
   els.intervieweeRows.addEventListener("change", syncIntervieweeTextarea);
+  els.recruitmentFieldRows.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-remove-field]");
+    if (!removeButton) return;
+    removeButton.closest(".recruitment-field-row")?.remove();
+  });
+  els.recruitmentFieldRows.addEventListener("change", (event) => {
+    const presetSelect = event.target.closest('[data-field-setting="preset"]');
+    if (presetSelect) applyRecruitmentPreset(presetSelect.closest(".recruitment-field-row"), presetSelect.value);
+  });
   els.executionNo.addEventListener("input", () => {
     els.executionNo.value = els.executionNo.value.replace(/\D/g, "").slice(0, 3);
   });
@@ -182,6 +215,7 @@ function saveCandidateFromForm() {
     status: els.status.value,
     memo: els.memo.value.trim(),
     interviewees: getIntervieweesFromRows(),
+    recruitmentFields: getRecruitmentFieldsFromRows(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -498,6 +532,7 @@ function fillForm(candidate) {
   els.status.value = candidate.status;
   els.memo.value = candidate.memo;
   renderIntervieweeRows(candidate.interviewees || []);
+  renderRecruitmentFieldRows(candidate.recruitmentFields || defaultRecruitmentFields(candidate));
   els.deleteButton.disabled = false;
   renderSchedulePreview();
   els.name.focus();
@@ -511,6 +546,7 @@ function resetForm() {
   els.hireCount.value = 1;
   els.probationMonths.value = 3;
   renderIntervieweeRows([]);
+  renderRecruitmentFieldRows([]);
   els.deleteButton.disabled = true;
   renderSchedulePreview();
 }
@@ -834,6 +870,7 @@ function getDraftRecruitment() {
     status: els.status.value,
     memo: els.memo.value.trim(),
     interviewees: getIntervieweesFromRows(),
+    recruitmentFields: getRecruitmentFieldsFromRows(),
   };
 }
 
@@ -842,11 +879,17 @@ function buildNoticePayload(candidate) {
   const noticeType = noticeTypeLabel(candidate);
   const shortType = candidate.noticeType === "normal" ? "일반" : "긴급";
   const department = candidate.department || "사무행정팀";
-  const hireCount = Number(candidate.hireCount || 1);
+  const recruitmentFields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate);
+  const primaryField = recruitmentFields[0] || defaultRecruitmentFields(candidate)[0];
+  const hireCount = recruitmentFields.reduce((sum, field) => sum + Number(field.count || 0), 0) || Number(candidate.hireCount || 1);
   const noticeDate = candidate.noticeDate ? parseDate(candidate.noticeDate) : new Date();
   const year = noticeDate.getFullYear();
-  const jobTitle = departmentJobTitle(department);
-  const fieldName = `${department} ${jobTitle}`;
+  const jobTitle = primaryField.fieldName.replace(new RegExp(`^${escapeRegExp(primaryField.department)}\\s*`), "") || departmentJobTitle(department);
+  const fieldName = primaryField.fieldName;
+  const fieldNamesCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.fieldName}`).join("\n");
+  const fieldCountsCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.count}명`).join("\n");
+  const dutyLinesCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.duty}`).join("\n");
+  const departmentLine = recruitmentFields.map((field) => `– ${field.department} (${field.count}명)`).join("\n");
   const serial = normalizeExecutionNo(candidate.executionNo, year);
   const fileTitle = `${formatFileDate(noticeDate)} ${serial} (${shortType}) ${department} 직원 채용 공고`;
   return {
@@ -854,20 +897,25 @@ function buildNoticePayload(candidate) {
     shortType,
     department,
     hireCount,
+    recruitmentFields,
+    primaryField,
     year,
     jobTitle,
     fieldName,
+    fieldNamesCell,
+    fieldCountsCell,
+    dutyLinesCell,
     serial,
     fileTitle,
     title: `${shortType} 직원 채용공고`,
     mainTitle: `[${shortType}][공고 ${serial}호] ${year}년 ${jobTitle}(${department}) 채용 공고`,
-    departmentLine: `– ${department} (${hireCount}명)`,
+    departmentLine,
     periodLine: schedule ? `${formatNoticeDate(schedule.documentStartDate)} ~ ${formatNoticeDate(schedule.documentEndDate)}` : "",
     screeningLine: schedule ? formatNoticeDateWithWeekday(schedule.screeningDate) : "",
     interviewLine: schedule ? `${candidate.confirmedInterviewDate ? "" : "(예정) "}${formatNoticeDateWithWeekday(candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : schedule.plannedInterviewDate)}` : "",
     eligibilityLine: schedule ? `(예정) ${formatNoticeDate(schedule.eligibilityStartDate)} ~ ${formatNoticeDate(schedule.eligibilityEndDate)}` : "",
     workStartLine: candidate.workStartDate ? formatNoticeDateWithWeekday(parseDate(candidate.workStartDate)) : "추후 협의",
-    dutyLine: dutyText(department),
+    dutyLine: primaryField.duty,
     noticeDateLine: formatNoticeDate(noticeDate),
     reasonLine:
       candidate.noticeType === "normal"
@@ -885,7 +933,7 @@ function applyNoticeTemplate(xml, notice) {
     [/채용기간: 2026\. 5\. 19\.\(화\) ~ 2026\. 5\. 27\.\(수\)/g, `채용기간: ${notice.periodLine}`],
     [/GR2026-A-\d{3}/g, notice.serial],
     [/구로센터\s*GR2026-A-\d{3}/g, `구로센터 ${notice.serial}`],
-    [/2026\. 5\. 19/g, notice.noticeDateLine],
+    [/2026\. 5\. 19(?!\.)/g, notice.noticeDateLine],
     [/2026\. 5\. 19\. ~ 2026\. 5\. 27\./g, notice.periodLine.replace(/\([^)]+\)/g, "")],
     [/2026\. 5\. 28\.\(목\)/g, notice.screeningLine],
     [/\(예정\) 2026\. 5\. 29\.\(금\)/g, notice.interviewLine],
@@ -893,16 +941,17 @@ function applyNoticeTemplate(xml, notice) {
     [/추후 협의/g, notice.workStartLine],
     [/\[(긴급|일반)\]\[공고\s*[^호\]]+호\]\s*2026년\s*사회복지사\(복지사업팀\)\s*채용\s*공고/g, notice.mainTitle],
     [/2026년\s*사회복지사\(복지사업팀\)\s*채용\s*공고/g, `${notice.year}년 ${notice.jobTitle}(${notice.department}) 채용 공고`],
-    [/복지사업팀 간사/g, notice.fieldName],
+    [/복지사업팀 간사/g, notice.fieldNamesCell],
     [/사회복지사\(복지사업팀\)/g, `${notice.jobTitle}(${notice.department})`],
-    [/복지사업팀\s*간사/g, notice.fieldName],
-    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, `${notice.hireCount}명 / • ${notice.dutyLine}`],
-    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당/g, `${notice.hireCount}명 / • ${notice.dutyLine}`],
-    [/1명 \/ •[^<]*?업무 담당\s*1명/g, `${notice.hireCount}명 / • ${notice.dutyLine}`],
-    [/1명 \/ •[^<]*?업무 담당/g, `${notice.hireCount}명 / • ${notice.dutyLine}`],
-    [/<hp:t>1명<\/hp:t>/g, `<hp:t>${escapeXmlText(`${notice.hireCount}명`)}</hp:t>`],
-    [/장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, notice.dutyLine],
-    [/장애인자립생활지원\(복지사업\) 사업 업무 담당/g, notice.dutyLine],
+    [/복지사업팀\s*간사/g, notice.fieldNamesCell],
+    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
+    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
+    [/1명 \/ •[^<]*?업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
+    [/1명 \/ •[^<]*?업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
+    [/<hp:t>복지사업팀 간사<\/hp:t>/g, `<hp:t>${escapeXmlText(notice.fieldNamesCell)}</hp:t>`],
+    [/<hp:t>1명<\/hp:t>/g, `<hp:t>${escapeXmlText(notice.fieldCountsCell)}</hp:t>`],
+    [/장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, notice.dutyLinesCell],
+    [/장애인자립생활지원\(복지사업\) 사업 업무 담당/g, notice.dutyLinesCell],
     [/복지사업팀 \(1명\)/g, `${notice.department} (${notice.hireCount}명)`],
   ];
   return replacements.reduce((value, [pattern, replacement]) => {
@@ -915,7 +964,9 @@ function buildPlainNoticeText(notice) {
   return [
     notice.title,
     "",
-    `채용부서 및 모집인원: ${notice.department} ${notice.hireCount}명`,
+    `채용부서 및 모집인원: ${notice.recruitmentFields.map((field) => `${field.department} ${field.count}명`).join(", ")}`,
+    "채용분야:",
+    ...notice.recruitmentFields.map((field, index) => `${index + 1}. ${field.fieldName} / ${field.count}명 / ${field.duty}`),
     `공고유형: ${notice.noticeType}`,
     `채용기간: ${notice.periodLine}`,
     `서류심사: ${notice.screeningLine}`,
@@ -976,6 +1027,10 @@ function escapeXmlText(value) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function csvEscape(value) {
@@ -1065,6 +1120,7 @@ function normalizeCandidates(candidates) {
     department: DEPARTMENTS.includes(candidate.department) ? candidate.department : DEPARTMENTS[0],
     hireCount: Number(candidate.hireCount || 1),
     interviewees: normalizeInterviewees(candidate.interviewees, candidate.name, candidate.phone),
+    recruitmentFields: normalizeRecruitmentFields(candidate.recruitmentFields, candidate),
   }));
 }
 
@@ -1182,6 +1238,105 @@ function formatInterviewees(people) {
   return normalizeInterviewees(people)
     .map((person) => [person.name, person.phone, person.email, person.status].filter(Boolean).join(" / "))
     .join("\n");
+}
+
+function addRecruitmentFieldRow(field = {}) {
+  const normalized = normalizeRecruitmentFields([field], getDraftBaseForFields())[0] || defaultRecruitmentFields(getDraftBaseForFields())[0];
+  const row = document.createElement("div");
+  row.className = "recruitment-field-row";
+  row.dataset.fieldId = normalized.id || crypto.randomUUID();
+  row.innerHTML = `
+    <select data-field-setting="preset" title="채용분야 메뉴">
+      <option value="">직접입력</option>
+      ${Object.entries(RECRUITMENT_FIELD_PRESETS)
+        .map(([key, preset]) => `<option value="${key}"${normalized.preset === key ? " selected" : ""}>${preset.label}</option>`)
+        .join("")}
+    </select>
+    <select data-field-setting="department" title="부서">
+      ${DEPARTMENTS.map((department) => `<option${normalized.department === department ? " selected" : ""}>${department}</option>`).join("")}
+    </select>
+    <input data-field-setting="fieldName" type="text" placeholder="분야명" value="${escapeHtml(normalized.fieldName)}" />
+    <input data-field-setting="count" type="number" min="1" max="99" value="${Number(normalized.count || 1)}" title="인원" />
+    <input data-field-setting="duty" type="text" placeholder="주요직무" value="${escapeHtml(normalized.duty)}" />
+    <button type="button" data-remove-field aria-label="채용분야 삭제">삭제</button>
+  `;
+  els.recruitmentFieldRows.append(row);
+}
+
+function renderRecruitmentFieldRows(fields) {
+  els.recruitmentFieldRows.innerHTML = "";
+  const normalized = normalizeRecruitmentFields(fields, getDraftBaseForFields());
+  (normalized.length ? normalized : defaultRecruitmentFields(getDraftBaseForFields())).forEach((field) => addRecruitmentFieldRow(field));
+}
+
+function getRecruitmentFieldsFromRows() {
+  return [...els.recruitmentFieldRows.querySelectorAll(".recruitment-field-row")]
+    .map((row) => {
+      const value = (field) => row.querySelector(`[data-field-setting="${field}"]`)?.value.trim() || "";
+      return {
+        id: row.dataset.fieldId || crypto.randomUUID(),
+        preset: value("preset"),
+        department: value("department") || els.department.value,
+        fieldName: value("fieldName"),
+        count: Number(value("count") || 1),
+        duty: value("duty"),
+      };
+    })
+    .filter((field) => field.department || field.fieldName || field.duty);
+}
+
+function applyRecruitmentPreset(row, presetKey) {
+  if (!row || !presetKey || !RECRUITMENT_FIELD_PRESETS[presetKey]) return;
+  const preset = RECRUITMENT_FIELD_PRESETS[presetKey];
+  row.querySelector('[data-field-setting="department"]').value = preset.department;
+  row.querySelector('[data-field-setting="fieldName"]').value = preset.fieldName;
+  row.querySelector('[data-field-setting="duty"]').value = preset.duty;
+}
+
+function getDraftBaseForFields() {
+  return {
+    department: els.department.value || DEPARTMENTS[0],
+    hireCount: Number(els.hireCount.value || 1),
+  };
+}
+
+function normalizeRecruitmentFields(fields, candidate = {}) {
+  if (Array.isArray(fields) && fields.length) {
+    return fields
+      .map((field) => {
+        const department = DEPARTMENTS.includes(field.department) ? field.department : candidate.department || DEPARTMENTS[0];
+        return {
+          id: field.id || crypto.randomUUID(),
+          preset: field.preset || "",
+          department,
+          fieldName: field.fieldName || `${department} ${departmentJobTitle(department)}`,
+          count: Math.max(1, Number(field.count || 1)),
+          duty: field.duty || dutyText(department),
+        };
+      })
+      .filter((field) => field.fieldName || field.duty);
+  }
+  return defaultRecruitmentFields(candidate);
+}
+
+function defaultRecruitmentFields(candidate = {}) {
+  const department = DEPARTMENTS.includes(candidate.department) ? candidate.department : DEPARTMENTS[0];
+  return [
+    {
+      id: crypto.randomUUID(),
+      preset: presetKeyForDepartment(department),
+      department,
+      fieldName: `${department} ${departmentJobTitle(department)}`,
+      count: Math.max(1, Number(candidate.hireCount || 1)),
+      duty: dutyText(department),
+    },
+  ];
+}
+
+function presetKeyForDepartment(department) {
+  if (department === "사무행정팀") return "admin";
+  if (department === "활동지원팀") return "activity";
+  return "welfare";
 }
 
 function normalizeInterviewees(people, fallbackName = "", fallbackPhone = "") {

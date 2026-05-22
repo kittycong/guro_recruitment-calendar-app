@@ -129,6 +129,14 @@
             <section class="schedule-preview" aria-label="공고파일 생성">
               <div class="schedule-preview-title">공고파일 생성</div>
               <p class="helper-text">현재 입력값으로 샘플 양식 기반 HWPX 공고를 생성합니다.</p>
+              <div class="section-title-row field-title-row">
+                <div>
+                  <strong>붙임1 채용분야</strong>
+                  <span>한 공고에 모집분야가 여러 개면 행을 추가하세요.</span>
+                </div>
+                <button class="small-button" id="addRecruitmentFieldButton" type="button">분야 추가</button>
+              </div>
+              <div id="recruitmentFieldRows" class="recruitment-field-editor" aria-label="채용분야 설정"></div>
               <label>
                 공고 양식
                 <select id="noticeTemplateInput">

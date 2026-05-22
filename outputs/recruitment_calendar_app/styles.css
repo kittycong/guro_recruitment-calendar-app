@@ -244,20 +244,38 @@ button:focus-visible {
   gap: 8px;
 }
 
-.interviewee-row {
+.field-title-row {
+  margin-top: 8px;
+}
+
+.interviewee-row,
+.recruitment-field-row {
   display: grid;
   grid-template-columns: minmax(72px, 1fr) minmax(112px, 1.2fr) minmax(110px, 1.2fr) minmax(92px, 1fr) auto;
   gap: 6px;
 }
 
 .interviewee-row input,
-.interviewee-row select {
+.interviewee-row select,
+.recruitment-field-row input,
+.recruitment-field-row select {
   min-height: 34px;
   padding: 7px 8px;
   font-size: 12px;
 }
 
-.interviewee-row button {
+.recruitment-field-editor {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.recruitment-field-row {
+  grid-template-columns: 88px 112px minmax(120px, 1.2fr) 58px minmax(150px, 1.5fr) auto;
+}
+
+.interviewee-row button,
+.recruitment-field-row button {
   border: 1px solid var(--border);
   border-radius: 5px;
   background: #ffffff;
@@ -1120,6 +1138,7 @@ hr {
 
   .date-grid,
   .interviewee-row,
+  .recruitment-field-row,
   .timeline-row {
     grid-template-columns: 1fr;
   }
