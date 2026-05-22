@@ -39,7 +39,7 @@ const state = {
   candidates: loadCandidates(),
   filters: new Set(["deadline", "interview"]),
   search: "",
-  calendarSize: localStorage.getItem("recruitment-calendar-size") || "normal",
+  calendarSize: ["compact", "normal"].includes(localStorage.getItem("recruitment-calendar-size")) ? localStorage.getItem("recruitment-calendar-size") : "normal",
   activeView: localStorage.getItem("recruitment-active-view") || "calendar",
   rightTab: "day",
 };
@@ -252,7 +252,6 @@ function render() {
 
 function renderCalendarSize() {
   els.calendarPanel.classList.toggle("compact", state.calendarSize === "compact");
-  els.calendarPanel.classList.toggle("large", state.calendarSize === "large");
   document.querySelectorAll(".size-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.calendarSize === state.calendarSize);
   });

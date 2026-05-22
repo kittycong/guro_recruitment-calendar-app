@@ -49,7 +49,7 @@ button {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(620px, 44vw) minmax(0, 1fr);
+  grid-template-columns: minmax(510px, 36vw) minmax(0, 1fr);
 }
 
 .sidebar {
@@ -632,25 +632,6 @@ button:focus-visible {
 .calendar-panel.compact .event-chip {
   font-size: 10px;
   padding: 2px 4px;
-}
-
-.calendar-panel.large {
-  overflow-x: auto;
-}
-
-.calendar-panel.large .weekday-row,
-.calendar-panel.large .calendar-grid {
-  min-width: 760px;
-}
-
-.calendar-panel.large .day-cell {
-  min-height: 142px;
-  padding: 8px;
-}
-
-.calendar-panel.large .event-chip {
-  font-size: 12px;
-  padding: 5px 6px;
 }
 
 .day-cell.other-month {
