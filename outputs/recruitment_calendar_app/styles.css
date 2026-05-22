@@ -1,25 +1,26 @@
 :root {
   color-scheme: light;
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --surface-muted: #eef3f6;
-  --text: #1f2933;
-  --muted: #607080;
-  --border: #d7dee5;
-  --border-strong: #aab7c4;
-  --primary: #0f766e;
-  --primary-dark: #115e59;
-  --notice: #475569;
-  --document: #3b82f6;
-  --screening: #7c3aed;
-  --interview: #b45309;
-  --eligibility: #0e7490;
-  --hire: #15803d;
-  --probation: #be123c;
-  --danger: #b91c1c;
-  --warning-bg: #fff7ed;
+  --bg: #f7f4f5;
+  --surface: #fffdf9;
+  --surface-muted: #edf2f1;
+  --text: #2f292b;
+  --muted: #756a6e;
+  --border: #ded4d7;
+  --border-strong: #a99aa0;
+  --primary: #6e2432;
+  --primary-dark: #56202a;
+  --primary-soft: #f5d0df;
+  --notice: #60463e;
+  --document: #8eb0bf;
+  --screening: #a994a0;
+  --interview: #6e2432;
+  --eligibility: #98adab;
+  --hire: #5b7f79;
+  --probation: #d76b9d;
+  --danger: #9d2637;
+  --warning-bg: #fff8a8;
   --radius: 8px;
-  --shadow: 0 12px 30px rgba(31, 41, 51, 0.08);
+  --shadow: 0 14px 34px rgba(96, 70, 62, 0.12);
   font-family:
     "Malgun Gothic", "Apple SD Gothic Neo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -31,7 +32,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    linear-gradient(120deg, rgba(255, 169, 214, 0.18), rgba(142, 173, 191, 0.16) 42%, rgba(241, 236, 149, 0.18)),
+    var(--bg);
   color: var(--text);
 }
 
@@ -53,8 +56,8 @@ button {
 }
 
 .sidebar {
-  background: #22313f;
-  color: #f8fafc;
+  background: linear-gradient(180deg, #6e2432 0%, #60463e 100%);
+  color: #fff8fb;
   padding: 22px;
   overflow-y: auto;
 }
@@ -78,7 +81,7 @@ button {
 
 .brand p {
   margin: 8px 0 0;
-  color: #cbd5e1;
+  color: #f5d0df;
   line-height: 1.5;
 }
 
@@ -136,7 +139,7 @@ textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #ffffff;
+  background: #fffdf9;
   color: var(--text);
   padding: 10px 11px;
   min-height: 40px;
@@ -149,7 +152,7 @@ textarea {
   min-height: 40px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #ffffff;
+  background: #fffdf9;
   overflow: hidden;
 }
 
@@ -158,7 +161,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   padding: 0 10px;
-  background: #eef3f6;
+  background: #edf2f1;
   color: var(--text);
   border-right: 1px solid var(--border);
   font-size: 13px;
@@ -179,7 +182,7 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus-visible {
-  outline: 3px solid rgba(15, 118, 110, 0.24);
+  outline: 3px solid rgba(215, 107, 157, 0.32);
   outline-offset: 2px;
 }
 
@@ -196,14 +199,14 @@ button:focus-visible {
 .schedule-preview {
   border: 1px solid var(--border);
   border-radius: 7px;
-  background: #f8fafc;
+  background: #f8f2f5;
   padding: 12px;
 }
 
 .form-section {
   border: 1px solid var(--border);
   border-radius: 7px;
-  background: #f8fafc;
+  background: #f8f2f5;
   padding: 12px;
 }
 
@@ -233,7 +236,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 6px;
   min-height: 32px;
-  background: #ffffff;
+  background: #fffdf9;
   color: var(--text);
   padding: 0 10px;
   font-size: 12px;
@@ -290,7 +293,7 @@ button:focus-visible {
 .recruitment-field-row button {
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: #ffffff;
+  background: #fffdf9;
   color: var(--muted);
   min-height: 34px;
   min-width: 44px;
@@ -344,7 +347,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 6px;
   min-height: 40px;
-  background: #ffffff;
+  background: #fffdf9;
   color: var(--text);
   font-weight: 700;
 }
@@ -366,7 +369,7 @@ button:focus-visible {
 }
 
 .secondary-button:disabled {
-  color: #94a3b8;
+  color: #b4a7ad;
   cursor: not-allowed;
 }
 
@@ -425,15 +428,15 @@ button:focus-visible {
   align-items: center;
   gap: 12px;
   min-height: 48px;
-  border: 1px solid #fed7aa;
+  border: 1px solid #f1ec95;
   border-radius: var(--radius);
-  background: #fff7ed;
+  background: #fffbd0;
   padding: 10px 12px;
   margin-bottom: 12px;
 }
 
 .deadline-banner strong {
-  color: #9a3412;
+  color: #6e2432;
   font-size: 13px;
   white-space: nowrap;
 }
@@ -453,10 +456,10 @@ button:focus-visible {
 }
 
 .deadline-banner button {
-  border: 1px solid #fdba74;
+  border: 1px solid #e7dc78;
   border-radius: 6px;
-  background: #ffffff;
-  color: #9a3412;
+  background: #fffdf9;
+  color: #6e2432;
   min-height: 30px;
   padding: 0 9px;
   font-size: 12px;
@@ -473,7 +476,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 6px;
   min-height: 36px;
-  background: #ffffff;
+  background: #fffdf9;
   color: var(--muted);
   padding: 0 5px;
   font-size: 11px;
@@ -554,13 +557,13 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
-  background: #ffffff;
+  background: #fffdf9;
 }
 
 .size-button {
   border: 0;
   border-right: 1px solid var(--border);
-  background: #ffffff;
+  background: #fffdf9;
   color: var(--muted);
   min-height: 32px;
   padding: 0 10px;
@@ -615,7 +618,7 @@ button:focus-visible {
 
 .day-cell {
   min-height: 94px;
-  background: #ffffff;
+  background: #fffdf9;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   padding: 6px;
@@ -635,8 +638,8 @@ button:focus-visible {
 }
 
 .day-cell.other-month {
-  background: #f8fafc;
-  color: #94a3b8;
+  background: #f3eeee;
+  color: #b4a7ad;
 }
 
 .day-cell.today {
@@ -644,11 +647,11 @@ button:focus-visible {
 }
 
 .day-cell.selected {
-  background: #ecfdf5;
+  background: #f5d0df;
 }
 
 .day-cell.drop-target {
-  background: #d1fae5;
+  background: #d9e4e2;
   box-shadow: inset 0 0 0 2px var(--primary);
 }
 
@@ -709,7 +712,7 @@ button:focus-visible {
 
 .event-chip.deadline {
   color: var(--probation);
-  background: #fff7ed;
+  background: #fffbd0;
 }
 
 .event-chip.eligibility {
@@ -749,7 +752,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-radius: 7px;
   padding: 10px;
-  background: #ffffff;
+  background: #fffdf9;
 }
 
 .event-item {
@@ -762,7 +765,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 5px solid var(--interview);
   border-radius: 7px;
-  background: #ffffff;
+  background: #fffdf9;
   padding: 12px;
 }
 
@@ -784,7 +787,7 @@ button:focus-visible {
   align-items: center;
   min-height: 24px;
   border-radius: 999px;
-  background: #eef3f6;
+  background: #edf2f1;
   color: var(--text);
   padding: 0 7px;
   font-size: 11px;
@@ -884,19 +887,19 @@ button:focus-visible {
 }
 
 .dept-admin {
-  border-left-color: #2563eb;
+  border-left-color: #8eb0bf;
 }
 
 .dept-activity {
-  border-left-color: #16a34a;
+  border-left-color: #98adab;
 }
 
 .dept-welfare {
-  border-left-color: #ea580c;
+  border-left-color: #f1ec95;
 }
 
 .dept-housing {
-  border-left-color: #7c3aed;
+  border-left-color: #a994a0;
 }
 
 .candidate-top {
@@ -920,20 +923,20 @@ button:focus-visible {
   min-height: 24px;
   border-radius: 999px;
   padding: 0 8px;
-  background: #e2e8f0;
-  color: #334155;
+  background: #edf2f1;
+  color: #60463e;
   font-size: 12px;
   font-weight: 800;
 }
 
 .status-badge.hired {
-  background: #dcfce7;
-  color: #166534;
+  background: #d9e4e2;
+  color: #456c66;
 }
 
 .status-badge.rejected {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #f5d0df;
+  color: #7d2433;
 }
 
 .candidate-actions {
@@ -946,14 +949,14 @@ button:focus-visible {
 .full-candidate-actions button {
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: #ffffff;
+  background: #fffdf9;
   padding: 6px 8px;
   font-size: 12px;
   font-weight: 800;
 }
 
 .danger-action {
-  border-color: #fecaca !important;
+  border-color: #f5b6c9 !important;
   color: var(--danger);
 }
 
@@ -984,7 +987,7 @@ button:focus-visible {
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: #e7dcde;
   overflow: hidden;
 }
 
@@ -1040,7 +1043,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 5px solid var(--border-strong);
   border-radius: 7px;
-  background: #ffffff;
+  background: #fffdf9;
   padding: 9px;
 }
 
@@ -1066,7 +1069,7 @@ button:focus-visible {
 .kanban-card button {
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: #ffffff;
+  background: #fffdf9;
   padding: 4px 7px;
   color: var(--text);
   font-size: 12px;
@@ -1085,7 +1088,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 5px solid var(--border-strong);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: #fffdf9;
   padding: 12px;
 }
 
@@ -1099,7 +1102,7 @@ button:focus-visible {
   position: relative;
   min-height: 34px;
   border-radius: 999px;
-  background: #eef3f6;
+  background: #edf2f1;
   overflow: hidden;
 }
 
@@ -1116,15 +1119,15 @@ button:focus-visible {
 }
 
 .notice-segment {
-  background: #7c3aed;
+  background: #a994a0;
 }
 
 .interview-segment {
-  background: #b45309;
+  background: #6e2432;
 }
 
 .probation-segment {
-  background: #be123c;
+  background: #d76b9d;
 }
 
 .timeline-dates {
@@ -1173,7 +1176,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 5px solid var(--border-strong);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: #fffdf9;
   padding: 12px;
 }
 
