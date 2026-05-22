@@ -10,6 +10,12 @@
 http://127.0.0.1:4173/
 ```
 
+GitHub Pages 배포 주소:
+
+```text
+https://kittycong.github.io/guro_recruitment-calendar-app/
+```
+
 ## 로컬 실행
 
 ```powershell
