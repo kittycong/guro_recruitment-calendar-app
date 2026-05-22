@@ -49,13 +49,13 @@ button {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(320px, 380px) 1fr;
+  grid-template-columns: minmax(420px, 480px) minmax(0, 1fr);
 }
 
 .sidebar {
   background: #22313f;
   color: #f8fafc;
-  padding: 24px;
+  padding: 22px;
   overflow-y: auto;
 }
 
@@ -93,7 +93,7 @@ button {
 
 .sidebar .panel {
   color: var(--text);
-  padding: 18px;
+  padding: 20px;
 }
 
 .panel-heading,
@@ -271,7 +271,13 @@ button:focus-visible {
 }
 
 .recruitment-field-row {
-  grid-template-columns: 88px 112px minmax(120px, 1.2fr) 58px minmax(150px, 1.5fr) auto;
+  grid-template-columns: 96px minmax(0, 1fr) 64px 48px;
+  align-items: start;
+}
+
+.recruitment-field-row [data-field-setting="fieldName"],
+.recruitment-field-row [data-field-setting="duty"] {
+  grid-column: 1 / -1;
 }
 
 .interviewee-row button,
@@ -280,6 +286,8 @@ button:focus-visible {
   border-radius: 5px;
   background: #ffffff;
   color: var(--muted);
+  min-height: 34px;
+  min-width: 44px;
   padding: 0 8px;
   font-size: 12px;
   font-weight: 800;
@@ -364,7 +372,7 @@ button:focus-visible {
 }
 
 .main {
-  padding: 24px;
+  padding: 22px;
   overflow: hidden;
 }
 
@@ -509,7 +517,7 @@ button:focus-visible {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(480px, 560px) minmax(420px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   gap: 16px;
   min-height: 0;
 }
@@ -720,7 +728,7 @@ button:focus-visible {
 }
 
 .day-panel {
-  padding: 18px;
+  padding: 14px;
   min-width: 0;
   max-height: calc(100vh - 152px);
   overflow-y: auto;
@@ -1097,7 +1105,7 @@ hr {
   margin: 16px 0;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1120px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
@@ -1107,11 +1115,17 @@ hr {
   }
 
   .content-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   }
 
   .day-panel {
     max-height: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .content-grid {
+    grid-template-columns: 1fr;
   }
 }
 
