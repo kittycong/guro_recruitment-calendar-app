@@ -82,6 +82,8 @@ const els = {
   addSelectedInterviewButton: document.querySelector("#addSelectedInterviewButton"),
   addSelectedDeadlineButton: document.querySelector("#addSelectedDeadlineButton"),
   candidateList: document.querySelector("#candidateList"),
+  fullCandidateList: document.querySelector("#fullCandidateList"),
+  addListRecruitmentButton: document.querySelector("#addListRecruitmentButton"),
   searchResults: document.querySelector("#searchResults"),
   calendarPanel: document.querySelector(".calendar-panel"),
   deadlineBanner: document.querySelector("#deadlineBanner"),
@@ -147,6 +149,7 @@ function bindEvents() {
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.addSelectedInterviewButton.addEventListener("click", addInterviewForSelectedDate);
   els.addSelectedDeadlineButton.addEventListener("click", addDeadlineForSelectedDate);
+  els.addListRecruitmentButton.addEventListener("click", addRecruitmentFromList);
   els.addIntervieweeButton.addEventListener("click", () => addIntervieweeRow());
   els.addRecruitmentFieldButton.addEventListener("click", () => addRecruitmentFieldRow());
   els.intervieweeRows.addEventListener("click", (event) => {
@@ -245,6 +248,7 @@ function render() {
   renderRightPanelTabs();
   renderSelectedDay();
   renderCandidateList();
+  renderFullCandidateList();
   renderSearchResults();
   renderKanban();
   renderTimeline();
@@ -585,9 +589,72 @@ function renderCandidateList() {
   renderCandidateCollection(els.candidateList, candidates, "조건에 맞는 채용건이 없습니다.");
 }
 
+function renderFullCandidateList() {
+  const candidates = getVisibleCandidates();
+  if (!candidates.length) {
+    els.fullCandidateList.innerHTML = `<div class="empty-state">등록된 채용 공고가 없습니다.</div>`;
+    return;
+  }
+
+  els.fullCandidateList.innerHTML = candidates
+    .map((candidate) => {
+      const schedule = buildSchedule(candidate);
+      const progress = getCandidateProgress(candidate);
+      const people = normalizeInterviewees(candidate.interviewees);
+      return `
+        <article class="full-candidate-row dept-${departmentKey(candidate.department)}" data-candidate-id="${candidate.id}">
+          <div class="full-candidate-main">
+            <strong>${escapeHtml(displayRecruitmentListTitle(candidate))}</strong>
+            <span>${escapeHtml(candidate.department || "부서 미입력")} · ${escapeHtml(noticeTypeLabel(candidate))} · ${Number(candidate.hireCount || 1)}명 채용 · ${escapeHtml(candidate.source || "경로 미입력")}</span>
+          </div>
+          <div class="full-candidate-dates">
+            <span>공고일 ${candidate.noticeDate || "미입력"}</span>
+            <span>서류마감 ${schedule ? toDateKey(schedule.documentEndDate) : "미정"}</span>
+            <span>면접 ${getInterviewDate(candidate) || "미정"}</span>
+            <span>대상자 ${people.length}명</span>
+          </div>
+          <div class="full-candidate-status">
+            <span class="${getStatusClass(candidate.status)}">${escapeHtml(candidate.status || "진행중")}</span>
+            <div class="progress-line" aria-label="진행률 ${progress}%"><span style="width: ${progress}%"></span></div>
+          </div>
+          <div class="full-candidate-actions">
+            <button type="button" data-list-action="edit">수정</button>
+            <button type="button" data-list-action="calendar">달력보기</button>
+            <button type="button" data-list-action="delete" class="danger-action">삭제</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  els.fullCandidateList.querySelectorAll(".full-candidate-row").forEach((row) => {
+    const candidate = state.candidates.find((item) => item.id === row.dataset.candidateId);
+    if (!candidate) return;
+    row.querySelector('[data-list-action="edit"]').addEventListener("click", () => fillForm(candidate));
+    row.querySelector('[data-list-action="calendar"]').addEventListener("click", () => selectBestDate(candidate));
+    row.querySelector('[data-list-action="delete"]').addEventListener("click", () => deleteCandidate(candidate));
+  });
+}
+
 function renderSearchResults() {
   const candidates = state.search ? getVisibleCandidates() : [];
   renderCandidateCollection(els.searchResults, candidates, state.search ? "검색 결과가 없습니다." : "검색어를 입력하면 결과가 표시됩니다.");
+}
+
+function addRecruitmentFromList() {
+  resetForm();
+  state.activeView = "list";
+  localStorage.setItem("recruitment-active-view", state.activeView);
+  render();
+  els.name.focus();
+}
+
+function deleteCandidate(candidate) {
+  if (!confirm(`${displayRecruitmentListTitle(candidate)} 채용건을 삭제할까요?`)) return;
+  state.candidates = state.candidates.filter((item) => item.id !== candidate.id);
+  if (els.candidateId.value === candidate.id) resetForm();
+  persist();
+  render();
 }
 
 function renderCandidateCollection(container, candidates, emptyMessage) {

@@ -942,13 +942,19 @@ button:focus-visible {
 }
 
 .candidate-actions button,
-.event-actions button {
+.event-actions button,
+.full-candidate-actions button {
   border: 1px solid var(--border);
   border-radius: 5px;
   background: #ffffff;
   padding: 6px 8px;
   font-size: 12px;
   font-weight: 800;
+}
+
+.danger-action {
+  border-color: #fecaca !important;
+  color: var(--danger);
 }
 
 .day-actions {
@@ -1128,6 +1134,79 @@ button:focus-visible {
   gap: 10px;
 }
 
+.list-page {
+  display: grid;
+  gap: 12px;
+}
+
+.list-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 16px;
+}
+
+.list-page-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.list-add-button {
+  flex: 0 0 auto;
+  min-width: 132px;
+}
+
+.full-candidate-list {
+  display: grid;
+  gap: 8px;
+}
+
+.full-candidate-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(260px, 1.5fr) minmax(150px, 0.8fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.full-candidate-main,
+.full-candidate-status {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.full-candidate-main strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.full-candidate-main span,
+.full-candidate-dates span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.full-candidate-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+}
+
+.full-candidate-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .empty-state {
   border: 1px dashed var(--border-strong);
   border-radius: 7px;
@@ -1202,6 +1281,16 @@ hr {
 
   .timeline-dates {
     grid-column: auto;
+  }
+
+  .list-page-header,
+  .full-candidate-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .full-candidate-actions {
+    justify-content: flex-start;
   }
 
   .day-cell {
