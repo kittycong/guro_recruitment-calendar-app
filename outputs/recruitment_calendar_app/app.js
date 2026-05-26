@@ -502,13 +502,37 @@ function renderSchedulePreview() {
 }
 
 function renderCalendar() {
-  els.monthTitle.textContent = formatMonth(state.currentMonth);
+  const months = [startOfMonth(state.currentMonth), addMonths(startOfMonth(state.currentMonth), 1)];
+  els.monthTitle.textContent = `${formatMonth(months[0])} - ${formatMonth(months[1])}`;
   els.calendarGrid.innerHTML = "";
-
-  const first = startOfMonth(state.currentMonth);
-  const calendarStart = addDays(first, -first.getDay());
+  els.calendarGrid.classList.add("dual-month-calendar");
   const events = safeGetFilteredEvents();
 
+  months.forEach((month) => {
+    els.calendarGrid.append(createMonthCalendar(month, events));
+  });
+}
+
+function createMonthCalendar(month, events) {
+  const monthBlock = document.createElement("section");
+  monthBlock.className = "month-calendar";
+  monthBlock.setAttribute("aria-label", `${formatMonth(month)} 채용 일정`);
+
+  const monthHeading = document.createElement("h3");
+  monthHeading.className = "month-calendar-title";
+  monthHeading.textContent = formatMonth(month);
+  monthBlock.append(monthHeading);
+
+  const weekdayRow = document.createElement("div");
+  weekdayRow.className = "weekday-row";
+  weekdayRow.setAttribute("aria-hidden", "true");
+  weekdayRow.innerHTML = "<span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>";
+  monthBlock.append(weekdayRow);
+
+  const monthGrid = document.createElement("div");
+  monthGrid.className = "month-grid";
+  const first = startOfMonth(month);
+  const calendarStart = addDays(first, -first.getDay());
   for (let index = 0; index < 42; index += 1) {
     const date = addDays(calendarStart, index);
     const dateKey = toDateKey(date);
@@ -517,7 +541,7 @@ function renderCalendar() {
     button.type = "button";
     button.className = [
       "day-cell",
-      date.getMonth() !== state.currentMonth.getMonth() ? "other-month" : "",
+      date.getMonth() !== month.getMonth() ? "other-month" : "",
       dateKey === toDateKey(new Date()) ? "today" : "",
       dateKey === state.selectedDate ? "selected" : "",
     ]
@@ -580,8 +604,10 @@ function renderCalendar() {
       button.append(more);
     }
 
-    els.calendarGrid.append(button);
+    monthGrid.append(button);
   }
+  monthBlock.append(monthGrid);
+  return monthBlock;
 }
 
 function renderSelectedDay() {
