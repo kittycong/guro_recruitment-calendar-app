@@ -4,6 +4,34 @@ const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "�
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
 const REGISTERED_RECRUITMENTS = [
   {
+    id: "final-gr2026-a-042",
+    name: "복지사업팀 사회복지사 채용",
+    department: "복지사업팀",
+    hireCount: 1,
+    source: "고용24, 복지넷, 센터 홈페이지, 사람인, 한국사회복지사협회, 한국장애인자립생활센터총연합회",
+    noticeType: "urgent",
+    noticeDate: "2026-05-19",
+    executionNo: "GR2026-A-042",
+    confirmedInterviewDate: "",
+    workStartDate: "",
+    hireDate: "",
+    probationMonths: 3,
+    status: "진행중",
+    memo: "채용 일정만 등록: 서류접수 2026. 5. 19. ~ 2026. 5. 27., 서류심사 2026. 5. 28., 면접예정 2026. 5. 29.",
+    interviewees: [],
+    recruitmentFields: [
+      {
+        id: "field-gr2026-a-042-1",
+        preset: "welfare",
+        department: "복지사업팀",
+        fieldName: "복지사업팀 간사",
+        count: 1,
+        duty: "장애인자립생활지원(복지사업) 사업 업무 담당",
+        workStartDate: "",
+      },
+    ],
+  },
+  {
     id: "final-gr2026-a-048",
     name: "복지사업팀(주택) 사회복지사 채용",
     department: "복지사업팀(주택)",
