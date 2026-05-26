@@ -2,6 +2,45 @@ const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
+const REGISTERED_RECRUITMENTS = [
+  {
+    id: "final-gr2026-a-048",
+    name: "복지사업팀(주택) 사회복지사 채용",
+    department: "복지사업팀(주택)",
+    hireCount: 2,
+    source: "고용24, 복지넷, 센터 홈페이지, 사람인, 한국사회복지사협회, 한국장애인자립생활센터총연합회",
+    noticeType: "normal",
+    noticeDate: "2026-05-26",
+    executionNo: "GR2026-A-048",
+    confirmedInterviewDate: "",
+    workStartDate: "",
+    hireDate: "",
+    probationMonths: 3,
+    status: "진행중",
+    memo: "최종 공고 등록: 채용인원 2명 중 1명은 6월 중, 1명은 7월 중 근무 개시 예정",
+    interviewees: [],
+    recruitmentFields: [
+      {
+        id: "field-gr2026-a-048-1",
+        preset: "housing",
+        department: "복지사업팀(주택)",
+        fieldName: "복지사업팀 간사",
+        count: 1,
+        duty: "장애인자립생활지원(장애인자립생활주택) 사업 업무 담당",
+        workStartDate: "2026-06-01",
+      },
+      {
+        id: "field-gr2026-a-048-2",
+        preset: "housing",
+        department: "복지사업팀(주택)",
+        fieldName: "복지사업팀 간사",
+        count: 1,
+        duty: "장애인자립생활지원(장애인자립생활주택) 사업 업무 담당",
+        workStartDate: "2026-07-01",
+      },
+    ],
+  },
+];
 const RECRUITMENT_FIELD_PRESETS = {
   admin: {
     label: "사무행정",
@@ -538,7 +577,7 @@ function addInterviewForSelectedDate() {
 
 function addDeadlineForSelectedDate() {
   resetForm();
-  els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), els.noticeType.value === "normal" ? -16 : -8));
+  els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), els.noticeType.value === "normal" ? -15 : -8));
   els.name.value = `${els.department.value} 직원 채용`;
   state.rightTab = "day";
   renderSchedulePreview();
@@ -559,7 +598,7 @@ function moveCalendarEvent(payload, targetDate) {
   if (data.type === "interview") {
     candidate.confirmedInterviewDate = targetDate;
   } else if (data.type === "deadline") {
-    const offset = candidate.noticeType === "normal" ? 16 : 8;
+    const offset = candidate.noticeType === "normal" ? 15 : 8;
     candidate.noticeDate = toDateKey(addDays(parseDate(targetDate), -offset));
   } else {
     return;
@@ -1297,12 +1336,12 @@ function loadCandidates() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try {
-      return normalizeCandidates(JSON.parse(saved));
+      return mergeRegisteredRecruitments(normalizeCandidates(JSON.parse(saved)));
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
   }
-  return [
+  return mergeRegisteredRecruitments([
     {
       id: "sample-1",
       name: "활동지원팀 사회복지사 채용",
@@ -1357,7 +1396,21 @@ function loadCandidates() {
       memo: "",
       interviewees: [{ name: "최지훈", phone: "010-4444-4444" }],
     },
-  ];
+  ]);
+}
+
+function mergeRegisteredRecruitments(candidates) {
+  const merged = [...candidates];
+  REGISTERED_RECRUITMENTS.forEach((registered) => {
+    const index = merged.findIndex((candidate) => candidate.executionNo === registered.executionNo || candidate.id === registered.id);
+    const normalized = normalizeCandidates([registered])[0];
+    if (index >= 0) {
+      merged[index] = { ...merged[index], ...normalized };
+    } else {
+      merged.push(normalized);
+    }
+  });
+  return merged;
 }
 
 function normalizeCandidates(candidates) {
@@ -1637,7 +1690,7 @@ function renderIntervieweesHtml(people) {
 function buildSchedule(candidate) {
   if (!candidate.noticeDate) return null;
   const noticeDate = parseDate(candidate.noticeDate);
-  const documentEndOffset = candidate.noticeType === "normal" ? 16 : 8;
+  const documentEndOffset = candidate.noticeType === "normal" ? 15 : 8;
   const documentStartDate = new Date(noticeDate);
   const documentEndDate = addDays(noticeDate, documentEndOffset);
   const screeningDate = addDays(documentEndDate, 1);
