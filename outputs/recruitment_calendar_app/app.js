@@ -21,6 +21,12 @@ const RECRUITMENT_FIELD_PRESETS = {
     fieldName: "복지사업팀 사회복지사",
     duty: "장애인자립생활지원 및 복지사업 업무 담당",
   },
+  housing: {
+    label: "복지사업팀 주택",
+    department: "복지사업팀(주택)",
+    fieldName: "복지사업팀(주택) 사회복지사",
+    duty: "장애인자립생활주택 업무 담당",
+  },
 };
 const eventLabels = {
   notice: "공고",
@@ -74,6 +80,7 @@ const els = {
   todayButton: document.querySelector("#todayButton"),
   exportButton: document.querySelector("#exportButton"),
   downloadHwpxButton: document.querySelector("#downloadHwpxButton"),
+  downloadTxtButton: document.querySelector("#downloadTxtButton"),
   searchInput: document.querySelector("#searchInput"),
   monthTitle: document.querySelector("#monthTitle"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
@@ -147,6 +154,7 @@ function bindEvents() {
 
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
+  els.downloadTxtButton.addEventListener("click", downloadTxtNotice);
   els.addSelectedInterviewButton.addEventListener("click", addInterviewForSelectedDate);
   els.addSelectedDeadlineButton.addEventListener("click", addDeadlineForSelectedDate);
   els.addListRecruitmentButton.addEventListener("click", addRecruitmentFromList);
@@ -972,8 +980,7 @@ function buildCsvRow(candidate) {
 
 async function downloadHwpxNotice() {
   const draft = getDraftRecruitment();
-  if (!draft.name || !draft.department || !draft.noticeDate) {
-    alert("채용건명, 부서, 공고일을 먼저 입력하세요.");
+  if (!validateNoticeDraft(draft)) {
     return;
   }
   if (!window.JSZip) {
@@ -1003,6 +1010,32 @@ async function downloadHwpxNotice() {
 
   const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
   downloadBlob(blob, `${safeFileName(notice.fileTitle)}.hwpx`);
+}
+
+function downloadTxtNotice() {
+  const draft = getDraftRecruitment();
+  if (!validateNoticeDraft(draft)) {
+    return;
+  }
+  const notice = buildNoticePayload(draft);
+  const blob = new Blob([buildNotepadNoticeText(notice)], { type: "text/plain;charset=utf-8" });
+  downloadBlob(blob, `${safeFileName(notice.fileTitle)}_메모장용.txt`);
+}
+
+function validateNoticeDraft(draft) {
+  if (!draft.name || !draft.department || !draft.noticeDate) {
+    alert("채용건명, 부서, 공고일을 먼저 입력하세요.");
+    return false;
+  }
+  if (!draft.recruitmentFields.length) {
+    alert("붙임1 채용분야를 1개 이상 입력하세요.");
+    return false;
+  }
+  if (draft.recruitmentFields.some((field) => !field.fieldName || !field.duty)) {
+    alert("채용분야의 분야명과 주요직무를 모두 입력하세요.");
+    return false;
+  }
+  return true;
 }
 
 async function loadHwpxTemplateBuffer(templateName = "sample_notice") {
@@ -1061,8 +1094,9 @@ function buildNoticePayload(candidate) {
   const fieldName = primaryField.fieldName;
   const fieldNamesCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.fieldName}`).join("\n");
   const fieldCountsCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.count}명`).join("\n");
-  const dutyLinesCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.duty}`).join("\n");
+  const dutyLinesCell = recruitmentFields.map((field, index) => `${index + 1}. ${fieldDutyLine(field, candidate.workStartDate)}`).join("\n");
   const departmentLine = recruitmentFields.map((field) => `– ${field.department} (${field.count}명)`).join("\n");
+  const workStartLine = candidate.workStartDate ? formatNoticeDateWithWeekday(parseDate(candidate.workStartDate)) : "추후 협의";
   const serial = normalizeExecutionNo(candidate.executionNo, year);
   const fileTitle = `${formatFileDate(noticeDate)} ${serial} (${shortType}) ${department} 직원 채용 공고`;
   return {
@@ -1078,6 +1112,7 @@ function buildNoticePayload(candidate) {
     fieldNamesCell,
     fieldCountsCell,
     dutyLinesCell,
+    workStartDate: candidate.workStartDate,
     serial,
     fileTitle,
     title: `${shortType} 직원 채용공고`,
@@ -1087,14 +1122,20 @@ function buildNoticePayload(candidate) {
     screeningLine: schedule ? formatNoticeDateWithWeekday(schedule.screeningDate) : "",
     interviewLine: schedule ? `${candidate.confirmedInterviewDate ? "" : "(예정) "}${formatNoticeDateWithWeekday(candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : schedule.plannedInterviewDate)}` : "",
     eligibilityLine: schedule ? `(예정) ${formatNoticeDate(schedule.eligibilityStartDate)} ~ ${formatNoticeDate(schedule.eligibilityEndDate)}` : "",
-    workStartLine: candidate.workStartDate ? formatNoticeDateWithWeekday(parseDate(candidate.workStartDate)) : "추후 협의",
-    dutyLine: primaryField.duty,
+    workStartLine,
+    dutyLine: fieldDutyLine(primaryField, candidate.workStartDate),
     noticeDateLine: formatNoticeDate(noticeDate),
     reasonLine:
       candidate.noticeType === "normal"
         ? "채용계획에 따라 센터 운영에 필요한 인력을 충원하고자 함"
         : "기존 직원의 퇴사 및 장기 부재로 인해 필수적인 업무 공백이 발생하여 대체 인력의 신속한 충원이 필요",
   };
+}
+
+function fieldDutyLine(field, fallbackWorkStartDate = "") {
+  const duty = `${field.department}/${field.duty}`;
+  const workDate = field.workStartDate || fallbackWorkStartDate || "";
+  return workDate ? `${duty} (근무예정일: ${formatNoticeDateWithWeekday(parseDate(workDate))})` : duty;
 }
 
 function applyNoticeTemplate(xml, notice) {
@@ -1139,7 +1180,7 @@ function buildPlainNoticeText(notice) {
     "",
     `채용부서 및 모집인원: ${notice.recruitmentFields.map((field) => `${field.department} ${field.count}명`).join(", ")}`,
     "채용분야:",
-    ...notice.recruitmentFields.map((field, index) => `${index + 1}. ${field.fieldName} / ${field.count}명 / ${field.duty}`),
+    ...notice.recruitmentFields.map((field, index) => `${index + 1}. ${field.fieldName} / ${field.count}명 / ${fieldDutyLine(field, notice.workStartDate)}`),
     `공고유형: ${notice.noticeType}`,
     `채용기간: ${notice.periodLine}`,
     `서류심사: ${notice.screeningLine}`,
@@ -1147,6 +1188,44 @@ function buildPlainNoticeText(notice) {
     `3차 적격여부 확인: ${notice.eligibilityLine}`,
     `근무개시일: ${notice.workStartLine}`,
   ].join("\n");
+}
+
+function buildNotepadNoticeText(notice) {
+  const lines = [
+    "채용공고",
+    "",
+    `공고번호 ${notice.serial}`,
+    `공고구분 ${notice.noticeType}`,
+    `공고제목 ${notice.year}년 ${notice.jobTitle} ${notice.department} 채용 공고`,
+    "",
+    "채용부서 및 모집인원",
+    ...notice.recruitmentFields.flatMap((field, index) => [
+      `${index + 1}번`,
+      `채용부서 ${field.department}`,
+      `채용분야 ${field.fieldName}`,
+      `모집인원 ${field.count}명`,
+      `직무내용 ${field.department} ${field.duty}`,
+      `근무예정일 ${field.workStartDate ? formatNoticeDateWithWeekday(parseDate(field.workStartDate)) : notice.workStartLine}`,
+      "",
+    ]),
+    "채용일정",
+    `공고 및 접수기간 ${notice.periodLine}`,
+    `서류심사 ${notice.screeningLine}`,
+    `면접일 ${notice.interviewLine.replace("(예정)", "예정")}`,
+    `적격여부 확인 ${notice.eligibilityLine.replace("(예정)", "예정")}`,
+    `근무개시일 ${notice.workStartLine}`,
+  ];
+  return sanitizeNotepadText(lines.join("\n"));
+}
+
+function sanitizeNotepadText(text) {
+  return text
+    .replace(/[•·※★▶▷■□◆◇○●◎]/g, " ")
+    .replace(/[–—]/g, "-")
+    .replace(/[()[\]{}<>]/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function downloadBlob(blob, fileName) {
@@ -1430,7 +1509,8 @@ function addRecruitmentFieldRow(field = {}) {
     </select>
     <input data-field-setting="fieldName" type="text" placeholder="분야명" value="${escapeHtml(normalized.fieldName)}" />
     <input data-field-setting="count" type="number" min="1" max="99" value="${Number(normalized.count || 1)}" title="인원" />
-    <input data-field-setting="duty" type="text" placeholder="주요직무" value="${escapeHtml(normalized.duty)}" />
+    <input data-field-setting="duty" type="text" placeholder="주요직무 예: 장애인자립생활주택 업무 담당" value="${escapeHtml(normalized.duty)}" />
+    <input data-field-setting="workStartDate" type="date" title="근무예정일" value="${escapeHtml(normalized.workStartDate || "")}" />
     <button type="button" data-remove-field aria-label="채용분야 삭제">삭제</button>
   `;
   els.recruitmentFieldRows.append(row);
@@ -1453,6 +1533,7 @@ function getRecruitmentFieldsFromRows() {
         fieldName: value("fieldName"),
         count: Number(value("count") || 1),
         duty: value("duty"),
+        workStartDate: value("workStartDate"),
       };
     })
     .filter((field) => field.department || field.fieldName || field.duty);
@@ -1485,6 +1566,7 @@ function normalizeRecruitmentFields(fields, candidate = {}) {
           fieldName: field.fieldName || `${department} ${departmentJobTitle(department)}`,
           count: Math.max(1, Number(field.count || 1)),
           duty: field.duty || dutyText(department),
+          workStartDate: field.workStartDate || "",
         };
       })
       .filter((field) => field.fieldName || field.duty);
@@ -1502,6 +1584,7 @@ function defaultRecruitmentFields(candidate = {}) {
       fieldName: `${department} ${departmentJobTitle(department)}`,
       count: Math.max(1, Number(candidate.hireCount || 1)),
       duty: dutyText(department),
+      workStartDate: candidate.workStartDate || "",
     },
   ];
 }
@@ -1509,6 +1592,7 @@ function defaultRecruitmentFields(candidate = {}) {
 function presetKeyForDepartment(department) {
   if (department === "사무행정팀") return "admin";
   if (department === "활동지원팀") return "activity";
+  if (department === "복지사업팀(주택)") return "housing";
   return "welfare";
 }
 

@@ -206,6 +206,12 @@ button:focus-visible {
   padding: 12px;
 }
 
+.notice-generator {
+  border: 2px solid var(--primary);
+  background: #fffdf9;
+  box-shadow: 0 8px 20px rgba(110, 36, 50, 0.12);
+}
+
 .form-section {
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -283,7 +289,7 @@ button:focus-visible {
 }
 
 .recruitment-field-row {
-  grid-template-columns: 96px minmax(0, 1fr) 64px 48px;
+  grid-template-columns: 96px minmax(0, 1fr) 64px 112px 48px;
   align-items: start;
 }
 
