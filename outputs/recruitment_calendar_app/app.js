@@ -4,6 +4,70 @@ const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "�
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
 const REGISTERED_RECRUITMENTS = [
   {
+    id: "site-gr2026-a-036",
+    name: "복지사업팀 장애인자립생활주택 업무 담당 채용",
+    department: "복지사업팀(주택)",
+    hireCount: 1,
+    source: "센터 홈페이지",
+    noticeType: "normal",
+    noticeDate: "2026-05-04",
+    executionNo: "GR2026-A-036",
+    confirmedInterviewDate: "2026-05-22",
+    workStartDate: "2026-06-01",
+    hireDate: "2026-05-26",
+    probationMonths: 3,
+    status: "채용",
+    memo: "홈페이지 게시글 기준 등록: 1차 서류합격자 및 면접 일정 2026. 5. 22. 10:00, 최종합격자 홍*서(4285)",
+    interviewees: [
+      { id: "site-gr2026-a-036-1", name: "이*민", phone: "2023", status: "불합격" },
+      { id: "site-gr2026-a-036-2", name: "홍*서", phone: "4285", status: "채용" },
+    ],
+    recruitmentFields: [
+      {
+        id: "field-gr2026-a-036-1",
+        preset: "housing",
+        department: "복지사업팀(주택)",
+        fieldName: "복지사업팀 사회복지사",
+        count: 1,
+        duty: "장애인자립생활주택 업무 담당",
+        workStartDate: "2026-06-01",
+      },
+    ],
+  },
+  {
+    id: "site-gr2026-a-035",
+    name: "복지사업팀 장애인복지사업 업무 담당 채용",
+    department: "복지사업팀",
+    hireCount: 1,
+    source: "센터 홈페이지",
+    noticeType: "urgent",
+    noticeDate: "2026-05-04",
+    executionNo: "GR2026-A-035",
+    confirmedInterviewDate: "2026-05-18",
+    workStartDate: "",
+    hireDate: "",
+    probationMonths: 3,
+    status: "불합격",
+    memo: "홈페이지 게시글 기준 등록: 면접일시 2026. 5. 18. 11:00, 최종합격자 없음",
+    interviewees: [
+      { id: "site-gr2026-a-035-1", name: "연*석", phone: "6741", status: "불합격" },
+      { id: "site-gr2026-a-035-2", name: "이*주", phone: "4503", status: "불합격" },
+      { id: "site-gr2026-a-035-3", name: "손*희", phone: "4704", status: "불합격" },
+      { id: "site-gr2026-a-035-4", name: "최*은", phone: "0494", status: "불합격" },
+    ],
+    recruitmentFields: [
+      {
+        id: "field-gr2026-a-035-1",
+        preset: "welfare",
+        department: "복지사업팀",
+        fieldName: "복지사업팀 사회복지사",
+        count: 1,
+        duty: "장애인복지사업 업무 담당",
+        workStartDate: "",
+      },
+    ],
+  },
+  {
     id: "final-gr2026-a-042",
     name: "복지사업팀 사회복지사 채용",
     department: "복지사업팀",
@@ -1258,38 +1322,136 @@ function buildPlainNoticeText(notice) {
 }
 
 function buildNotepadNoticeText(notice) {
+  const fieldLines = notice.recruitmentFields.flatMap((field) => [
+    `- 채용분야: ${field.fieldName}`,
+    `- 채용인원: ${field.count}명`,
+    `- 담당업무: ${field.duty}`,
+  ]);
+  const schedule = scheduleTextParts(notice);
   const lines = [
-    "채용공고",
+    `[${notice.shortType}] ${notice.year}년 ${notepadJobTitle(notice)}(${notice.department}) 채용 공고`,
     "",
-    `공고번호 ${notice.serial}`,
-    `공고구분 ${notice.noticeType}`,
-    `공고제목 ${notice.year}년 ${notice.jobTitle} ${notice.department} 채용 공고`,
+    "장애인의 자립을 지원하며 함께 성장할 동료를 찾습니다.",
     "",
-    "채용부서 및 모집인원",
-    ...notice.recruitmentFields.flatMap((field, index) => [
-      `${index + 1}번`,
-      `채용부서 ${field.department}`,
-      `채용분야 ${field.fieldName}`,
-      `모집인원 ${field.count}명`,
-      `직무내용 ${field.department} ${field.duty}`,
-      `근무예정일 ${field.workStartDate ? formatNoticeDateWithWeekday(parseDate(field.workStartDate)) : notice.workStartLine}`,
-      "",
-    ]),
-    "채용일정",
-    `공고 및 접수기간 ${notice.periodLine}`,
-    `서류심사 ${notice.screeningLine}`,
-    `면접일 ${notice.interviewLine.replace("(예정)", "예정")}`,
-    `적격여부 확인 ${notice.eligibilityLine.replace("(예정)", "예정")}`,
-    `근무개시일 ${notice.workStartLine}`,
+    "우리 센터는 당신의 의지와 노력이 균형 잡힌 삶을 만날 때, 서로를 존중하는 공정사회의 길이 열린다고 믿습니다.",
+    "일과 삶의 균형을 소중히 여기며, 스스로 업무의 주체가 되어 능동적으로 성장하고자 하는 인재를 기다립니다.",
+    "",
+    "",
+    "1. 채용분야",
+    ...fieldLines,
+    "",
+    "2. 접수기간",
+    "",
+    schedule.period,
+    "",
+    "3. 응시자격",
+    "",
+    "- 사회복지사 자격증 소지자",
+    "- 경력자의 경우 4호봉 이하 지원 가능",
+    "- 운전 가능자 우대",
+    "- 보훈 관련 법령에 따른 취업지원대상자 우대",
+    "- 만 60세 미만",
+    "",
+    "",
+    "4. 근무조건",
+    "",
+    "- 근무형태: 주 5일 근무",
+    "- 고용형태: 3개월 수습 후 정규직 전환 가능",
+    "- 급여수준: 2026년 서울시 사회복지시설 종사자 급여 기준 및 센터 내규(IL센터 급식비 기준 등)에 준함.",
+    "- 복리후생: 5대 사회보험 가입, 퇴직금 지급",
+    "- 기타 사항은 고용계약에 따름",
+    "",
+    "",
+    "5. 채용일정",
+    "",
+    `1) 1차 서류접수: ${schedule.periodNoWeekday}`,
+    `2) 서류심사: ${notice.screeningLine} / 1차 합격자 개별 및 홈페이지 공지`,
+    `3) 2차 면접: ${schedule.interview} / 서류심사 합격자에 한함`,
+    `4) 3차 적격여부 확인: ${schedule.eligibility} / 면접 합격자에 한함`,
+    "- 범죄경력조회 및 장애인 학대 관련 범죄 등 경력조회",
+    "",
+    `5) 근무개시일: ${schedule.workStart}`,
+    "6) 최종합격자 발표: 홈페이지 및 개별 공지",
+    "* 상기 일정은 센터 사정에 따라 변경될 수 있습니다.",
+    "",
+    "",
+    "6. 접수방법",
+    "- 접수방법: 이메일 접수",
+    "- 이메일: grcil@daum.net",
+    "- 지원분야를 반드시 명시하여 제출",
+    "",
+    "",
+    "7. 제출서류",
+    "- 입사지원서 1부",
+    "- 자기소개서 1부",
+    "- 직무계획서 1부",
+    "- 직무계획서는 직무 유경험 시 작성",
+    "- 센터의 미션과 비전을 참고하여 작성",
+    "- 담당 업무에 대한 견해 및 향후 사업 진행 방안을 구체적으로 기재",
+    "",
+    "* 경력사항 고의 누락 시 임용이 취소될 수 있습니다.",
+    "* 주민등록등본, 졸업증명서, 경력증명서, 자격증 사본, 범죄경력조회 관련 서류 등은 최종합격자에 한해 추후 제출합니다.",
+    "* 필수 제출사항 미제출 시 합격이 취소될 수 있습니다.",
+    "",
+    "8. 센터 정보",
+    "",
+    "- 홈페이지: www.grcil.kr",
+    "- 연락처: 02-857-9501",
+    "- 주소: 서울 구로구 가마산로27길 14, 신원빌딩 8층",
+    "- 담당: 사무행정팀 채용담당자",
+    "",
+    "9. 기타",
+    "",
+    "- 허위 작성 또는 제출서류 위,변조 시 합격이 취소될 수 있습니다.",
+    "- 지원서 기재 착오로 인한 책임은 지원자 본인에게 있습니다.",
+    "- 전형일자는 변경될 수 있으며, 변경 내용은 센터 홈페이지에 공고하거나 개인에게 개별 통지합니다.",
   ];
   return sanitizeNotepadText(lines.join("\n"));
+}
+
+function notepadJobTitle(notice) {
+  return notice.jobTitle === "간사" ? departmentJobTitle(notice.department) : notice.jobTitle;
+}
+
+function scheduleTextParts(notice) {
+  const [startText = "", endText = ""] = notice.periodLine.split(" ~ ");
+  const startDate = parseNoticeDateText(startText);
+  const endDate = parseNoticeDateText(endText);
+  const period = startDate && endDate ? `${formatNoticeDateWithWeekday(startDate)} ~ ${formatNoticeDateWithWeekday(endDate)}` : notice.periodLine;
+  const periodNoWeekday = startDate && endDate ? `${formatNoticeDate(startDate)} ~ ${formatNoticeDate(endDate)}` : notice.periodLine.replace(/\([^)]+\)/g, "");
+  return {
+    period,
+    periodNoWeekday,
+    interview: notice.interviewLine.includes("(예정)") ? `${notice.interviewLine} 예정` : notice.interviewLine,
+    eligibility: notice.eligibilityLine.includes("(예정)") ? `${notice.eligibilityLine.replace("(예정)", "").trim()} 예정` : notice.eligibilityLine,
+    workStart: summarizeWorkStart(notice),
+  };
+}
+
+function parseNoticeDateText(value) {
+  const match = String(value || "").match(/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\./);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function summarizeWorkStart(notice) {
+  const dates = notice.recruitmentFields.map((field) => field.workStartDate).filter(Boolean);
+  if (!dates.length) return notice.workStartLine === "추후 협의" ? "추후 협의" : `${notice.workStartLine} 예정`;
+  const monthCounts = dates.reduce((acc, value) => {
+    const date = parseDate(value);
+    const key = `${date.getFullYear()}년 ${date.getMonth() + 1}월 중`;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  return `${Object.entries(monthCounts)
+    .map(([label, count]) => `${label} ${count}명`)
+    .join(" 및 ")} 예정`;
 }
 
 function sanitizeNotepadText(text) {
   return text
     .replace(/[•·※★▶▷■□◆◇○●◎]/g, " ")
     .replace(/[–—]/g, "-")
-    .replace(/[()[\]{}<>]/g, "")
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -1678,7 +1840,7 @@ function presetKeyForDepartment(department) {
 }
 
 function normalizeInterviewees(people, fallbackName = "", fallbackPhone = "") {
-  if (Array.isArray(people) && people.length) {
+  if (Array.isArray(people)) {
     return people.map((person) => ({
       id: person.id || crypto.randomUUID(),
       name: person.name || "",
@@ -1687,6 +1849,9 @@ function normalizeInterviewees(people, fallbackName = "", fallbackPhone = "") {
       status: INTERVIEWEE_STATUSES.includes(person.status) ? person.status : "면접대기",
       updatedAt: person.updatedAt || "",
     }));
+  }
+  if (typeof people === "string" && people.trim()) {
+    return parseInterviewees(people);
   }
   if (fallbackName || fallbackPhone) {
     return [{ id: crypto.randomUUID(), name: fallbackName, phone: fallbackPhone || "", email: "", status: "면접대기" }];
