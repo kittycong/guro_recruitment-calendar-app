@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260526-6" />
+    <link rel="stylesheet" href="./styles.css?v=20260526-7" />
   </head>
   <body>
     <div class="app-shell">
@@ -215,6 +215,12 @@
                 <button type="button" class="size-button" data-calendar-size="compact">작게</button>
                 <button type="button" class="size-button active" data-calendar-size="normal">보통</button>
               </div>
+              <div class="calendar-legend" aria-label="일정 구분">
+                <span class="legend-deadline">서류마감</span>
+                <span class="legend-morning">오전면접</span>
+                <span class="legend-afternoon">오후면접</span>
+                <span class="legend-work">채용시작</span>
+              </div>
             </div>
             <div class="calendar-grid" id="calendarGrid" aria-label="채용 일정 달력"></div>
           </div>
@@ -270,8 +276,8 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260526-6"></script>
-    <script src="./template-data.js?v=20260526-6"></script>
-    <script src="./app.js?v=20260526-6"></script>
+    <script src="./jszip.min.js?v=20260526-7"></script>
+    <script src="./template-data.js?v=20260526-7"></script>
+    <script src="./app.js?v=20260526-7"></script>
   </body>
 </html>

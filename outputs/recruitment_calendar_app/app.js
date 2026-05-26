@@ -165,6 +165,7 @@ const eventLabels = {
   deadline: "서류마감",
   screening: "서류심사",
   interview: "면접",
+  workStart: "채용시작",
   eligibility: "적격여부",
   hire: "채용",
   probation: "수습종료",
@@ -174,7 +175,7 @@ const state = {
   currentMonth: startOfMonth(new Date()),
   selectedDate: toDateKey(new Date()),
   candidates: loadCandidates(),
-  filters: new Set(["deadline", "interview"]),
+  filters: new Set(["deadline", "interview", "workStart"]),
   search: "",
   calendarSize: ["compact", "normal"].includes(localStorage.getItem("recruitment-calendar-size")) ? localStorage.getItem("recruitment-calendar-size") : "normal",
   activeView: localStorage.getItem("recruitment-active-view") || "calendar",
@@ -574,7 +575,7 @@ function createMonthCalendar(month, events) {
 
     dayEvents.slice(0, 3).forEach((event) => {
       const chip = document.createElement("span");
-      chip.className = `event-chip ${event.type}`;
+      chip.className = `event-chip ${event.type} ${event.period || ""} dept-${departmentKey(event.candidate.department)}`.trim();
       chip.draggable = true;
       chip.title = "끌어서 다른 날짜로 이동";
       chip.addEventListener("click", (clickEvent) => {
@@ -585,15 +586,15 @@ function createMonthCalendar(month, events) {
         render();
       });
       chip.addEventListener("dragstart", (dragEvent) => {
-        dragEvent.dataTransfer.setData("text/plain", JSON.stringify({ candidateId: event.candidate.id, type: event.type, date: event.date }));
+        dragEvent.dataTransfer.setData(
+          "text/plain",
+          JSON.stringify({ candidateId: event.candidate.id, type: event.type, date: event.date, fieldId: event.field?.id || "" }),
+        );
         dragEvent.dataTransfer.effectAllowed = "move";
         chip.classList.add("dragging");
       });
       chip.addEventListener("dragend", () => chip.classList.remove("dragging"));
-      chip.textContent =
-        event.type === "deadline"
-          ? `서류마감 · ${event.candidate.department || event.candidate.name}`
-          : `${noticeTypePrefix(event.candidate)} ${event.candidate.department || event.candidate.name} · ${event.candidate.hireCount || 1}명`;
+      chip.textContent = calendarEventLabel(event);
       button.append(chip);
     });
 
@@ -658,6 +659,28 @@ function renderNoticeDetail(event) {
       </div>
     `;
   }
+  if (event.type === "workStart") {
+    return `
+      <div>
+        <h3>채용시작 · ${escapeHtml(displayRecruitmentName(candidate))}</h3>
+        <div class="notice-meta">
+          <span>${escapeHtml(displayExecutionNo(candidate))}</span>
+          <span>${escapeHtml(candidate.department || "부서 미입력")}</span>
+          <span>${Number(event.field?.count || candidate.hireCount || 1)}명 시작</span>
+          <span>${escapeHtml(event.field?.fieldName || "채용분야")}</span>
+        </div>
+      </div>
+      <div class="notice-text">
+        <p><strong>채용시작일:</strong> ${escapeHtml(formatShortDate(parseDate(event.date)))}</p>
+        <p><strong>직무내용:</strong> ${escapeHtml(event.field?.duty || candidate.memo || "미입력")}</p>
+        <p><strong>부서:</strong> ${escapeHtml(candidate.department || "부서 미입력")}</p>
+      </div>
+      <div class="event-actions">
+        <button type="button" data-action="edit-event">수정</button>
+        <button type="button" data-action="delete-event">삭제</button>
+      </div>
+    `;
+  }
   return `
     <div>
       <h3>${escapeHtml(displayRecruitmentName(candidate))}</h3>
@@ -666,6 +689,7 @@ function renderNoticeDetail(event) {
         <span>${escapeHtml(candidate.department || "부서 미입력")}</span>
         <span>${escapeHtml(noticeTypeLabel(candidate))}</span>
         <span>${Number(candidate.hireCount || 1)}명 채용</span>
+        <span>${escapeHtml(interviewPeriodLabel(event.period))}</span>
         <span>${isConfirmed ? "면접 확정" : "면접 예정"}</span>
       </div>
     </div>
@@ -718,6 +742,14 @@ function moveCalendarEvent(payload, targetDate) {
   } else if (data.type === "deadline") {
     const offset = candidate.noticeType === "normal" ? 15 : 8;
     candidate.noticeDate = toDateKey(addDays(parseDate(targetDate), -offset));
+  } else if (data.type === "workStart") {
+    if (data.fieldId) {
+      candidate.recruitmentFields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate).map((field) =>
+        field.id === data.fieldId ? { ...field, workStartDate: targetDate } : field,
+      );
+    } else {
+      candidate.workStartDate = targetDate;
+    }
   } else {
     return;
   }
@@ -733,13 +765,25 @@ function deleteSelectedEvent(event) {
   const candidate = event.candidate;
   const label = `${displayRecruitmentListTitle(candidate)} ${eventLabels[event.type]}`;
   const confirmedInterviewDateMatches = event.type === "interview" && candidate.confirmedInterviewDate === event.date;
+  const isWorkStartEvent = event.type === "workStart";
   const message = confirmedInterviewDateMatches
     ? `${label} 일정을 삭제할까요?\n면접 확정일만 비우고 채용건은 유지합니다.`
+    : isWorkStartEvent
+      ? `${label} 일정을 삭제할까요?\n근무예정일만 비우고 채용건은 유지합니다.`
     : `${label}을 삭제할까요?\n자동 생성 일정이라 채용건 전체가 삭제됩니다.`;
   if (!confirm(message)) return;
 
   if (confirmedInterviewDateMatches) {
     candidate.confirmedInterviewDate = "";
+    candidate.updatedAt = new Date().toISOString();
+  } else if (isWorkStartEvent) {
+    if (event.field?.id) {
+      candidate.recruitmentFields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate).map((field) =>
+        field.id === event.field.id ? { ...field, workStartDate: "" } : field,
+      );
+    } else {
+      candidate.workStartDate = "";
+    }
     candidate.updatedAt = new Date().toISOString();
   } else {
     state.candidates = state.candidates.filter((item) => item.id !== candidate.id);
@@ -1026,10 +1070,72 @@ function getAllEvents() {
         date: interviewDate,
         candidate,
         detail: candidate.confirmedInterviewDate ? "면접 확정" : "면접 예정",
+        period: getInterviewPeriod(candidate),
       });
     }
+    const workStartEvents = getWorkStartEvents(candidate);
+    workStartEvents.forEach((event) => events.push(event));
     return events;
   });
+}
+
+function getWorkStartEvents(candidate) {
+  const events = [];
+  const seen = new Set();
+  if (candidate.workStartDate) {
+    seen.add(candidate.workStartDate);
+    events.push({
+      type: "workStart",
+      date: candidate.workStartDate,
+      candidate,
+      detail: "채용시작",
+    });
+  }
+  normalizeRecruitmentFields(candidate.recruitmentFields, candidate).forEach((field) => {
+    if (!field.workStartDate || seen.has(field.workStartDate)) return;
+    seen.add(field.workStartDate);
+    events.push({
+      type: "workStart",
+      date: field.workStartDate,
+      candidate,
+      field,
+      detail: `${field.fieldName || candidate.department} 채용시작`,
+    });
+  });
+  return events;
+}
+
+function getInterviewPeriod(candidate) {
+  const hour = getInterviewHour(candidate);
+  if (hour === null) return "interview-unset";
+  return hour < 12 ? "interview-morning" : "interview-afternoon";
+}
+
+function getInterviewHour(candidate) {
+  const source = [candidate.interviewTime, candidate.memo, candidate.note].filter(Boolean).join(" ");
+  const match = source.match(/(오전|오후)?\s*(\d{1,2})\s*[:시]\s*(\d{1,2})?/);
+  if (!match) return null;
+  let hour = Number(match[2]);
+  if (match[1] === "오후" && hour < 12) hour += 12;
+  if (match[1] === "오전" && hour === 12) hour = 0;
+  return hour >= 0 && hour <= 23 ? hour : null;
+}
+
+function interviewPeriodLabel(period) {
+  if (period === "interview-morning") return "면접(오전)";
+  if (period === "interview-afternoon") return "면접(오후)";
+  return "면접(시간미정)";
+}
+
+function calendarEventLabel(event) {
+  const department = event.candidate.department || "부서미정";
+  if (event.type === "deadline") return `서류마감 · ${department}`;
+  if (event.type === "interview") return `${interviewPeriodLabel(event.period)} · ${department}`;
+  if (event.type === "workStart") {
+    const count = event.field?.count || event.candidate.hireCount || 1;
+    return `채용시작 · ${department} · ${count}명`;
+  }
+  return `${eventLabels[event.type] || "일정"} · ${department}`;
 }
 
 function getVisibleCandidates() {
@@ -1100,7 +1206,7 @@ function departmentKey(department) {
 }
 
 function eventOrder(type) {
-  return { deadline: 1, notice: 2, document: 3, screening: 4, interview: 5, eligibility: 6, hire: 7, probation: 8 }[type] || 9;
+  return { deadline: 1, interview: 2, workStart: 3, notice: 4, document: 5, screening: 6, eligibility: 7, hire: 8, probation: 9 }[type] || 10;
 }
 
 function exportCsv() {

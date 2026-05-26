@@ -571,6 +571,42 @@ button:focus-visible {
   background: #fffdf9;
 }
 
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.calendar-legend span {
+  border-left: 4px solid currentColor;
+  border-radius: 5px;
+  padding: 4px 7px;
+  background: var(--surface-muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.calendar-legend .legend-deadline {
+  color: var(--probation);
+  background: #fffbd0;
+}
+
+.calendar-legend .legend-morning {
+  color: var(--interview);
+  background: #e8f1f3;
+}
+
+.calendar-legend .legend-afternoon {
+  color: var(--interview);
+  background: #f5d0df;
+}
+
+.calendar-legend .legend-work {
+  color: var(--hire);
+  background: #edf2f1;
+}
+
 .size-button {
   border: 0;
   border-right: 1px solid var(--border);
@@ -741,6 +777,18 @@ button:focus-visible {
   color: var(--interview);
 }
 
+.event-chip.interview-morning {
+  background: #e8f1f3;
+}
+
+.event-chip.interview-afternoon {
+  background: #f5d0df;
+}
+
+.event-chip.interview-unset {
+  background: #f3eeee;
+}
+
 .event-chip.deadline {
   color: var(--probation);
   background: #fffbd0;
@@ -752,6 +800,11 @@ button:focus-visible {
 
 .event-chip.hire {
   color: var(--hire);
+}
+
+.event-chip.workStart {
+  color: var(--hire);
+  background: #edf2f1;
 }
 
 .event-chip.probation {
