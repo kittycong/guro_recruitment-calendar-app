@@ -76,13 +76,16 @@ const REGISTERED_RECRUITMENTS = [
     noticeType: "urgent",
     noticeDate: "2026-05-19",
     executionNo: "GR2026-A-042",
-    confirmedInterviewDate: "",
+    confirmedInterviewDate: "2026-05-29",
     workStartDate: "",
     hireDate: "",
     probationMonths: 3,
     status: "진행중",
-    memo: "채용 일정만 등록: 서류접수 2026. 5. 19. ~ 2026. 5. 27., 서류심사 2026. 5. 28., 면접예정 2026. 5. 29.",
-    interviewees: [],
+    memo: "서류합격자 및 면접대상자 등록: 유완정, 김은정. 서류접수 2026. 5. 19. ~ 2026. 5. 27., 서류심사 2026. 5. 28., 면접일 2026. 5. 29.",
+    interviewees: [
+      { id: "final-gr2026-a-042-1", name: "유완정", phone: "", status: "면접대기" },
+      { id: "final-gr2026-a-042-2", name: "김은정", phone: "", status: "면접대기" },
+    ],
     recruitmentFields: [
       {
         id: "field-gr2026-a-042-1",
