@@ -218,6 +218,55 @@ button:focus-visible {
   box-shadow: 0 8px 20px rgba(88, 129, 140, 0.12);
 }
 
+.document-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.document-panel {
+  display: grid;
+  gap: 14px;
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.document-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.document-panel-header h2 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.document-panel-header > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #edf2f1;
+  color: var(--text);
+  padding: 5px 9px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.document-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.document-actions .full-button {
+  margin-top: 0;
+}
+
 .file-input {
   min-height: auto;
   padding: 9px;
@@ -1344,6 +1393,10 @@ hr {
     grid-template-columns: minmax(0, 1fr) 390px;
   }
 
+  .document-page {
+    grid-template-columns: 1fr;
+  }
+
   .day-panel {
     max-height: none;
   }
@@ -1383,6 +1436,7 @@ hr {
   .date-grid,
   .interviewee-row,
   .recruitment-field-row,
+  .document-actions,
   .timeline-row {
     grid-template-columns: 1fr;
   }

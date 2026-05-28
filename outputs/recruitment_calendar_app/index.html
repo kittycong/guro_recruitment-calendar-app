@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260528-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260528-4" />
   </head>
   <body>
     <div class="app-shell">
@@ -126,69 +126,6 @@
               <dl id="schedulePreview"></dl>
             </section>
 
-            <section class="schedule-preview notice-generator" aria-label="공고파일 생성">
-              <div class="schedule-preview-title">공고파일 생성</div>
-              <p class="helper-text">현재 입력값으로 샘플 양식 기반 HWPX 공고와 메모장용 TXT 공고를 생성합니다.</p>
-              <div class="section-title-row field-title-row">
-                <div>
-                  <strong>붙임1 채용분야</strong>
-                  <span>한 공고에 모집분야가 여러 개면 행을 추가하세요.</span>
-                </div>
-                <button class="small-button" id="addRecruitmentFieldButton" type="button">분야 추가</button>
-              </div>
-              <div id="recruitmentFieldRows" class="recruitment-field-editor" aria-label="채용분야 설정"></div>
-              <label>
-                공고 양식
-                <select id="noticeTemplateInput">
-                  <option value="sample_notice">샘플 양식 - 직원 채용공고</option>
-                </select>
-              </label>
-              <button class="secondary-button full-button" id="downloadHwpxButton" type="button">한글 공고 다운로드</button>
-              <button class="secondary-button full-button" id="downloadTxtButton" type="button">메모장용 TXT 다운로드</button>
-            </section>
-
-            <section class="schedule-preview minutes-generator" aria-label="인사회의록 생성">
-              <div class="schedule-preview-title">인사회의록 생성</div>
-              <p class="helper-text">회의록 양식 1개와 면접자별 평가표를 모두 첨부하면 인사위원회 회의록 1개로 합쳐 생성합니다.</p>
-              <label>
-                대상 공고
-                <select id="minutesRecruitmentInput">
-                  <option value="">현재 입력 중인 공고</option>
-                </select>
-              </label>
-              <div class="date-grid">
-                <label>
-                  회의일
-                  <input id="minutesDateInput" type="date" />
-                </label>
-                <label>
-                  입사예정일
-                  <input id="minutesHireStartInput" type="date" />
-                </label>
-              </div>
-              <label>
-                최종 채용자
-                <input id="minutesHiredNameInput" type="text" placeholder="예: 홍민서" />
-              </label>
-              <label>
-                채용 결과 및 후속조치
-                <select id="minutesResultInput">
-                  <option value="hire">최종 채용</option>
-                  <option value="no_hire">채용자 없음 / 재공고 진행</option>
-                </select>
-              </label>
-              <label>
-                인사회의록 양식 HWPX
-                <input id="minutesTemplateFileInput" class="file-input" type="file" accept=".hwpx" />
-              </label>
-              <label>
-                개인별 면접평가표 HWPX
-                <input id="evaluationFilesInput" class="file-input" type="file" accept=".hwpx" multiple />
-              </label>
-              <p class="helper-text">예: 면접자가 3명이면 평가표 HWPX 3개를 함께 선택합니다. 평가표가 없는 면접대상자는 불참으로 반영됩니다.</p>
-              <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 1개 생성</button>
-            </section>
-
             <div class="form-actions">
               <button class="primary-button" type="submit">저장</button>
               <button class="secondary-button" id="deleteButton" type="button" disabled>삭제</button>
@@ -245,6 +182,7 @@
         <nav class="view-tabs" aria-label="화면 전환">
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
           <button type="button" class="view-tab" data-view="list">채용목록</button>
+          <button type="button" class="view-tab" data-view="documents">문서 생성</button>
           <button type="button" class="view-tab" data-view="kanban">칸반</button>
           <button type="button" class="view-tab" data-view="timeline">타임라인</button>
         </nav>
@@ -308,6 +246,87 @@
           </div>
         </section>
 
+        <section class="view-panel" id="documentsView" aria-label="공고 및 한글 문서 생성">
+          <div class="document-page">
+            <section class="document-panel notice-generator" aria-label="공고파일 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Notice File</p>
+                  <h2>공고파일 생성</h2>
+                </div>
+                <span>HWPX / TXT</span>
+              </div>
+              <p class="helper-text">왼쪽에서 공고를 선택하거나 입력한 뒤, 붙임1 채용분야를 확인하고 공고 파일을 생성합니다.</p>
+              <div class="section-title-row field-title-row">
+                <div>
+                  <strong>붙임1 채용분야</strong>
+                  <span>한 공고에 모집분야가 여러 개면 행을 추가하세요.</span>
+                </div>
+                <button class="small-button" id="addRecruitmentFieldButton" type="button">분야 추가</button>
+              </div>
+              <div id="recruitmentFieldRows" class="recruitment-field-editor" aria-label="채용분야 설정"></div>
+              <label>
+                공고 양식
+                <select id="noticeTemplateInput">
+                  <option value="sample_notice">샘플 양식 - 직원 채용공고</option>
+                </select>
+              </label>
+              <div class="document-actions">
+                <button class="secondary-button full-button" id="downloadHwpxButton" type="button">한글 공고 다운로드</button>
+                <button class="secondary-button full-button" id="downloadTxtButton" type="button">메모장용 TXT 다운로드</button>
+              </div>
+            </section>
+
+            <section class="document-panel minutes-generator" aria-label="인사회의록 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Personnel Minutes</p>
+                  <h2>인사회의록 생성</h2>
+                </div>
+                <span>HWPX 1개</span>
+              </div>
+              <p class="helper-text">회의록 양식 1개와 면접자별 평가표를 모두 첨부하면 인사위원회 회의록 1개로 합쳐 생성합니다.</p>
+              <label>
+                대상 공고
+                <select id="minutesRecruitmentInput">
+                  <option value="">현재 입력 중인 공고</option>
+                </select>
+              </label>
+              <div class="date-grid">
+                <label>
+                  회의일
+                  <input id="minutesDateInput" type="date" />
+                </label>
+                <label>
+                  입사예정일
+                  <input id="minutesHireStartInput" type="date" />
+                </label>
+              </div>
+              <label>
+                최종 채용자
+                <input id="minutesHiredNameInput" type="text" placeholder="예: 홍민서" />
+              </label>
+              <label>
+                채용 결과 및 후속조치
+                <select id="minutesResultInput">
+                  <option value="hire">최종 채용</option>
+                  <option value="no_hire">채용자 없음 / 재공고 진행</option>
+                </select>
+              </label>
+              <label>
+                인사회의록 양식 HWPX
+                <input id="minutesTemplateFileInput" class="file-input" type="file" accept=".hwpx" />
+              </label>
+              <label>
+                개인별 면접평가표 HWPX
+                <input id="evaluationFilesInput" class="file-input" type="file" accept=".hwpx" multiple />
+              </label>
+              <p class="helper-text">예: 면접자가 3명이면 평가표 HWPX 3개를 함께 선택합니다. 평가표가 없는 면접대상자는 불참으로 반영됩니다.</p>
+              <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 1개 생성</button>
+            </section>
+          </div>
+        </section>
+
         <section class="view-panel" id="kanbanView" aria-label="지원자 진행 상황">
           <div id="kanbanBoard" class="kanban-board"></div>
         </section>
@@ -318,8 +337,8 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260528-3"></script>
-    <script src="./template-data.js?v=20260528-3"></script>
-    <script src="./app.js?v=20260528-3"></script>
+    <script src="./jszip.min.js?v=20260528-4"></script>
+    <script src="./template-data.js?v=20260528-4"></script>
+    <script src="./app.js?v=20260528-4"></script>
   </body>
 </html>
