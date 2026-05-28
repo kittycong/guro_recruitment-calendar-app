@@ -1356,6 +1356,12 @@ function validateMinutesDraft(draft) {
     alert("면접 대상자를 1명 이상 등록하세요.");
     return false;
   }
+  const intervieweeCount = normalizeInterviewees(draft.interviewees || []).length;
+  const evaluationCount = els.evaluationFiles.files?.length || 0;
+  if (evaluationCount > intervieweeCount) {
+    alert(`면접평가표가 면접대상자 수보다 많습니다. 면접대상자 ${intervieweeCount}명 기준으로 평가표를 확인하세요.`);
+    return false;
+  }
   return true;
 }
 

@@ -149,7 +149,7 @@
 
             <section class="schedule-preview minutes-generator" aria-label="인사회의록 생성">
               <div class="schedule-preview-title">인사회의록 생성</div>
-              <p class="helper-text">채용 완료 후 회의록 양식과 개인별 면접평가표 HWPX를 넣으면 인사위원회 회의록을 생성합니다.</p>
+              <p class="helper-text">회의록 양식 1개와 면접자별 평가표를 모두 첨부하면 인사위원회 회의록 1개로 합쳐 생성합니다.</p>
               <div class="date-grid">
                 <label>
                   회의일
@@ -179,7 +179,8 @@
                 개인별 면접평가표 HWPX
                 <input id="evaluationFilesInput" class="file-input" type="file" accept=".hwpx" multiple />
               </label>
-              <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 HWPX 다운로드</button>
+              <p class="helper-text">예: 면접자가 3명이면 평가표 HWPX 3개를 함께 선택합니다. 평가표가 없는 면접대상자는 불참으로 반영됩니다.</p>
+              <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 1개 생성</button>
             </section>
 
             <div class="form-actions">
