@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260528-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260528-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -150,6 +150,12 @@
             <section class="schedule-preview minutes-generator" aria-label="인사회의록 생성">
               <div class="schedule-preview-title">인사회의록 생성</div>
               <p class="helper-text">회의록 양식 1개와 면접자별 평가표를 모두 첨부하면 인사위원회 회의록 1개로 합쳐 생성합니다.</p>
+              <label>
+                대상 공고
+                <select id="minutesRecruitmentInput">
+                  <option value="">현재 입력 중인 공고</option>
+                </select>
+              </label>
               <div class="date-grid">
                 <label>
                   회의일
@@ -312,8 +318,8 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260528-1"></script>
-    <script src="./template-data.js?v=20260528-1"></script>
-    <script src="./app.js?v=20260528-1"></script>
+    <script src="./jszip.min.js?v=20260528-2"></script>
+    <script src="./template-data.js?v=20260528-2"></script>
+    <script src="./app.js?v=20260528-2"></script>
   </body>
 </html>
