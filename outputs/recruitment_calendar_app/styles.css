@@ -23,7 +23,7 @@
   --shadow: 0 14px 34px rgba(96, 70, 62, 0.12);
   font-family:
     "Malgun Gothic", "Apple SD Gothic Neo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 * {
@@ -54,7 +54,7 @@ button {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(360px, 26vw) minmax(0, 1fr);
+  grid-template-columns: minmax(380px, 24vw) minmax(0, 1fr);
 }
 
 .sidebar {
@@ -131,7 +131,7 @@ label {
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -242,14 +242,14 @@ button:focus-visible {
 .section-title-row strong {
   display: block;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .section-title-row span {
   display: block;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -260,7 +260,7 @@ button:focus-visible {
   background: #fffdf9;
   color: var(--text);
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -289,9 +289,9 @@ button:focus-visible {
 .interviewee-row select,
 .recruitment-field-row input,
 .recruitment-field-row select {
-  min-height: 34px;
-  padding: 7px 8px;
-  font-size: 12px;
+  min-height: 38px;
+  padding: 8px 9px;
+  font-size: 13px;
 }
 
 .recruitment-field-editor {
@@ -319,23 +319,23 @@ button:focus-visible {
   min-height: 34px;
   min-width: 44px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .schedule-preview-title {
   color: var(--text);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
   margin-bottom: 8px;
 }
 
 .schedule-preview dl {
   display: grid;
-  grid-template-columns: 86px 1fr;
+  grid-template-columns: 96px 1fr;
   gap: 7px 10px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .schedule-preview dt {
@@ -352,7 +352,7 @@ button:focus-visible {
 .helper-text {
   margin: 0 0 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -422,7 +422,7 @@ button:focus-visible {
 .eyebrow {
   margin: 0 0 2px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -459,13 +459,13 @@ button:focus-visible {
 
 .deadline-banner strong {
   color: #6e2432;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .deadline-banner span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .deadline-banner div,
@@ -484,7 +484,7 @@ button:focus-visible {
   color: #6e2432;
   min-height: 30px;
   padding: 0 9px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -501,7 +501,7 @@ button:focus-visible {
   background: #fffdf9;
   color: var(--muted);
   padding: 0 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -535,7 +535,7 @@ button:focus-visible {
 .metric span {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -551,8 +551,8 @@ button:focus-visible {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 344px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 14px;
   min-height: 0;
 }
 
@@ -570,7 +570,7 @@ button:focus-visible {
 
 .filter-note {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.4;
 }
@@ -594,7 +594,7 @@ button:focus-visible {
   border-radius: 5px;
   padding: 4px 7px;
   background: var(--surface-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1;
 }
@@ -626,7 +626,7 @@ button:focus-visible {
   color: var(--muted);
   min-height: 32px;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -643,7 +643,7 @@ button:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
 }
 
@@ -661,7 +661,7 @@ button:focus-visible {
 .weekday-row {
   border-bottom: 1px solid var(--border);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   text-align: center;
 }
@@ -683,7 +683,7 @@ button:focus-visible {
 .month-calendar-title {
   margin: 0;
   padding: 0 0 8px;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.2;
   font-weight: 900;
   color: var(--text);
@@ -695,7 +695,7 @@ button:focus-visible {
 }
 
 .day-cell {
-  min-height: 76px;
+  min-height: 84px;
   background: #fffdf9;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -707,12 +707,12 @@ button:focus-visible {
 }
 
 .calendar-panel.compact .day-cell {
-  min-height: 50px;
+  min-height: 58px;
 }
 
 .calendar-panel.compact .event-chip {
-  font-size: 10px;
-  padding: 2px 4px;
+  font-size: 11px;
+  padding: 3px 4px;
 }
 
 .day-cell.other-month {
@@ -737,7 +737,7 @@ button:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -750,7 +750,7 @@ button:focus-visible {
   background: var(--surface-muted);
   padding: 3px 5px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.35;
   text-align: left;
@@ -826,12 +826,12 @@ button:focus-visible {
 
 .more-events {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .day-panel {
-  padding: 10px;
+  padding: 14px;
   min-width: 0;
   max-height: calc(100vh - 152px);
   overflow-y: auto;
@@ -840,14 +840,14 @@ button:focus-visible {
 .event-list,
 .candidate-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .event-item,
 .candidate-item {
   border: 1px solid var(--border);
   border-radius: 7px;
-  padding: 10px;
+  padding: 12px;
   background: #fffdf9;
 }
 
@@ -867,7 +867,7 @@ button:focus-visible {
 
 .notice-detail h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.45;
   letter-spacing: 0;
 }
@@ -886,7 +886,7 @@ button:focus-visible {
   background: #edf2f1;
   color: var(--text);
   padding: 0 7px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -894,7 +894,7 @@ button:focus-visible {
   display: grid;
   gap: 6px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.65;
 }
 
@@ -946,13 +946,15 @@ button:focus-visible {
 .event-item strong,
 .candidate-item strong {
   display: block;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 .event-item span,
 .candidate-item span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .interviewee-list {
@@ -968,7 +970,7 @@ button:focus-visible {
   justify-content: space-between;
   gap: 10px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .interviewee em {
@@ -1021,7 +1023,7 @@ button:focus-visible {
   padding: 0 8px;
   background: #edf2f1;
   color: #60463e;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -1048,7 +1050,7 @@ button:focus-visible {
   background: #fffdf9;
   min-height: 32px;
   padding: 6px 9px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--text);
 }
@@ -1069,7 +1071,7 @@ button:focus-visible {
   width: 100%;
   min-height: 36px;
   padding: 0 6px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .event-actions {
@@ -1120,13 +1122,13 @@ button:focus-visible {
 }
 
 .kanban-column header strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .kanban-column header span,
 .empty-column {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -1147,7 +1149,7 @@ button:focus-visible {
 
 .kanban-card strong,
 .timeline-title strong {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .kanban-card span,
@@ -1155,7 +1157,7 @@ button:focus-visible {
 .timeline-title span,
 .timeline-dates {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-style: normal;
 }
 
@@ -1170,7 +1172,7 @@ button:focus-visible {
   background: #fffdf9;
   padding: 4px 7px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -1211,7 +1213,7 @@ button:focus-visible {
   border-radius: 999px;
   color: #ffffff;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 20px;
 }
@@ -1286,14 +1288,14 @@ button:focus-visible {
 }
 
 .full-candidate-main strong {
-  font-size: 15px;
+  font-size: 16px;
   overflow-wrap: anywhere;
 }
 
 .full-candidate-main span,
 .full-candidate-dates span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .full-candidate-dates {
@@ -1339,7 +1341,7 @@ hr {
   }
 
   .content-grid {
-    grid-template-columns: minmax(0, 1fr) 344px;
+    grid-template-columns: minmax(0, 1fr) 390px;
   }
 
   .day-panel {
@@ -1410,6 +1412,6 @@ hr {
   }
 
   .event-chip {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
