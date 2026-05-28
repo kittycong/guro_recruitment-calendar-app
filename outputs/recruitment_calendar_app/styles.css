@@ -212,6 +212,18 @@ button:focus-visible {
   box-shadow: 0 8px 20px rgba(110, 36, 50, 0.12);
 }
 
+.minutes-generator {
+  border: 2px solid #8cadb9;
+  background: #f7fbfb;
+  box-shadow: 0 8px 20px rgba(88, 129, 140, 0.12);
+}
+
+.file-input {
+  min-height: auto;
+  padding: 9px;
+  background: #ffffff;
+}
+
 .form-section {
   border: 1px solid var(--border);
   border-radius: 7px;

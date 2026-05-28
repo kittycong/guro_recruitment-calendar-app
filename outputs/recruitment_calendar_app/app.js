@@ -216,6 +216,13 @@ const els = {
   exportButton: document.querySelector("#exportButton"),
   downloadHwpxButton: document.querySelector("#downloadHwpxButton"),
   downloadTxtButton: document.querySelector("#downloadTxtButton"),
+  minutesDate: document.querySelector("#minutesDateInput"),
+  minutesHireStart: document.querySelector("#minutesHireStartInput"),
+  minutesHiredName: document.querySelector("#minutesHiredNameInput"),
+  minutesResult: document.querySelector("#minutesResultInput"),
+  minutesTemplateFile: document.querySelector("#minutesTemplateFileInput"),
+  evaluationFiles: document.querySelector("#evaluationFilesInput"),
+  downloadMinutesButton: document.querySelector("#downloadMinutesButton"),
   searchInput: document.querySelector("#searchInput"),
   monthTitle: document.querySelector("#monthTitle"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
@@ -290,6 +297,7 @@ function bindEvents() {
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.downloadTxtButton.addEventListener("click", downloadTxtNotice);
+  els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
   els.addSelectedInterviewButton.addEventListener("click", addInterviewForSelectedDate);
   els.addSelectedDeadlineButton.addEventListener("click", addDeadlineForSelectedDate);
   els.addListRecruitmentButton.addEventListener("click", addRecruitmentFromList);
@@ -918,6 +926,7 @@ function fillForm(candidate) {
   els.memo.value = candidate.memo;
   renderIntervieweeRows(candidate.interviewees || []);
   renderRecruitmentFieldRows(candidate.recruitmentFields || defaultRecruitmentFields(candidate));
+  fillMinutesDefaults(candidate);
   els.deleteButton.disabled = false;
   renderSchedulePreview();
   els.name.focus();
@@ -932,8 +941,19 @@ function resetForm() {
   els.probationMonths.value = 3;
   renderIntervieweeRows([]);
   renderRecruitmentFieldRows([]);
+  fillMinutesDefaults(getDraftRecruitment());
   els.deleteButton.disabled = true;
   renderSchedulePreview();
+}
+
+function fillMinutesDefaults(candidate) {
+  if (!els.minutesDate || !candidate) return;
+  const meetingDate = candidate.confirmedInterviewDate || candidate.hireDate || toDateKey(new Date());
+  const hiredPerson = normalizeInterviewees(candidate.interviewees || []).find((person) => person.status === "채용");
+  els.minutesDate.value = meetingDate || "";
+  els.minutesHireStart.value = candidate.workStartDate || candidate.hireDate || "";
+  els.minutesHiredName.value = hiredPerson?.name || "";
+  els.minutesResult.value = hiredPerson ? "hire" : "no_hire";
 }
 
 function selectBestDate(candidate) {
@@ -1288,6 +1308,231 @@ function downloadTxtNotice() {
   downloadBlob(blob, `${safeFileName(notice.fileTitle)}_메모장용.txt`);
 }
 
+async function downloadPersonnelMinutes() {
+  const draft = getDraftRecruitment();
+  if (!validateMinutesDraft(draft)) return;
+  if (!window.JSZip) {
+    alert("문서 생성 모듈을 불러오지 못했습니다. jszip.min.js 파일을 확인하세요.");
+    return;
+  }
+
+  const templateFile = els.minutesTemplateFile.files?.[0];
+  const evaluationFiles = Array.from(els.evaluationFiles.files || []);
+  const templateBuffer = await templateFile.arrayBuffer();
+  const evaluationDocs = await Promise.all(evaluationFiles.map(readEvaluationHwpx));
+  const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
+  const zip = await JSZip.loadAsync(templateBuffer);
+  const sectionPath = findFirstSectionPath(zip);
+  if (!sectionPath) {
+    alert("회의록 양식에서 본문 XML을 찾지 못했습니다. HWPX 파일인지 확인하세요.");
+    return;
+  }
+
+  let sectionXml = await zip.file(sectionPath).async("string");
+  sectionXml = applyPersonnelMinutesTemplate(sectionXml, minutes);
+  zip.file(sectionPath, sectionXml);
+  if (zip.file("Preview/PrvText.txt")) {
+    zip.file("Preview/PrvText.txt", minutes.previewText);
+  }
+
+  const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
+  downloadBlob(blob, `${safeFileName(minutes.fileTitle)}.hwpx`);
+}
+
+function validateMinutesDraft(draft) {
+  if (!draft.name || !draft.department) {
+    alert("채용건명과 부서를 먼저 입력하거나 채용 목록에서 공고를 선택하세요.");
+    return false;
+  }
+  if (!draft.confirmedInterviewDate) {
+    alert("면접일정을 먼저 확정 입력하세요.");
+    return false;
+  }
+  if (!els.minutesTemplateFile.files?.length) {
+    alert("인사회의록 양식 HWPX 파일을 선택하세요.");
+    return false;
+  }
+  if (!normalizeInterviewees(draft.interviewees || []).length) {
+    alert("면접 대상자를 1명 이상 등록하세요.");
+    return false;
+  }
+  return true;
+}
+
+async function readEvaluationHwpx(file) {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const text = await extractHwpxText(zip);
+  return {
+    fileName: file.name,
+    text,
+    name: inferEvaluationName(file.name, text),
+  };
+}
+
+async function extractHwpxText(zip) {
+  const sectionFiles = Object.keys(zip.files)
+    .filter((path) => /^Contents\/section\d+\.xml$/i.test(path))
+    .sort();
+  const parts = [];
+  for (const path of sectionFiles) {
+    const xml = await zip.file(path).async("string");
+    parts.push(extractXmlText(xml));
+  }
+  return parts.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function extractXmlText(xml) {
+  return Array.from(xml.matchAll(/<hp:t[^>]*>([\s\S]*?)<\/hp:t>|<hp:t\s*\/>/g))
+    .map((match) => decodeXmlText(match[1] || ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function inferEvaluationName(fileName, text) {
+  const normalizedName = fileName.replace(/\.hwpx$/i, "");
+  const hyphenName = normalizedName.match(/-([가-힣]{2,5})\s*$/)?.[1];
+  if (hyphenName) return hyphenName;
+  const nameLabel = text.match(/(?:성명|이름|지원자)\s*[:：]?\s*([가-힣]{2,5})/)?.[1];
+  return nameLabel || normalizedName.replace(/^.*?([가-힣]{2,5}).*$/, "$1");
+}
+
+function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
+  const interviewees = normalizeInterviewees(candidate.interviewees || []);
+  const evaluationNames = new Set(evaluationDocs.map((doc) => doc.name).filter(Boolean));
+  const present = interviewees.filter((person) => evaluationNames.has(person.name) || evaluationDocs.some((doc) => doc.text.includes(person.name)));
+  const absent = interviewees.filter((person) => !present.some((presentPerson) => presentPerson.name === person.name));
+  const hiredName = els.minutesResult.value === "hire" ? (els.minutesHiredName.value.trim() || present.find((person) => person.status === "채용")?.name || "") : "";
+  const minutesDate = els.minutesDate.value || candidate.hireDate || candidate.confirmedInterviewDate;
+  const hireStartDate = els.minutesHireStart.value || candidate.workStartDate || candidate.hireDate || "";
+  const primaryField = normalizeRecruitmentFields(candidate.recruitmentFields, candidate)[0] || defaultRecruitmentFields(candidate)[0];
+  const serial = normalizeExecutionNo(candidate.executionNo, parseDate(candidate.noticeDate || minutesDate).getFullYear());
+  const resultLine =
+    els.minutesResult.value === "hire" && hiredName
+      ? `지원자 ${hiredName}을 최종 채용하기로 하며, 입사예정일은 ${hireStartDate ? formatNoticeDateWithWeekday(parseDate(hireStartDate)) : "추후 협의"}로 한다.`
+      : `${candidate.department}은 채용자 없음으로 다음 공고를 신속히 진행하기로 함.`;
+  const attendanceLines = [
+    ...present.map((person) => `지원자 ${person.name}은 면접평가표를 바탕으로 심의하였다.`),
+    ...absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하였다.`),
+  ];
+  const evaluationSummary = evaluationDocs.length
+    ? evaluationDocs.map((doc, index) => `${index + 1}. ${doc.name}: ${summarizeEvaluationText(doc.text)}`).join("\n")
+    : "첨부된 면접평가표 없음";
+  const previewLines = [
+    "인사위원회 회의록",
+    "",
+    `회의일자: ${formatNoticeDateWithWeekday(parseDate(minutesDate))}`,
+    `안건: 직원채용의 건 (${candidate.name})`,
+    `시행번호: ${serial}`,
+    `채용부서: ${candidate.department}`,
+    `채용분야: ${primaryField.fieldName}`,
+    `채용인원: ${candidate.hireCount || primaryField.count || 1}명`,
+    `면접일자: ${formatNoticeDateWithWeekday(parseDate(candidate.confirmedInterviewDate))}`,
+    "",
+    "심의내용",
+    ...attendanceLines,
+    "",
+    "면접평가표 확인",
+    evaluationSummary,
+    "",
+    "의결사항",
+    resultLine,
+  ];
+  return {
+    candidate,
+    serial,
+    minutesDate,
+    hireStartDate,
+    hiredName,
+    resultLine,
+    attendanceLines,
+    evaluationSummary,
+    previewText: previewLines.join("\n"),
+    fileTitle: `인사위원회 회의록_직원채용의 건(${formatCompactDate(parseDate(minutesDate))})_${hiredName || "채용자없음"}`,
+  };
+}
+
+function summarizeEvaluationText(text) {
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/[•·※★▶▷■□◆◇○●◎]/g, " ")
+    .trim()
+    .slice(0, 180) || "평가 내용 확인";
+}
+
+function findFirstSectionPath(zip) {
+  return Object.keys(zip.files)
+    .filter((path) => /^Contents\/section\d+\.xml$/i.test(path))
+    .sort()[0];
+}
+
+function applyPersonnelMinutesTemplate(xml, minutes) {
+  const replacements = [
+    [/{{\s*회의일자\s*}}/g, formatNoticeDateWithWeekday(parseDate(minutes.minutesDate))],
+    [/{{\s*안건\s*}}/g, `직원채용의 건 (${minutes.candidate.name})`],
+    [/{{\s*시행번호\s*}}/g, minutes.serial],
+    [/{{\s*채용부서\s*}}/g, minutes.candidate.department],
+    [/{{\s*면접일자\s*}}/g, formatNoticeDateWithWeekday(parseDate(minutes.candidate.confirmedInterviewDate))],
+    [/{{\s*심의내용\s*}}/g, minutes.attendanceLines.join("\n")],
+    [/{{\s*평가요약\s*}}/g, minutes.evaluationSummary],
+    [/{{\s*의결사항\s*}}/g, minutes.resultLine],
+    [/{{\s*최종채용자\s*}}/g, minutes.hiredName || "없음"],
+    [/{{\s*입사예정일\s*}}/g, minutes.hireStartDate ? formatNoticeDateWithWeekday(parseDate(minutes.hireStartDate)) : "추후 협의"],
+  ];
+  const filled = replacements.reduce((value, [pattern, replacement]) => value.replace(pattern, escapeXmlText(replacement)), xml);
+  const replacedKnownForm = applyKnownPersonnelMinutesCells(filled, minutes);
+  if (replacedKnownForm !== filled || filled !== xml) {
+    return replacedKnownForm;
+  }
+  return appendMinutesText(filled, minutes.previewText);
+}
+
+function applyKnownPersonnelMinutesCells(xml, minutes) {
+  const agenda = `직원채용의 건 (${minutes.candidate.name})`;
+  const meetingDateText = `${parseDate(minutes.minutesDate).getFullYear()}년 ${parseDate(minutes.minutesDate).getMonth() + 1}월 ${parseDate(minutes.minutesDate).getDate()}일 14시 00분`;
+  const contentLines = [
+    `<${minutes.candidate.department}>`,
+    `- [공고 ${minutes.serial} 호] ${minutes.candidate.name} 공고를 진행하였음.`,
+    ...minutes.attendanceLines,
+    "면접평가표 및 면접 결과를 바탕으로 채용 적합성을 심의하였다.",
+    minutes.evaluationSummary,
+  ];
+  const decisionLines = [
+    minutes.resultLine,
+    minutes.hiredName ? `채용자: ${minutes.hiredName} (${minutes.candidate.department})` : "채용자: 없음",
+    `입사일: ${minutes.hireStartDate ? formatNoticeDateWithWeekday(parseDate(minutes.hireStartDate)) : "추후 협의"}`,
+    "고용형태: 3개월 수습 후, 정규직 전환",
+    "임금: 서울시 기준 사회복지시설 종사자 인건비 기준에 따름",
+  ];
+  let next = xml
+    .replace(/신규 채용의 건/g, escapeXmlText(agenda))
+    .replace(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일\s*\d{1,2}시\s*\d{2}분/g, escapeXmlText(meetingDateText));
+  next = next.replace(
+    /<hp:p[^>]*><hp:run[^>]*><hp:t>\s*&lt;[^<]+&gt;\s*<\/hp:t><\/hp:run>[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="4")/,
+    contentLines.map(buildHwpxTextParagraph).join(""),
+  );
+  next = next.replace(
+    /<hp:p[^>]*><hp:run[^>]*><hp:t>채용자:[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="5")/,
+    decisionLines.map(buildHwpxTextParagraph).join(""),
+  );
+  return next;
+}
+
+function appendMinutesText(xml, text) {
+  const paragraphs = text
+    .split("\n")
+    .map((line) => buildHwpxTextParagraph(line))
+    .join("");
+  if (xml.includes("</hs:sec>")) {
+    return xml.replace("</hs:sec>", `${paragraphs}</hs:sec>`);
+  }
+  return `${xml}${paragraphs}`;
+}
+
+function buildHwpxTextParagraph(text) {
+  return `<hp:p id="0" paraPrIDRef="1" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1200" textheight="1200" baseline="1020" spacing="720" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
+}
+
 function validateNoticeDraft(draft) {
   if (!draft.name || !draft.department || !draft.noticeDate) {
     alert("채용건명, 부서, 공고일을 먼저 입력하세요.");
@@ -1629,6 +1874,10 @@ function formatFileDate(date) {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function formatCompactDate(date) {
+  return `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function formatNoticeDate(date) {
   return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`;
 }
@@ -1643,6 +1892,13 @@ function escapeXmlText(value) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function decodeXmlText(value) {
+  return String(value)
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
 }
 
 function escapeRegExp(value) {
