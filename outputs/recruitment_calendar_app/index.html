@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260601-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260601-3" />
   </head>
   <body>
     <div class="app-shell">
@@ -294,7 +294,13 @@
                 </div>
                 <span>HWPX / TXT</span>
               </div>
-              <p class="helper-text">왼쪽에서 공고를 선택하거나 입력한 뒤, 붙임1 채용분야를 확인하고 공고 파일을 생성합니다.</p>
+              <p class="helper-text">이미 등록된 공고를 선택하면 시행번호, 접수일자, 채용분야가 자동으로 불러와집니다.</p>
+              <label>
+                대상 공고
+                <select id="noticeRecruitmentInput">
+                  <option value="">현재 입력 중인 공고</option>
+                </select>
+              </label>
               <div class="section-title-row field-title-row">
                 <div>
                   <strong>붙임1 채용분야</strong>
@@ -375,8 +381,8 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260601-2"></script>
-    <script src="./template-data.js?v=20260601-2"></script>
-    <script src="./app.js?v=20260601-2"></script>
+    <script src="./jszip.min.js?v=20260601-3"></script>
+    <script src="./template-data.js?v=20260601-3"></script>
+    <script src="./app.js?v=20260601-3"></script>
   </body>
 </html>

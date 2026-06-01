@@ -213,6 +213,7 @@ const els = {
   noticeType: document.querySelector("#noticeTypeInput"),
   noticeDate: document.querySelector("#noticeDateInput"),
   executionNo: document.querySelector("#executionNoInput"),
+  noticeRecruitment: document.querySelector("#noticeRecruitmentInput"),
   noticeTemplate: document.querySelector("#noticeTemplateInput"),
   confirmedInterviewDate: document.querySelector("#confirmedInterviewDateInput"),
   workStartDate: document.querySelector("#workStartDateInput"),
@@ -321,6 +322,10 @@ function bindEvents() {
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.downloadTxtButton.addEventListener("click", downloadTxtNotice);
+  els.noticeRecruitment.addEventListener("change", () => {
+    const candidate = state.candidates.find((item) => item.id === els.noticeRecruitment.value);
+    if (candidate) fillForm(candidate);
+  });
   els.createReissueButton.addEventListener("click", createReissueRecruitment);
   els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
   els.minutesRecruitment.addEventListener("change", () => {
@@ -478,6 +483,7 @@ function render() {
   renderDeadlineBanner();
   renderSchedulePreview();
   renderReissueSourceOptions();
+  renderNoticeRecruitmentOptions();
   renderMinutesRecruitmentOptions();
   renderSummary();
   renderCalendarSize();
@@ -611,6 +617,16 @@ function renderReissueSourceOptions() {
     ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
   ].join("");
   els.reissueSource.value = state.candidates.some((candidate) => candidate.id === selectedValue) ? selectedValue : "";
+}
+
+function renderNoticeRecruitmentOptions() {
+  if (!els.noticeRecruitment) return;
+  const selectedValue = els.noticeRecruitment.value || els.candidateId.value || "";
+  els.noticeRecruitment.innerHTML = [
+    `<option value="">현재 입력 중인 공고</option>`,
+    ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
+  ].join("");
+  els.noticeRecruitment.value = state.candidates.some((candidate) => candidate.id === selectedValue) ? selectedValue : "";
 }
 
 function renderMinutesRecruitmentOptions() {
@@ -1041,6 +1057,7 @@ function fillForm(candidate) {
   els.memo.value = candidate.memo;
   renderIntervieweeRows(candidate.interviewees || []);
   renderRecruitmentFieldRows(candidate.recruitmentFields || defaultRecruitmentFields(candidate));
+  if (els.noticeRecruitment) els.noticeRecruitment.value = candidate.id;
   if (els.reissueSource) els.reissueSource.value = candidate.id;
   if (els.minutesRecruitment) els.minutesRecruitment.value = candidate.id;
   fillMinutesDefaults(candidate);
@@ -1058,6 +1075,7 @@ function resetForm() {
   els.probationMonths.value = 3;
   renderIntervieweeRows([]);
   renderRecruitmentFieldRows([]);
+  if (els.noticeRecruitment) els.noticeRecruitment.value = "";
   if (els.reissueSource) els.reissueSource.value = "";
   if (els.minutesRecruitment) els.minutesRecruitment.value = "";
   fillMinutesDefaults(getDraftRecruitment());
