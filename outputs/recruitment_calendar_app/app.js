@@ -2,6 +2,24 @@ const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
+const PUBLIC_HOLIDAYS = {
+  "2026-01-01": "신정",
+  "2026-02-16": "설날 연휴",
+  "2026-02-17": "설날",
+  "2026-02-18": "설날 연휴",
+  "2026-03-02": "삼일절 대체공휴일",
+  "2026-05-05": "어린이날",
+  "2026-05-25": "부처님오신날 대체공휴일",
+  "2026-06-03": "전국동시지방선거일",
+  "2026-06-06": "현충일",
+  "2026-08-17": "광복절 대체공휴일",
+  "2026-09-24": "추석 연휴",
+  "2026-09-25": "추석",
+  "2026-09-26": "추석 연휴",
+  "2026-10-05": "개천절 대체공휴일",
+  "2026-10-09": "한글날",
+  "2026-12-25": "성탄절",
+};
 const REGISTERED_RECRUITMENTS = [
   {
     id: "site-gr2026-a-036",
@@ -572,8 +590,12 @@ function renderSchedulePreview() {
   const interviewText = draft.confirmedInterviewDate
     ? `확정 ${formatShortDate(parseDate(draft.confirmedInterviewDate))}`
     : `(예정) ${formatShortDate(schedule.plannedInterviewDate)}`;
+  const holidayAdjustmentText = schedule.holidayAdjustmentDays
+    ? `평일 공휴일 ${schedule.holidayAdjustmentDays}일 반영: ${schedule.holidayAdjustmentDates.map((item) => `${formatShortDate(item.date)} ${item.name}`).join(", ")}`
+    : "없음";
   els.schedulePreview.innerHTML = `
     <dt>1차 접수</dt><dd>${formatShortDate(schedule.documentStartDate)} ~ ${formatShortDate(schedule.documentEndDate)}</dd>
+    <dt>공휴일 보정</dt><dd>${escapeHtml(holidayAdjustmentText)}</dd>
     <dt>서류심사</dt><dd>${formatShortDate(schedule.screeningDate)}</dd>
     <dt>2차 면접</dt><dd>${interviewText}</dd>
     <dt>적격여부</dt><dd>${formatShortDate(schedule.eligibilityStartDate)} ~ ${formatShortDate(schedule.eligibilityEndDate)}</dd>
@@ -750,6 +772,11 @@ function renderNoticeDetail(event) {
       <div class="notice-text">
         <p><strong>서류마감일:</strong> ${schedule ? escapeHtml(formatShortDate(schedule.documentEndDate)) : "미정"}</p>
         <p><strong>공고기간:</strong> ${schedule ? `${escapeHtml(formatShortDate(schedule.documentStartDate))} ~ ${escapeHtml(formatShortDate(schedule.documentEndDate))}` : "미정"}</p>
+        ${
+          schedule?.holidayAdjustmentDays
+            ? `<p><strong>공휴일 보정:</strong> ${schedule.holidayAdjustmentDays}일 연장 (${escapeHtml(schedule.holidayAdjustmentDates.map((item) => `${formatShortDate(item.date)} ${item.name}`).join(", "))})</p>`
+            : ""
+        }
         <p><strong>다음 일정:</strong> ${schedule ? `서류심사 ${escapeHtml(formatShortDate(schedule.screeningDate))}, 면접 예정 ${escapeHtml(formatShortDate(schedule.plannedInterviewDate))}` : "미정"}</p>
       </div>
       <div class="event-actions">
@@ -2389,7 +2416,9 @@ function buildSchedule(candidate) {
   const noticeDate = parseDate(candidate.noticeDate);
   const documentEndOffset = candidate.noticeType === "normal" ? 15 : 8;
   const documentStartDate = new Date(noticeDate);
-  const documentEndDate = addDays(noticeDate, documentEndOffset);
+  const baseDocumentEndDate = addDays(noticeDate, documentEndOffset);
+  const holidayAdjustmentDates = getReceptionHolidayAdjustments(documentStartDate, baseDocumentEndDate);
+  const documentEndDate = addDays(baseDocumentEndDate, holidayAdjustmentDates.length);
   const screeningDate = addDays(documentEndDate, 1);
   const plannedInterviewDate = addDays(documentEndDate, 2);
   const interviewBaseDate = candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : plannedInterviewDate;
@@ -2399,11 +2428,33 @@ function buildSchedule(candidate) {
     noticeDate,
     documentStartDate,
     documentEndDate,
+    baseDocumentEndDate,
+    holidayAdjustmentDays: holidayAdjustmentDates.length,
+    holidayAdjustmentDates,
     screeningDate,
     plannedInterviewDate,
     eligibilityStartDate,
     eligibilityEndDate,
   };
+}
+
+function getReceptionHolidayAdjustments(startDate, baseEndDate) {
+  let adjustedEndDate = new Date(baseEndDate);
+  let holidays = [];
+  let previousCount = -1;
+  while (holidays.length !== previousCount) {
+    previousCount = holidays.length;
+    holidays = eachDate(startDate, adjustedEndDate)
+      .filter(isWeekdayPublicHoliday)
+      .map((date) => ({ date, name: PUBLIC_HOLIDAYS[toDateKey(date)] }));
+    adjustedEndDate = addDays(baseEndDate, holidays.length);
+  }
+  return holidays;
+}
+
+function isWeekdayPublicHoliday(date) {
+  const day = date.getDay();
+  return day !== 0 && day !== 6 && Boolean(PUBLIC_HOLIDAYS[toDateKey(date)]);
 }
 
 function eachDate(start, end) {
