@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260528-4" />
+    <link rel="stylesheet" href="./styles.css?v=20260601-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -248,6 +248,44 @@
 
         <section class="view-panel" id="documentsView" aria-label="공고 및 한글 문서 생성">
           <div class="document-page">
+            <section class="document-panel reissue-generator" aria-label="적격자 없음 재공고 등록">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Re-notice</p>
+                  <h2>적격자 없음 재공고</h2>
+                </div>
+                <span>일정 등록</span>
+              </div>
+              <p class="helper-text">기존 공고를 복사해 새 시행번호와 접수일자로 재공고 일정을 등록합니다. 등록 후 바로 공고 HWPX 생성값으로 불러옵니다.</p>
+              <div class="reissue-grid">
+                <label>
+                  기존 공고
+                  <select id="reissueSourceInput">
+                    <option value="">기존 공고 선택</option>
+                  </select>
+                </label>
+                <label>
+                  재공고 유형
+                  <select id="reissueNoticeTypeInput">
+                    <option value="urgent">긴급 공고</option>
+                    <option value="normal">일반 공고</option>
+                  </select>
+                </label>
+                <label>
+                  새 공고/접수일
+                  <input id="reissueNoticeDateInput" type="date" />
+                </label>
+                <label>
+                  새 시행번호
+                  <div class="execution-input">
+                    <span>GR2026-A-</span>
+                    <input id="reissueExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="049" />
+                  </div>
+                </label>
+              </div>
+              <button class="primary-button full-button" id="createReissueButton" type="button">재공고 일정 등록</button>
+            </section>
+
             <section class="document-panel notice-generator" aria-label="공고파일 생성">
               <div class="document-panel-header">
                 <div>
@@ -337,8 +375,8 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260528-4"></script>
-    <script src="./template-data.js?v=20260528-4"></script>
-    <script src="./app.js?v=20260528-4"></script>
+    <script src="./jszip.min.js?v=20260601-1"></script>
+    <script src="./template-data.js?v=20260601-1"></script>
+    <script src="./app.js?v=20260601-1"></script>
   </body>
 </html>

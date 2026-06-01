@@ -218,6 +218,13 @@ button:focus-visible {
   box-shadow: 0 8px 20px rgba(88, 129, 140, 0.12);
 }
 
+.reissue-generator {
+  grid-column: 1 / -1;
+  border: 2px solid #e7dc78;
+  background: #fffdf9;
+  box-shadow: 0 8px 20px rgba(167, 149, 58, 0.12);
+}
+
 .document-page {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
@@ -265,6 +272,13 @@ button:focus-visible {
 
 .document-actions .full-button {
   margin-top: 0;
+}
+
+.reissue-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.3fr) minmax(160px, 0.7fr) minmax(170px, 0.7fr) minmax(180px, 0.8fr);
+  gap: 12px;
+  align-items: end;
 }
 
 .file-input {
@@ -1437,6 +1451,7 @@ hr {
   .interviewee-row,
   .recruitment-field-row,
   .document-actions,
+  .reissue-grid,
   .timeline-row {
     grid-template-columns: 1fr;
   }

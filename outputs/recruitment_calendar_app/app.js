@@ -216,6 +216,11 @@ const els = {
   exportButton: document.querySelector("#exportButton"),
   downloadHwpxButton: document.querySelector("#downloadHwpxButton"),
   downloadTxtButton: document.querySelector("#downloadTxtButton"),
+  reissueSource: document.querySelector("#reissueSourceInput"),
+  reissueNoticeType: document.querySelector("#reissueNoticeTypeInput"),
+  reissueNoticeDate: document.querySelector("#reissueNoticeDateInput"),
+  reissueExecutionNo: document.querySelector("#reissueExecutionNoInput"),
+  createReissueButton: document.querySelector("#createReissueButton"),
   minutesDate: document.querySelector("#minutesDateInput"),
   minutesRecruitment: document.querySelector("#minutesRecruitmentInput"),
   minutesHireStart: document.querySelector("#minutesHireStartInput"),
@@ -298,6 +303,7 @@ function bindEvents() {
   els.exportButton.addEventListener("click", exportCsv);
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.downloadTxtButton.addEventListener("click", downloadTxtNotice);
+  els.createReissueButton.addEventListener("click", createReissueRecruitment);
   els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
   els.minutesRecruitment.addEventListener("change", () => {
     const candidate = state.candidates.find((item) => item.id === els.minutesRecruitment.value);
@@ -327,6 +333,9 @@ function bindEvents() {
   });
   els.executionNo.addEventListener("input", () => {
     els.executionNo.value = els.executionNo.value.replace(/\D/g, "").slice(0, 3);
+  });
+  els.reissueExecutionNo.addEventListener("input", () => {
+    els.reissueExecutionNo.value = els.reissueExecutionNo.value.replace(/\D/g, "").slice(0, 3);
   });
   document.querySelectorAll(".size-button").forEach((button) => {
     button.addEventListener("click", () => {
@@ -394,10 +403,63 @@ function saveCandidateFromForm() {
   render();
 }
 
+function createReissueRecruitment() {
+  const source = state.candidates.find((candidate) => candidate.id === els.reissueSource.value) || (els.candidateId.value ? state.candidates.find((candidate) => candidate.id === els.candidateId.value) : null);
+  if (!source) {
+    alert("재공고할 기존 공고를 선택하세요.");
+    return;
+  }
+  const noticeDate = els.reissueNoticeDate.value;
+  if (!noticeDate) {
+    alert("새 공고/접수일을 입력하세요.");
+    return;
+  }
+  const executionDigitsValue = els.reissueExecutionNo.value.replace(/\D/g, "").slice(0, 3);
+  if (!executionDigitsValue) {
+    alert("새 시행번호 뒤 3자리를 입력하세요.");
+    return;
+  }
+
+  const year = parseDate(noticeDate).getFullYear();
+  const executionNo = normalizeExecutionNo(`GR${year}-A-${executionDigitsValue}`, year);
+  if (state.candidates.some((candidate) => candidate.executionNo === executionNo)) {
+    alert(`${executionNo} 시행번호가 이미 등록되어 있습니다. 다른 번호를 입력하세요.`);
+    return;
+  }
+  const sourceSerial = source.executionNo || displayExecutionNo(source);
+  const reissue = normalizeCandidates([{
+    ...source,
+    id: crypto.randomUUID(),
+    name: source.name,
+    noticeType: els.reissueNoticeType.value || source.noticeType || "urgent",
+    noticeDate,
+    executionNo,
+    confirmedInterviewDate: "",
+    hireDate: "",
+    status: "진행중",
+    memo: `${sourceSerial} 공고 마감 후 적격자 없음으로 재공고 등록. 기존 공고를 기준으로 새 시행번호와 접수일자를 변경함.`,
+    interviewees: [],
+    recruitmentFields: normalizeRecruitmentFields(source.recruitmentFields, source).map((field) => ({
+      ...field,
+      id: crypto.randomUUID(),
+    })),
+    updatedAt: new Date().toISOString(),
+  }])[0];
+
+  state.candidates.unshift(reissue);
+  persist();
+  fillForm(reissue);
+  state.activeView = "documents";
+  localStorage.setItem("recruitment-active-view", state.activeView);
+  render();
+  alert(`${executionNo} 재공고 일정이 등록되었습니다. 공고파일 생성에서 바로 다운로드할 수 있습니다.`);
+}
+
 function render() {
   renderViewTabs();
   renderDeadlineBanner();
   renderSchedulePreview();
+  renderReissueSourceOptions();
   renderMinutesRecruitmentOptions();
   renderSummary();
   renderCalendarSize();
@@ -517,6 +579,16 @@ function renderSchedulePreview() {
     <dt>적격여부</dt><dd>${formatShortDate(schedule.eligibilityStartDate)} ~ ${formatShortDate(schedule.eligibilityEndDate)}</dd>
     <dt>근무개시</dt><dd>${draft.workStartDate ? formatShortDate(parseDate(draft.workStartDate)) : "추후 협의"}</dd>
   `;
+}
+
+function renderReissueSourceOptions() {
+  if (!els.reissueSource) return;
+  const selectedValue = els.reissueSource.value || els.candidateId.value || "";
+  els.reissueSource.innerHTML = [
+    `<option value="">기존 공고 선택</option>`,
+    ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
+  ].join("");
+  els.reissueSource.value = state.candidates.some((candidate) => candidate.id === selectedValue) ? selectedValue : "";
 }
 
 function renderMinutesRecruitmentOptions() {
@@ -942,6 +1014,7 @@ function fillForm(candidate) {
   els.memo.value = candidate.memo;
   renderIntervieweeRows(candidate.interviewees || []);
   renderRecruitmentFieldRows(candidate.recruitmentFields || defaultRecruitmentFields(candidate));
+  if (els.reissueSource) els.reissueSource.value = candidate.id;
   if (els.minutesRecruitment) els.minutesRecruitment.value = candidate.id;
   fillMinutesDefaults(candidate);
   els.deleteButton.disabled = false;
@@ -958,6 +1031,7 @@ function resetForm() {
   els.probationMonths.value = 3;
   renderIntervieweeRows([]);
   renderRecruitmentFieldRows([]);
+  if (els.reissueSource) els.reissueSource.value = "";
   if (els.minutesRecruitment) els.minutesRecruitment.value = "";
   fillMinutesDefaults(getDraftRecruitment());
   els.deleteButton.disabled = true;
