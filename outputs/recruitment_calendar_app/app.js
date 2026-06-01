@@ -1,6 +1,7 @@
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
+const EMPLOYMENT_TYPES = ["정규직", "계약직", "기간제", "기타"];
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
 const PUBLIC_HOLIDAYS = {
   "2026-01-01": "신정",
@@ -196,8 +197,9 @@ const state = {
   currentMonth: startOfMonth(new Date()),
   selectedDate: toDateKey(new Date()),
   candidates: loadCandidates(),
-  filters: new Set(["deadline", "interview", "workStart"]),
+  filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire"]),
   search: "",
+  employmentTypeFilter: localStorage.getItem("recruitment-employment-type-filter") || "all",
   calendarSize: ["compact", "normal"].includes(localStorage.getItem("recruitment-calendar-size")) ? localStorage.getItem("recruitment-calendar-size") : "normal",
   activeView: localStorage.getItem("recruitment-active-view") || "calendar",
   rightTab: "day",
@@ -212,6 +214,7 @@ const els = {
   source: document.querySelector("#sourceInput"),
   noticeType: document.querySelector("#noticeTypeInput"),
   noticeDate: document.querySelector("#noticeDateInput"),
+  employmentType: document.querySelector("#employmentTypeInput"),
   executionNo: document.querySelector("#executionNoInput"),
   noticeRecruitment: document.querySelector("#noticeRecruitmentInput"),
   noticeTemplate: document.querySelector("#noticeTemplateInput"),
@@ -233,6 +236,7 @@ const els = {
   nextMonthButton: document.querySelector("#nextMonthButton"),
   todayButton: document.querySelector("#todayButton"),
   exportButton: document.querySelector("#exportButton"),
+  employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
   downloadHwpxButton: document.querySelector("#downloadHwpxButton"),
   downloadTxtButton: document.querySelector("#downloadTxtButton"),
   reissueSource: document.querySelector("#reissueSourceInput"),
@@ -261,6 +265,8 @@ const els = {
   searchResults: document.querySelector("#searchResults"),
   calendarPanel: document.querySelector(".calendar-panel"),
   deadlineBanner: document.querySelector("#deadlineBanner"),
+  todayTaskList: document.querySelector("#todayTaskList"),
+  todayTaskCount: document.querySelector("#todayTaskCount"),
   viewTabs: document.querySelectorAll(".view-tab"),
   viewPanels: document.querySelectorAll(".view-panel"),
   sideTabs: document.querySelectorAll(".side-tab"),
@@ -316,6 +322,12 @@ function bindEvents() {
   els.searchInput.addEventListener("input", (event) => {
     state.search = event.target.value.trim().toLowerCase();
     if (state.search) state.rightTab = "search";
+    render();
+  });
+  els.employmentTypeFilter.value = state.employmentTypeFilter;
+  els.employmentTypeFilter.addEventListener("change", (event) => {
+    state.employmentTypeFilter = event.target.value || "all";
+    localStorage.setItem("recruitment-employment-type-filter", state.employmentTypeFilter);
     render();
   });
 
@@ -386,7 +398,7 @@ function bindEvents() {
     updateIntervieweeStatus(button.dataset.candidateId, button.dataset.personId, button.dataset.personStatus);
   });
 
-  [els.noticeType, els.noticeDate, els.confirmedInterviewDate, els.hireDate, els.probationMonths].forEach((input) => {
+  [els.noticeType, els.noticeDate, els.employmentType, els.confirmedInterviewDate, els.hireDate, els.probationMonths].forEach((input) => {
     input.addEventListener("input", renderSchedulePreview);
     input.addEventListener("change", renderSchedulePreview);
   });
@@ -402,6 +414,7 @@ function saveCandidateFromForm() {
     source: els.source.value,
     noticeType: els.noticeType.value,
     noticeDate: els.noticeDate.value,
+    employmentType: els.employmentType.value,
     executionNo: getExecutionNoFromInput(),
     confirmedInterviewDate: els.confirmedInterviewDate.value,
     workStartDate: els.workStartDate.value,
@@ -488,6 +501,7 @@ function render() {
   renderSummary();
   renderCalendarSize();
   renderCalendar();
+  renderTodayTaskList();
   renderRightPanelTabs();
   renderSelectedDay();
   renderCandidateList();
@@ -651,6 +665,37 @@ function renderCalendar() {
   });
 }
 
+function renderTodayTaskList() {
+  if (!els.todayTaskList || !els.todayTaskCount) return;
+  const todayKey = toDateKey(new Date());
+  const todayEvents = safeGetFilteredEvents()
+    .filter((event) => event.date === todayKey)
+    .sort((a, b) => eventOrder(a.type) - eventOrder(b.type) || displayRecruitmentListTitle(a.candidate).localeCompare(displayRecruitmentListTitle(b.candidate), "ko"));
+  els.todayTaskCount.textContent = `${todayEvents.length}건`;
+  if (!todayEvents.length) {
+    els.todayTaskList.innerHTML = `<div class="empty-state">오늘 처리할 채용 일정이 없습니다.</div>`;
+    return;
+  }
+  els.todayTaskList.innerHTML = todayEvents
+    .map(
+      (event) => `
+        <button type="button" class="today-task-item ${event.type}" data-today-task-date="${escapeHtml(event.date)}">
+          <strong>${escapeHtml(eventLabels[event.type] || "일정")}</strong>
+          <span>${escapeHtml(displayRecruitmentListTitle(event.candidate))}</span>
+        </button>
+      `,
+    )
+    .join("");
+  els.todayTaskList.querySelectorAll("[data-today-task-date]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedDate = button.dataset.todayTaskDate;
+      state.currentMonth = startOfMonth(parseDate(state.selectedDate));
+      state.rightTab = "day";
+      render();
+    });
+  });
+}
+
 function createMonthCalendar(month, events) {
   const monthBlock = document.createElement("section");
   monthBlock.className = "month-calendar";
@@ -710,11 +755,12 @@ function createMonthCalendar(month, events) {
     number.innerHTML = `<span>${date.getDate()}</span>`;
     button.append(number);
 
+    const todayKey = toDateKey(new Date());
     dayEvents.slice(0, 3).forEach((event) => {
       const chip = document.createElement("span");
-      chip.className = `event-chip ${event.type} ${event.period || ""} dept-${departmentKey(event.candidate.department)}`.trim();
-      chip.draggable = true;
-      chip.title = "끌어서 다른 날짜로 이동";
+      chip.className = `event-chip ${event.type} ${event.period || ""} ${event.date < todayKey ? "past-event" : ""} dept-${departmentKey(event.candidate.department)}`.trim();
+      chip.draggable = ["interview", "deadline", "workStart"].includes(event.type);
+      chip.title = chip.draggable ? "끌어서 다른 날짜로 이동" : calendarEventLabel(event);
       chip.addEventListener("click", (clickEvent) => {
         clickEvent.stopPropagation();
         state.selectedDate = event.date;
@@ -763,6 +809,12 @@ function renderSelectedDay() {
     const item = document.createElement("article");
     item.className = "notice-detail";
     item.innerHTML = renderNoticeDetail(event);
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.dataset.action = "copy-event";
+    copyButton.textContent = "복사";
+    item.querySelector(".event-actions")?.prepend(copyButton);
+    item.querySelector('[data-action="copy-event"]')?.addEventListener("click", () => copyEventSummary(event));
     item.querySelector('[data-action="edit-event"]').addEventListener("click", () => fillForm(event.candidate));
     item.querySelector('[data-action="delete-event"]').addEventListener("click", () => deleteSelectedEvent(event));
     els.selectedEvents.append(item);
@@ -774,6 +826,29 @@ function renderNoticeDetail(event) {
   const schedule = buildSchedule(candidate);
   const interviewDate = getInterviewDate(candidate);
   const isConfirmed = Boolean(candidate.confirmedInterviewDate);
+  if (event.type === "notice") {
+    return `
+      <div>
+        <h3>공고시작 · ${escapeHtml(displayRecruitmentName(candidate))}</h3>
+        <div class="notice-meta">
+          <span>${escapeHtml(displayExecutionNo(candidate))}</span>
+          <span>${escapeHtml(candidate.department || "부서 미입력")}</span>
+          <span>${escapeHtml(noticeTypeLabel(candidate))}</span>
+          <span>${escapeHtml(inferEmploymentType(candidate))}</span>
+          <span>${Number(candidate.hireCount || 1)}명 채용</span>
+        </div>
+      </div>
+      <div class="notice-text">
+        <p><strong>공고 시작일:</strong> ${candidate.noticeDate ? escapeHtml(formatShortDate(parseDate(candidate.noticeDate))) : "미입력"}</p>
+        <p><strong>접수기간:</strong> ${schedule ? `${escapeHtml(formatShortDate(schedule.documentStartDate))} ~ ${escapeHtml(formatShortDate(schedule.documentEndDate))}` : "미정"}</p>
+        <p><strong>서류심사/면접:</strong> ${schedule ? `${escapeHtml(formatShortDate(schedule.screeningDate))} / ${escapeHtml(formatShortDate(schedule.plannedInterviewDate))}` : "미정"}</p>
+      </div>
+      <div class="event-actions">
+        <button type="button" data-action="edit-event">수정</button>
+        <button type="button" data-action="delete-event">삭제</button>
+      </div>
+    `;
+  }
   if (event.type === "deadline") {
     return `
       <div>
@@ -794,6 +869,50 @@ function renderNoticeDetail(event) {
             : ""
         }
         <p><strong>다음 일정:</strong> ${schedule ? `서류심사 ${escapeHtml(formatShortDate(schedule.screeningDate))}, 면접 예정 ${escapeHtml(formatShortDate(schedule.plannedInterviewDate))}` : "미정"}</p>
+      </div>
+      <div class="event-actions">
+        <button type="button" data-action="edit-event">수정</button>
+        <button type="button" data-action="delete-event">삭제</button>
+      </div>
+    `;
+  }
+  if (event.type === "screening") {
+    return `
+      <div>
+        <h3>서류심사 · ${escapeHtml(displayRecruitmentName(candidate))}</h3>
+        <div class="notice-meta">
+          <span>${escapeHtml(displayExecutionNo(candidate))}</span>
+          <span>${escapeHtml(candidate.department || "부서 미입력")}</span>
+          <span>${escapeHtml(noticeTypeLabel(candidate))}</span>
+          <span>${Number(candidate.hireCount || 1)}명 채용</span>
+        </div>
+      </div>
+      <div class="notice-text">
+        <p><strong>서류심사일:</strong> ${schedule ? escapeHtml(formatShortDate(schedule.screeningDate)) : "미정"}</p>
+        <p><strong>면접 예정일:</strong> ${schedule ? escapeHtml(formatShortDate(schedule.plannedInterviewDate)) : "미정"}</p>
+        <p><strong>참고:</strong> 1차 합격자 개별 및 홈페이지 공지 일정입니다.</p>
+      </div>
+      <div class="event-actions">
+        <button type="button" data-action="edit-event">수정</button>
+        <button type="button" data-action="delete-event">삭제</button>
+      </div>
+    `;
+  }
+  if (event.type === "hire") {
+    return `
+      <div>
+        <h3>발표/채용 · ${escapeHtml(displayRecruitmentName(candidate))}</h3>
+        <div class="notice-meta">
+          <span>${escapeHtml(displayExecutionNo(candidate))}</span>
+          <span>${escapeHtml(candidate.department || "부서 미입력")}</span>
+          <span>${escapeHtml(candidate.status || "상태 미입력")}</span>
+          <span>${Number(candidate.hireCount || 1)}명 채용</span>
+        </div>
+      </div>
+      <div class="notice-text">
+        <p><strong>합격/채용일:</strong> ${escapeHtml(formatShortDate(parseDate(event.date)))}</p>
+        <p><strong>최종합격자:</strong> ${escapeHtml(getFinalHires(candidate).join(", ") || "미입력")}</p>
+        ${candidate.memo ? `<p><strong>메모:</strong> ${escapeHtml(candidate.memo)}</p>` : ""}
       </div>
       <div class="event-actions">
         <button type="button" data-action="edit-event">수정</button>
@@ -935,6 +1054,55 @@ function deleteSelectedEvent(event) {
   render();
 }
 
+async function copyEventSummary(event) {
+  const text = buildEventCopyText(event);
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.append(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+  } catch (error) {
+    console.error("복사 실패", error);
+    alert("복사에 실패했습니다. 내용을 직접 선택해 복사해 주세요.");
+  }
+}
+
+function buildEventCopyText(event) {
+  const candidate = event.candidate;
+  const schedule = buildSchedule(candidate);
+  const lines = [
+    `[${eventLabels[event.type] || "일정"}] ${displayRecruitmentListTitle(candidate)}`,
+    `시행번호: ${displayExecutionNo(candidate)}`,
+    `부서: ${candidate.department || "부서 미입력"}`,
+    `일자: ${formatShortDate(parseDate(event.date))}`,
+  ];
+  if (event.type === "deadline" && schedule) {
+    lines.push(`접수기간: ${formatShortDate(schedule.documentStartDate)} ~ ${formatShortDate(schedule.documentEndDate)}`);
+  }
+  if (event.type === "interview") {
+    lines.push(`면접구분: ${interviewPeriodLabel(event.period)}`);
+    const people = normalizeInterviewees(candidate.interviewees);
+    if (people.length) {
+      lines.push(`면접대상자: ${people.map((person) => `${person.name}${person.phone ? `(${person.phone})` : ""}`).join(", ")}`);
+    }
+  }
+  if (event.type === "workStart") {
+    lines.push(`채용분야: ${event.field?.fieldName || candidate.role || candidate.department || "미입력"}`);
+    lines.push(`직무내용: ${event.field?.duty || candidate.memo || "미입력"}`);
+  }
+  if (candidate.memo) lines.push(`메모: ${candidate.memo}`);
+  return lines.join("\n");
+}
+
 function renderCandidateList() {
   const candidates = getVisibleCandidates();
   renderCandidateCollection(els.candidateList, candidates, "조건에 맞는 채용건이 없습니다.");
@@ -956,7 +1124,7 @@ function renderFullCandidateList() {
         <article class="full-candidate-row dept-${departmentKey(candidate.department)}" data-candidate-id="${candidate.id}">
           <div class="full-candidate-main">
             <strong>${escapeHtml(displayRecruitmentListTitle(candidate))}</strong>
-            <span>${escapeHtml(candidate.department || "부서 미입력")} · ${escapeHtml(noticeTypeLabel(candidate))} · ${Number(candidate.hireCount || 1)}명 채용 · ${escapeHtml(candidate.source || "경로 미입력")}</span>
+            <span>${escapeHtml(candidate.department || "부서 미입력")} · ${escapeHtml(noticeTypeLabel(candidate))} · ${escapeHtml(inferEmploymentType(candidate))} · ${Number(candidate.hireCount || 1)}명 채용 · ${escapeHtml(candidate.source || "경로 미입력")}</span>
           </div>
           <div class="full-candidate-dates">
             <span>공고일 ${candidate.noticeDate || "미입력"}</span>
@@ -1023,7 +1191,7 @@ function renderCandidateCollection(container, candidates, emptyMessage) {
       <div class="candidate-top">
         <div>
           <strong>${escapeHtml(displayRecruitmentListTitle(candidate))}</strong>
-          <span>${escapeHtml(candidate.department || "부서 미입력")} · ${escapeHtml(noticeTypeLabel(candidate))} · ${Number(candidate.hireCount || 1)}명 채용</span>
+          <span>${escapeHtml(candidate.department || "부서 미입력")} · ${escapeHtml(noticeTypeLabel(candidate))} · ${escapeHtml(inferEmploymentType(candidate))} · ${Number(candidate.hireCount || 1)}명 채용</span>
         </div>
         <span class="${getStatusClass(candidate.status)}">${escapeHtml(candidate.status)}</span>
       </div>
@@ -1048,6 +1216,7 @@ function fillForm(candidate) {
   els.source.value = candidate.source;
   els.noticeType.value = candidate.noticeType || "urgent";
   els.noticeDate.value = candidate.noticeDate || candidate.documentDate || "";
+  els.employmentType.value = EMPLOYMENT_TYPES.includes(candidate.employmentType) ? candidate.employmentType : inferEmploymentType(candidate);
   els.executionNo.value = executionDigits(candidate.executionNo || "");
   els.confirmedInterviewDate.value = candidate.confirmedInterviewDate || "";
   els.workStartDate.value = candidate.workStartDate || "";
@@ -1070,6 +1239,7 @@ function resetForm() {
   els.form.reset();
   els.candidateId.value = "";
   els.noticeType.value = "urgent";
+  els.employmentType.value = "정규직";
   els.executionNo.value = "";
   els.hireCount.value = 1;
   els.probationMonths.value = 3;
@@ -1198,6 +1368,7 @@ function updateIntervieweeStatus(candidateId, personId, status) {
 function getFilteredEvents() {
   return getAllEvents()
     .filter((event) => state.filters.has(event.type))
+    .filter((event) => matchesEmploymentType(event.candidate))
     .filter((event) => matchesSearch(event.candidate))
     .sort((a, b) => eventOrder(a.type) - eventOrder(b.type) || (a.candidate.name || "").localeCompare(b.candidate.name || "", "ko"));
 }
@@ -1218,10 +1389,22 @@ function getAllEvents() {
     const interviewDate = getInterviewDate(candidate);
     if (schedule) {
       events.push({
+        type: "notice",
+        date: toDateKey(schedule.documentStartDate),
+        candidate,
+        detail: "공고시작",
+      });
+      events.push({
         type: "deadline",
         date: toDateKey(schedule.documentEndDate),
         candidate,
         detail: "서류마감",
+      });
+      events.push({
+        type: "screening",
+        date: toDateKey(schedule.screeningDate),
+        candidate,
+        detail: "서류심사",
       });
     }
     if (interviewDate) {
@@ -1235,6 +1418,14 @@ function getAllEvents() {
     }
     const workStartEvents = getWorkStartEvents(candidate);
     workStartEvents.forEach((event) => events.push(event));
+    if (candidate.hireDate) {
+      events.push({
+        type: "hire",
+        date: candidate.hireDate,
+        candidate,
+        detail: "합격발표/채용",
+      });
+    }
     return events;
   });
 }
@@ -1289,8 +1480,11 @@ function interviewPeriodLabel(period) {
 
 function calendarEventLabel(event) {
   const department = event.candidate.department || "부서미정";
+  if (event.type === "notice") return `공고 · ${department}`;
   if (event.type === "deadline") return `서류마감 · ${department}`;
+  if (event.type === "screening") return `서류심사 · ${department}`;
   if (event.type === "interview") return `${interviewPeriodLabel(event.period)} · ${department}`;
+  if (event.type === "hire") return `발표/채용 · ${department}`;
   if (event.type === "workStart") {
     const count = event.field?.count || event.candidate.hireCount || 1;
     return `채용시작 · ${department} · ${count}명`;
@@ -1299,13 +1493,18 @@ function calendarEventLabel(event) {
 }
 
 function getVisibleCandidates() {
-  return state.candidates.filter(matchesSearch).sort((a, b) => {
+  return state.candidates.filter(matchesEmploymentType).filter(matchesSearch).sort((a, b) => {
     const scheduleA = buildSchedule(a);
     const scheduleB = buildSchedule(b);
     const dateA = a.confirmedInterviewDate || (scheduleA ? toDateKey(scheduleA.plannedInterviewDate) : "") || a.noticeDate || a.hireDate || "9999-12-31";
     const dateB = b.confirmedInterviewDate || (scheduleB ? toDateKey(scheduleB.plannedInterviewDate) : "") || b.noticeDate || b.hireDate || "9999-12-31";
     return dateA.localeCompare(dateB) || (a.name || "").localeCompare(b.name || "", "ko");
   });
+}
+
+function matchesEmploymentType(candidate) {
+  if (state.employmentTypeFilter === "all") return true;
+  return inferEmploymentType(candidate) === state.employmentTypeFilter;
 }
 
 function matchesSearch(candidate) {
@@ -1317,6 +1516,7 @@ function matchesSearch(candidate) {
     candidate.role,
     candidate.source,
     candidate.status,
+    inferEmploymentType(candidate),
     candidate.memo,
     ...interviewees.flatMap((person) => [person.name, person.phone, person.email, person.status]),
   ]
@@ -1356,6 +1556,12 @@ function getCandidateProgress(candidate) {
   return Math.round((total / (people.length * maxIndex)) * 100);
 }
 
+function getFinalHires(candidate) {
+  return normalizeInterviewees(candidate.interviewees)
+    .filter((person) => person.status === "채용")
+    .map((person) => `${person.name}${person.phone ? `(${person.phone})` : ""}`);
+}
+
 function departmentKey(department) {
   return {
     사무행정팀: "admin",
@@ -1366,11 +1572,11 @@ function departmentKey(department) {
 }
 
 function eventOrder(type) {
-  return { deadline: 1, interview: 2, workStart: 3, notice: 4, document: 5, screening: 6, eligibility: 7, hire: 8, probation: 9 }[type] || 10;
+  return { notice: 1, deadline: 2, screening: 3, interview: 4, workStart: 5, hire: 6, eligibility: 7, probation: 8, document: 9 }[type] || 10;
 }
 
 function exportCsv() {
-  const headers = ["채용건명", "부서", "채용명수", "공고유형", "시행번호", "공고일", "2차면접예정일", "면접확정일", "면접대상자", "최종상태", "메모"];
+  const headers = ["채용건명", "부서", "채용명수", "공고유형", "채용유형", "시행번호", "공고일", "2차면접예정일", "면접확정일", "면접대상자", "최종상태", "메모"];
   const rows = state.candidates.map((candidate) => [
     ...buildCsvRow(candidate),
   ]);
@@ -1391,6 +1597,7 @@ function buildCsvRow(candidate) {
     candidate.department || candidate.role || "",
     candidate.hireCount || 1,
     candidate.noticeType === "normal" ? "일반 공고" : "긴급 공고",
+    inferEmploymentType(candidate),
     candidate.executionNo || "",
     candidate.noticeDate,
     schedule ? toDateKey(schedule.plannedInterviewDate) : "",
@@ -1737,6 +1944,7 @@ function getDraftRecruitment() {
     source: els.source.value,
     noticeType: els.noticeType.value,
     noticeDate: els.noticeDate.value,
+    employmentType: els.employmentType.value,
     executionNo: getExecutionNoFromInput(),
     confirmedInterviewDate: els.confirmedInterviewDate.value,
     workStartDate: els.workStartDate.value,
@@ -2157,6 +2365,7 @@ function normalizeCandidates(candidates) {
     ...candidate,
     noticeType: candidate.noticeType || "urgent",
     noticeDate: candidate.noticeDate || candidate.documentDate || "",
+    employmentType: EMPLOYMENT_TYPES.includes(candidate.employmentType) ? candidate.employmentType : inferEmploymentType(candidate),
     executionNo: candidate.executionNo || "",
     confirmedInterviewDate: candidate.confirmedInterviewDate || candidate.interviewDate || "",
     workStartDate: candidate.workStartDate || "",
@@ -2179,6 +2388,17 @@ function noticeTypeLabel(candidate) {
 
 function noticeTypePrefix(candidate) {
   return candidate.noticeType === "normal" ? "[일반]" : "[긴급]";
+}
+
+function inferEmploymentType(candidate = {}) {
+  if (EMPLOYMENT_TYPES.includes(candidate.employmentType)) return candidate.employmentType;
+  const text = [candidate.name, candidate.memo, candidate.status, candidate.source, ...(candidate.recruitmentFields || []).flatMap((field) => [field.fieldName, field.duty])]
+    .filter(Boolean)
+    .join(" ");
+  if (/계약직/.test(text)) return "계약직";
+  if (/기간제|임시직|단기/.test(text)) return "기간제";
+  if (/기타/.test(text)) return "기타";
+  return "정규직";
 }
 
 function displayRecruitmentName(candidate) {

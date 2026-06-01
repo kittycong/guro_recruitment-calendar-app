@@ -667,14 +667,24 @@ button:focus-visible {
   background: #fffbd0;
 }
 
+.calendar-legend .legend-notice {
+  color: var(--document);
+  background: #e8f1f3;
+}
+
+.calendar-legend .legend-screening {
+  color: var(--screening);
+  background: #f8f2f5;
+}
+
 .calendar-legend .legend-morning {
   color: var(--interview);
-  background: #e8f1f3;
+  background: #fff1d8;
 }
 
 .calendar-legend .legend-afternoon {
   color: var(--interview);
-  background: #f5d0df;
+  background: #ffe5c2;
 }
 
 .calendar-legend .legend-work {
@@ -710,9 +720,16 @@ button:focus-visible {
   color: var(--text);
 }
 
-.filter-row input {
+.filter-row input,
+.filter-row select {
   width: auto;
   min-height: auto;
+}
+
+.calendar-select-filter select {
+  min-width: 130px;
+  min-height: 32px;
+  padding: 4px 28px 4px 9px;
 }
 
 .weekday-row,
@@ -841,23 +858,26 @@ button:focus-visible {
 }
 
 .event-chip.notice {
-  color: var(--notice);
+  color: var(--document);
+  background: #e8f1f3;
 }
 
 .event-chip.screening {
   color: var(--screening);
+  background: #f8f2f5;
 }
 
 .event-chip.interview {
   color: var(--interview);
+  background: #fff1d8;
 }
 
 .event-chip.interview-morning {
-  background: #e8f1f3;
+  background: #fff1d8;
 }
 
 .event-chip.interview-afternoon {
-  background: #f5d0df;
+  background: #ffe5c2;
 }
 
 .event-chip.interview-unset {
@@ -875,6 +895,7 @@ button:focus-visible {
 
 .event-chip.hire {
   color: var(--hire);
+  background: #d9e4e2;
 }
 
 .event-chip.workStart {
@@ -887,10 +908,101 @@ button:focus-visible {
   background: var(--warning-bg);
 }
 
+.event-chip.past-event {
+  opacity: 0.48;
+  filter: grayscale(0.35);
+}
+
 .more-events {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.today-task-panel {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fffdf9;
+  padding: 14px;
+}
+
+.today-task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.today-task-header strong {
+  font-size: 16px;
+}
+
+.today-task-header span {
+  border-radius: 999px;
+  background: #edf2f1;
+  color: var(--muted);
+  padding: 4px 9px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.today-task-list {
+  display: grid;
+  gap: 8px;
+}
+
+.today-task-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left: 5px solid currentColor;
+  border-radius: 7px;
+  background: #fffdf9;
+  color: var(--text);
+  padding: 10px;
+  text-align: left;
+}
+
+.today-task-item strong {
+  color: currentColor;
+  font-size: 13px;
+}
+
+.today-task-item span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.today-task-item.notice {
+  color: var(--document);
+  background: #f6fbfc;
+}
+
+.today-task-item.deadline {
+  color: var(--probation);
+  background: #fffdf0;
+}
+
+.today-task-item.screening {
+  color: var(--screening);
+  background: #fbf7fa;
+}
+
+.today-task-item.interview {
+  color: var(--interview);
+  background: #fff8ee;
+}
+
+.today-task-item.workStart,
+.today-task-item.hire {
+  color: var(--hire);
+  background: #f6faf9;
 }
 
 .day-panel {

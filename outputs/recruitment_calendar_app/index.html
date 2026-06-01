@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260601-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260601-4" />
   </head>
   <body>
     <div class="app-shell">
@@ -67,6 +67,16 @@
                 <input id="noticeDateInput" type="date" />
               </label>
             </div>
+
+            <label>
+              채용유형
+              <select id="employmentTypeInput">
+                <option>정규직</option>
+                <option>계약직</option>
+                <option>기간제</option>
+                <option>기타</option>
+              </select>
+            </label>
 
             <label>
               시행번호
@@ -190,19 +200,38 @@
         <section class="content-grid view-panel active" id="calendarView">
           <div class="calendar-panel">
             <div class="filter-row" aria-label="일정 필터">
-              <span class="filter-note">달력에는 서류마감과 면접 일정이 표시됩니다.</span>
+              <span class="filter-note">달력에는 공고, 서류마감, 면접, 발표/채용 일정이 표시됩니다.</span>
+              <label class="calendar-select-filter">
+                채용유형
+                <select id="employmentTypeFilterInput">
+                  <option value="all">전체</option>
+                  <option value="정규직">정규직</option>
+                  <option value="계약직">계약직</option>
+                  <option value="기간제">기간제</option>
+                  <option value="기타">기타</option>
+                </select>
+              </label>
               <div class="calendar-size-control" aria-label="달력 크기">
                 <button type="button" class="size-button" data-calendar-size="compact">작게</button>
                 <button type="button" class="size-button active" data-calendar-size="normal">보통</button>
               </div>
               <div class="calendar-legend" aria-label="일정 구분">
+                <span class="legend-notice">공고</span>
                 <span class="legend-deadline">서류마감</span>
+                <span class="legend-screening">서류심사</span>
                 <span class="legend-morning">오전면접</span>
                 <span class="legend-afternoon">오후면접</span>
                 <span class="legend-work">채용시작</span>
               </div>
             </div>
             <div class="calendar-grid" id="calendarGrid" aria-label="채용 일정 달력"></div>
+            <section class="today-task-panel" aria-label="오늘 채용 업무">
+              <div class="today-task-header">
+                <strong>오늘 해야 할 채용 업무</strong>
+                <span id="todayTaskCount">0건</span>
+              </div>
+              <div id="todayTaskList" class="today-task-list"></div>
+            </section>
           </div>
 
           <aside class="day-panel" aria-label="선택일 일정">
@@ -381,8 +410,8 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260601-3"></script>
-    <script src="./template-data.js?v=20260601-3"></script>
-    <script src="./app.js?v=20260601-3"></script>
+    <script src="./jszip.min.js?v=20260601-4"></script>
+    <script src="./template-data.js?v=20260601-4"></script>
+    <script src="./app.js?v=20260601-4"></script>
   </body>
 </html>
