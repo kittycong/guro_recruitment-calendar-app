@@ -482,6 +482,36 @@ button:focus-visible {
   gap: 10px;
 }
 
+.toolbar-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.calendar-sync-status {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fffdf9;
+  color: var(--muted);
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.calendar-sync-status[data-status="connected"] {
+  border-color: #b9cbc7;
+  background: #edf7f5;
+  color: var(--hire);
+}
+
+.calendar-sync-status[data-status="error"] {
+  border-color: #efb6c3;
+  background: #fff2f5;
+  color: var(--danger);
+}
+
 .eyebrow {
   margin: 0 0 2px;
   color: var(--muted);

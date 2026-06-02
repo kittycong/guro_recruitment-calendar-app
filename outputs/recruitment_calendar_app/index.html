@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260602-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260602-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -160,6 +160,8 @@
               <span>검색</span>
               <input id="searchInput" type="search" placeholder="이름, 직무, 연락처" />
             </label>
+            <button class="secondary-button" id="googleCalendarConnectButton" type="button">Google 연결</button>
+            <span class="calendar-sync-status" id="googleCalendarStatus">Google 미연결</span>
             <button class="secondary-button" id="exportButton" type="button">CSV 내보내기</button>
           </div>
         </header>
@@ -410,8 +412,9 @@
       </main>
     </div>
 
-    <script src="./jszip.min.js?v=20260602-1"></script>
-    <script src="./template-data.js?v=20260602-1"></script>
-    <script src="./app.js?v=20260602-1"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="./jszip.min.js?v=20260602-2"></script>
+    <script src="./template-data.js?v=20260602-2"></script>
+    <script src="./app.js?v=20260602-2"></script>
   </body>
 </html>

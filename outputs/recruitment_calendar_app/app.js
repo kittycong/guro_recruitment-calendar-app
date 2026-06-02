@@ -1,4 +1,6 @@
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
+const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
+const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const EMPLOYMENT_TYPES = ["정규직", "계약직", "기간제", "기타"];
@@ -204,6 +206,13 @@ const state = {
   activeView: localStorage.getItem("recruitment-active-view") || "calendar",
   rightTab: "day",
 };
+const googleCalendarState = {
+  tokenClient: null,
+  accessToken: "",
+  expiresAt: 0,
+  pendingResolve: null,
+  pendingReject: null,
+};
 
 const els = {
   form: document.querySelector("#candidateForm"),
@@ -236,6 +245,8 @@ const els = {
   nextMonthButton: document.querySelector("#nextMonthButton"),
   todayButton: document.querySelector("#todayButton"),
   exportButton: document.querySelector("#exportButton"),
+  googleCalendarConnectButton: document.querySelector("#googleCalendarConnectButton"),
+  googleCalendarStatus: document.querySelector("#googleCalendarStatus"),
   employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
   downloadHwpxButton: document.querySelector("#downloadHwpxButton"),
   downloadTxtButton: document.querySelector("#downloadTxtButton"),
@@ -284,6 +295,7 @@ bindEvents();
 renderIntervieweeRows([]);
 renderRecruitmentFieldRows([]);
 render();
+updateGoogleCalendarStatus("Google 미연결");
 
 function bindEvents() {
   els.form.addEventListener("submit", (event) => {
@@ -332,6 +344,16 @@ function bindEvents() {
   });
 
   els.exportButton.addEventListener("click", exportCsv);
+  els.googleCalendarConnectButton.addEventListener("click", async () => {
+    try {
+      await authorizeGoogleCalendar({ prompt: "consent" });
+      updateGoogleCalendarStatus("Google 연결됨");
+    } catch (error) {
+      console.error("Google Calendar authorization failed", error);
+      updateGoogleCalendarStatus("Google 연결 실패");
+      alert("Google Calendar 권한 승인에 실패했습니다. OAuth 설정과 테스트 사용자 등록을 확인해 주세요.");
+    }
+  });
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.downloadTxtButton.addEventListener("click", downloadTxtNotice);
   els.noticeRecruitment.addEventListener("change", () => {
@@ -404,7 +426,7 @@ function bindEvents() {
   });
 }
 
-function saveCandidateFromForm() {
+async function saveCandidateFromForm() {
   const id = els.candidateId.value || crypto.randomUUID();
   const previousCandidate = state.candidates.find((item) => item.id === id);
   const candidate = {
@@ -425,6 +447,8 @@ function saveCandidateFromForm() {
     memo: els.memo.value.trim(),
     interviewees: getIntervieweesFromRows(),
     recruitmentFields: getRecruitmentFieldsFromRows(),
+    googleCalendarEventId: previousCandidate?.googleCalendarEventId || "",
+    googleCalendarHtmlLink: previousCandidate?.googleCalendarHtmlLink || "",
     updatedAt: new Date().toISOString(),
   };
 
@@ -442,7 +466,7 @@ function saveCandidateFromForm() {
   resetForm();
   render();
   if (shouldOpenGoogleCalendar) {
-    openGoogleCalendarForInterview(candidate);
+    await createGoogleCalendarInterviewEvent(candidate, { allowFallbackLink: true });
   }
 }
 
@@ -1128,12 +1152,116 @@ function openGoogleCalendarForInterview(candidate) {
   }
 }
 
-function buildGoogleCalendarInterviewUrl(candidate) {
-  if (!candidate.confirmedInterviewDate) return "";
+async function createGoogleCalendarInterviewEvent(candidate, { allowFallbackLink = false } = {}) {
+  if (!candidate.confirmedInterviewDate) return null;
+  updateGoogleCalendarStatus("Google 등록 중...");
+  try {
+    const accessToken = await authorizeGoogleCalendar({ prompt: googleCalendarState.accessToken ? "" : "consent" });
+    const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(buildGoogleCalendarEventResource(candidate)),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Google Calendar API error ${response.status}`);
+    }
+    const createdEvent = await response.json();
+    candidate.googleCalendarEventId = createdEvent.id || "";
+    candidate.googleCalendarHtmlLink = createdEvent.htmlLink || "";
+    const storedCandidate = state.candidates.find((item) => item.id === candidate.id);
+    if (storedCandidate) {
+      storedCandidate.googleCalendarEventId = candidate.googleCalendarEventId;
+      storedCandidate.googleCalendarHtmlLink = candidate.googleCalendarHtmlLink;
+      storedCandidate.updatedAt = new Date().toISOString();
+      persist();
+      render();
+    }
+    updateGoogleCalendarStatus("Google 등록완료");
+    return createdEvent;
+  } catch (error) {
+    console.error("Google Calendar insert failed", error);
+    updateGoogleCalendarStatus("Google 등록 실패");
+    if (allowFallbackLink) {
+      openGoogleCalendarForInterview(candidate);
+    }
+    return null;
+  }
+}
+
+async function authorizeGoogleCalendar({ prompt = "" } = {}) {
+  if (googleCalendarState.accessToken && googleCalendarState.expiresAt > Date.now() + 60000) {
+    return googleCalendarState.accessToken;
+  }
+  await waitForGoogleIdentity();
+  if (!googleCalendarState.tokenClient) {
+    googleCalendarState.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CALENDAR_CLIENT_ID,
+      scope: GOOGLE_CALENDAR_SCOPE,
+      callback: (tokenResponse) => {
+        if (tokenResponse.error) {
+          googleCalendarState.pendingReject?.(new Error(tokenResponse.error));
+          return;
+        }
+        googleCalendarState.accessToken = tokenResponse.access_token;
+        googleCalendarState.expiresAt = Date.now() + Number(tokenResponse.expires_in || 3600) * 1000;
+        googleCalendarState.pendingResolve?.(googleCalendarState.accessToken);
+      },
+    });
+  }
+  return new Promise((resolve, reject) => {
+    googleCalendarState.pendingResolve = resolve;
+    googleCalendarState.pendingReject = reject;
+    googleCalendarState.tokenClient.requestAccessToken({ prompt });
+  });
+}
+
+function waitForGoogleIdentity(timeoutMs = 8000) {
+  if (window.google?.accounts?.oauth2) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      if (window.google?.accounts?.oauth2) {
+        clearInterval(timer);
+        resolve();
+      } else if (Date.now() - started > timeoutMs) {
+        clearInterval(timer);
+        reject(new Error("Google Identity Services script was not loaded."));
+      }
+    }, 100);
+  });
+}
+
+function updateGoogleCalendarStatus(message) {
+  if (!els.googleCalendarStatus) return;
+  els.googleCalendarStatus.textContent = message;
+  els.googleCalendarStatus.dataset.status = message.includes("완료") || message.includes("연결됨") ? "connected" : message.includes("실패") ? "error" : "idle";
+}
+
+function buildGoogleCalendarEventResource(candidate) {
   const eventDate = parseDate(candidate.confirmedInterviewDate);
+  const timeRange = buildInterviewTimeRange(candidate, eventDate);
+  const resource = {
+    summary: `[면접확정] ${displayRecruitmentName(candidate)}`,
+    location: "서울 구로구 가마산로27길 14, 신원빌딩 8층",
+    description: buildGoogleCalendarDescription(candidate),
+  };
+  if (timeRange.allDay) {
+    resource.start = { date: formatGoogleAllDayDate(timeRange.start) };
+    resource.end = { date: formatGoogleAllDayDate(timeRange.end) };
+  } else {
+    resource.start = { dateTime: formatGoogleApiDateTime(timeRange.start), timeZone: "Asia/Seoul" };
+    resource.end = { dateTime: formatGoogleApiDateTime(timeRange.end), timeZone: "Asia/Seoul" };
+  }
+  return resource;
+}
+
+function buildGoogleCalendarDescription(candidate) {
   const people = normalizeInterviewees(candidate.interviewees);
-  const title = `[면접확정] ${displayRecruitmentName(candidate)}`;
-  const details = [
+  return [
     `시행번호: ${displayExecutionNo(candidate)}`,
     `부서: ${candidate.department || "부서 미입력"}`,
     `채용인원: ${Number(candidate.hireCount || 1)}명`,
@@ -1142,11 +1270,17 @@ function buildGoogleCalendarInterviewUrl(candidate) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function buildGoogleCalendarInterviewUrl(candidate) {
+  if (!candidate.confirmedInterviewDate) return "";
+  const eventDate = parseDate(candidate.confirmedInterviewDate);
+  const title = `[면접확정] ${displayRecruitmentName(candidate)}`;
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: title,
     dates: buildGoogleCalendarDateRange(candidate, eventDate),
-    details,
+    details: buildGoogleCalendarDescription(candidate),
     location: "서울 구로구 가마산로27길 14, 신원빌딩 8층",
     ctz: "Asia/Seoul",
   });
@@ -1154,9 +1288,15 @@ function buildGoogleCalendarInterviewUrl(candidate) {
 }
 
 function buildGoogleCalendarDateRange(candidate, eventDate) {
+  const { start, end, allDay } = buildInterviewTimeRange(candidate, eventDate);
+  if (allDay) return `${formatGoogleAllDayDate(start)}/${formatGoogleAllDayDate(end)}`;
+  return `${formatGoogleDateTime(start)}/${formatGoogleDateTime(end)}`;
+}
+
+function buildInterviewTimeRange(candidate, eventDate) {
   const hour = getInterviewHour(candidate);
   if (hour === null) {
-    return `${formatGoogleAllDayDate(eventDate)}/${formatGoogleAllDayDate(addDays(eventDate, 1))}`;
+    return { start: eventDate, end: addDays(eventDate, 1), allDay: true };
   }
   const source = [candidate.memo, candidate.note].filter(Boolean).join(" ");
   const minuteMatch = source.match(/(?:오전|오후)?\s*\d{1,2}\s*[:시]\s*(\d{1,2})/);
@@ -1165,7 +1305,7 @@ function buildGoogleCalendarDateRange(candidate, eventDate) {
   start.setHours(hour, Number.isFinite(minute) ? minute : 0, 0, 0);
   const end = new Date(start);
   end.setHours(start.getHours() + 1);
-  return `${formatGoogleDateTime(start)}/${formatGoogleDateTime(end)}`;
+  return { start, end, allDay: false };
 }
 
 function formatGoogleAllDayDate(date) {
@@ -1174,6 +1314,10 @@ function formatGoogleAllDayDate(date) {
 
 function formatGoogleDateTime(date) {
   return `${formatGoogleAllDayDate(date)}T${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
+}
+
+function formatGoogleApiDateTime(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
 }
 
 function renderCandidateList() {
