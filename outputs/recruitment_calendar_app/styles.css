@@ -529,6 +529,14 @@ button:focus-visible {
   width: min(280px, 34vw);
 }
 
+.calendar-id-box {
+  width: min(260px, 32vw);
+}
+
+.calendar-id-box input {
+  min-height: 40px;
+}
+
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
