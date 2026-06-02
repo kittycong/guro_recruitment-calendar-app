@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260602-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260602-3" />
   </head>
   <body>
     <div class="app-shell">
@@ -193,6 +193,7 @@
 
         <nav class="view-tabs" aria-label="화면 전환">
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
+          <button type="button" class="view-tab" data-view="interviews">면접관리</button>
           <button type="button" class="view-tab" data-view="list">채용목록</button>
           <button type="button" class="view-tab" data-view="documents">문서 생성</button>
           <button type="button" class="view-tab" data-view="kanban">칸반</button>
@@ -262,6 +263,34 @@
               <div id="searchResults" class="candidate-list"></div>
             </section>
           </aside>
+        </section>
+
+        <section class="view-panel" id="interviewsView" aria-label="면접 일정 관리">
+          <div class="interview-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Interviews</p>
+                <h2>면접 일정 관리</h2>
+              </div>
+              <button type="button" class="primary-button list-add-button" id="addInterviewScheduleButton">면접 추가</button>
+            </div>
+            <div class="interview-overview-grid">
+              <section class="interview-board" aria-label="확정 면접">
+                <div class="interview-board-header">
+                  <h3>확정 면접</h3>
+                  <span id="confirmedInterviewCount">0건</span>
+                </div>
+                <div id="confirmedInterviewList" class="interview-management-list"></div>
+              </section>
+              <section class="interview-board" aria-label="예정 면접">
+                <div class="interview-board-header">
+                  <h3>예정 면접</h3>
+                  <span id="plannedInterviewCount">0건</span>
+                </div>
+                <div id="plannedInterviewList" class="interview-management-list"></div>
+              </section>
+            </div>
+          </div>
         </section>
 
         <section class="view-panel" id="listView" aria-label="전체 채용 목록">
@@ -413,8 +442,8 @@
     </div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="./jszip.min.js?v=20260602-2"></script>
-    <script src="./template-data.js?v=20260602-2"></script>
-    <script src="./app.js?v=20260602-2"></script>
+    <script src="./jszip.min.js?v=20260602-3"></script>
+    <script src="./template-data.js?v=20260602-3"></script>
+    <script src="./app.js?v=20260602-3"></script>
   </body>
 </html>

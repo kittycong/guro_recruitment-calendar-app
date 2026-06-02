@@ -1250,7 +1250,8 @@ button:focus-visible {
 .candidate-actions button,
 .event-actions button,
 .event-actions a,
-.full-candidate-actions button {
+.full-candidate-actions button,
+.full-candidate-actions a {
   border: 1px solid var(--border);
   border-radius: 5px;
   background: #fffdf9;
@@ -1521,6 +1522,100 @@ button:focus-visible {
   justify-content: flex-end;
 }
 
+.full-candidate-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interview-page {
+  display: grid;
+  gap: 12px;
+}
+
+.interview-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.interview-board {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px;
+}
+
+.interview-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.interview-board-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.interview-board-header span {
+  border-radius: 999px;
+  background: #edf2f1;
+  color: var(--muted);
+  padding: 4px 9px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.interview-management-list {
+  display: grid;
+  gap: 10px;
+}
+
+.interview-management-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--interview);
+  border-radius: 7px;
+  background: #fffdf9;
+  padding: 12px;
+}
+
+.interview-management-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.interview-management-main strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.interview-management-main span,
+.interview-management-date span,
+.interview-management-people {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.interview-management-date {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.interview-management-date strong {
+  color: var(--primary);
+}
+
 .empty-state {
   border: 1px dashed var(--border-strong);
   border-radius: 7px;
@@ -1570,6 +1665,10 @@ hr {
   }
 
   .calendar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interview-overview-grid {
     grid-template-columns: 1fr;
   }
 }

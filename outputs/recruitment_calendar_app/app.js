@@ -273,6 +273,11 @@ const els = {
   candidateList: document.querySelector("#candidateList"),
   fullCandidateList: document.querySelector("#fullCandidateList"),
   addListRecruitmentButton: document.querySelector("#addListRecruitmentButton"),
+  addInterviewScheduleButton: document.querySelector("#addInterviewScheduleButton"),
+  confirmedInterviewList: document.querySelector("#confirmedInterviewList"),
+  plannedInterviewList: document.querySelector("#plannedInterviewList"),
+  confirmedInterviewCount: document.querySelector("#confirmedInterviewCount"),
+  plannedInterviewCount: document.querySelector("#plannedInterviewCount"),
   searchResults: document.querySelector("#searchResults"),
   calendarPanel: document.querySelector(".calendar-panel"),
   deadlineBanner: document.querySelector("#deadlineBanner"),
@@ -369,6 +374,7 @@ function bindEvents() {
   els.addSelectedInterviewButton.addEventListener("click", addInterviewForSelectedDate);
   els.addSelectedDeadlineButton.addEventListener("click", addDeadlineForSelectedDate);
   els.addListRecruitmentButton.addEventListener("click", addRecruitmentFromList);
+  els.addInterviewScheduleButton.addEventListener("click", addInterviewFromManagement);
   els.addIntervieweeButton.addEventListener("click", () => addIntervieweeRow());
   els.addRecruitmentFieldButton.addEventListener("click", () => addRecruitmentFieldRow());
   els.intervieweeRows.addEventListener("click", (event) => {
@@ -537,6 +543,7 @@ function render() {
   renderSelectedDay();
   renderCandidateList();
   renderFullCandidateList();
+  renderInterviewManagement();
   renderSearchResults();
   renderKanban();
   renderTimeline();
@@ -1372,9 +1379,95 @@ function renderFullCandidateList() {
   });
 }
 
+function renderInterviewManagement() {
+  if (!els.confirmedInterviewList || !els.plannedInterviewList) return;
+  const interviewEvents = getVisibleCandidates()
+    .map((candidate) => {
+      const schedule = buildSchedule(candidate);
+      const date = candidate.confirmedInterviewDate || (schedule ? toDateKey(schedule.plannedInterviewDate) : "");
+      if (!date) return null;
+      return {
+        candidate,
+        date,
+        confirmed: Boolean(candidate.confirmedInterviewDate),
+        period: getInterviewPeriod(candidate),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date) || displayRecruitmentListTitle(a.candidate).localeCompare(displayRecruitmentListTitle(b.candidate), "ko"));
+  const confirmed = interviewEvents.filter((event) => event.confirmed);
+  const planned = interviewEvents.filter((event) => !event.confirmed);
+  els.confirmedInterviewCount.textContent = `${confirmed.length}건`;
+  els.plannedInterviewCount.textContent = `${planned.length}건`;
+  renderInterviewManagementList(els.confirmedInterviewList, confirmed, "확정된 면접 일정이 없습니다.");
+  renderInterviewManagementList(els.plannedInterviewList, planned, "예정 면접 일정이 없습니다.");
+}
+
+function renderInterviewManagementList(container, events, emptyMessage) {
+  if (!events.length) {
+    container.innerHTML = `<div class="empty-state">${escapeHtml(emptyMessage)}</div>`;
+    return;
+  }
+  container.innerHTML = events
+    .map(({ candidate, date, confirmed, period }) => {
+      const people = normalizeInterviewees(candidate.interviewees);
+      return `
+        <article class="interview-management-card dept-${departmentKey(candidate.department)}" data-candidate-id="${candidate.id}" data-interview-date="${date}">
+          <div class="interview-management-main">
+            <div>
+              <strong>${escapeHtml(displayRecruitmentListTitle(candidate))}</strong>
+              <span>${escapeHtml(displayExecutionNo(candidate))} · ${escapeHtml(candidate.department || "부서 미입력")} · ${Number(candidate.hireCount || 1)}명 채용</span>
+            </div>
+            <span class="status-badge ${confirmed ? "hired" : ""}">${confirmed ? "확정" : "예정"}</span>
+          </div>
+          <div class="interview-management-date">
+            <strong>${escapeHtml(formatShortDate(parseDate(date)))}</strong>
+            <span>${escapeHtml(interviewPeriodLabel(period))}</span>
+            <span>대상자 ${people.length}명</span>
+          </div>
+          <div class="interview-management-people">${escapeHtml(formatInterviewManagementPeople(people))}</div>
+          <div class="full-candidate-actions">
+            <button type="button" data-interview-action="edit">수정</button>
+            <button type="button" data-interview-action="calendar">달력보기</button>
+            ${confirmed ? `<a href="${escapeHtml(buildGoogleCalendarInterviewUrl(candidate))}" target="_blank" rel="noopener noreferrer" data-interview-action="google">구글캘린더</a>` : ""}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+  container.querySelectorAll(".interview-management-card").forEach((row) => {
+    const candidate = state.candidates.find((item) => item.id === row.dataset.candidateId);
+    if (!candidate) return;
+    row.querySelector('[data-interview-action="edit"]')?.addEventListener("click", () => fillForm(candidate));
+    row.querySelector('[data-interview-action="calendar"]')?.addEventListener("click", () => {
+      state.activeView = "calendar";
+      state.rightTab = "day";
+      state.selectedDate = row.dataset.interviewDate;
+      state.currentMonth = startOfMonth(parseDate(state.selectedDate));
+      render();
+    });
+  });
+}
+
+function formatInterviewManagementPeople(people) {
+  if (!people.length) return "면접 대상자 미입력";
+  return people.map((person) => `${person.name}${person.phone ? `(${person.phone})` : ""}`).join(", ");
+}
+
 function renderSearchResults() {
   const candidates = state.search ? getVisibleCandidates() : [];
   renderCandidateCollection(els.searchResults, candidates, state.search ? "검색 결과가 없습니다." : "검색어를 입력하면 결과가 표시됩니다.");
+}
+
+function addInterviewFromManagement() {
+  resetForm();
+  state.activeView = "interviews";
+  localStorage.setItem("recruitment-active-view", state.activeView);
+  els.confirmedInterviewDate.value = state.selectedDate || toDateKey(new Date());
+  els.name.value = `${els.department.value} 직원 채용`;
+  renderSchedulePreview();
+  render();
+  els.name.focus();
 }
 
 function addRecruitmentFromList() {
