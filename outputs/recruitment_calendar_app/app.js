@@ -406,6 +406,7 @@ function bindEvents() {
 
 function saveCandidateFromForm() {
   const id = els.candidateId.value || crypto.randomUUID();
+  const previousCandidate = state.candidates.find((item) => item.id === id);
   const candidate = {
     id,
     name: els.name.value.trim(),
@@ -435,8 +436,14 @@ function saveCandidateFromForm() {
   }
 
   persist();
+  const shouldOpenGoogleCalendar =
+    candidate.confirmedInterviewDate &&
+    candidate.confirmedInterviewDate !== previousCandidate?.confirmedInterviewDate;
   resetForm();
   render();
+  if (shouldOpenGoogleCalendar) {
+    openGoogleCalendarForInterview(candidate);
+  }
 }
 
 function createReissueRecruitment() {
@@ -815,6 +822,15 @@ function renderSelectedDay() {
     copyButton.textContent = "복사";
     item.querySelector(".event-actions")?.prepend(copyButton);
     item.querySelector('[data-action="copy-event"]')?.addEventListener("click", () => copyEventSummary(event));
+    if (event.type === "interview" && event.candidate.confirmedInterviewDate) {
+      const googleLink = document.createElement("a");
+      googleLink.href = buildGoogleCalendarInterviewUrl(event.candidate);
+      googleLink.target = "_blank";
+      googleLink.rel = "noopener noreferrer";
+      googleLink.dataset.action = "google-calendar";
+      googleLink.textContent = "구글캘린더";
+      item.querySelector(".event-actions")?.prepend(googleLink);
+    }
     item.querySelector('[data-action="edit-event"]').addEventListener("click", () => fillForm(event.candidate));
     item.querySelector('[data-action="delete-event"]').addEventListener("click", () => deleteSelectedEvent(event));
     els.selectedEvents.append(item);
@@ -1101,6 +1117,63 @@ function buildEventCopyText(event) {
   }
   if (candidate.memo) lines.push(`메모: ${candidate.memo}`);
   return lines.join("\n");
+}
+
+function openGoogleCalendarForInterview(candidate) {
+  const url = buildGoogleCalendarInterviewUrl(candidate);
+  if (!url) return;
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    alert("팝업이 차단되어 구글 캘린더 등록창을 열지 못했습니다. 브라우저 팝업 허용 후 다시 시도해 주세요.");
+  }
+}
+
+function buildGoogleCalendarInterviewUrl(candidate) {
+  if (!candidate.confirmedInterviewDate) return "";
+  const eventDate = parseDate(candidate.confirmedInterviewDate);
+  const people = normalizeInterviewees(candidate.interviewees);
+  const title = `[면접확정] ${displayRecruitmentName(candidate)}`;
+  const details = [
+    `시행번호: ${displayExecutionNo(candidate)}`,
+    `부서: ${candidate.department || "부서 미입력"}`,
+    `채용인원: ${Number(candidate.hireCount || 1)}명`,
+    people.length ? `면접대상자: ${people.map((person) => `${person.name}${person.phone ? `(${person.phone})` : ""}`).join(", ")}` : "면접대상자: 미입력",
+    candidate.memo ? `메모: ${candidate.memo}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: buildGoogleCalendarDateRange(candidate, eventDate),
+    details,
+    location: "서울 구로구 가마산로27길 14, 신원빌딩 8층",
+    ctz: "Asia/Seoul",
+  });
+  return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
+}
+
+function buildGoogleCalendarDateRange(candidate, eventDate) {
+  const hour = getInterviewHour(candidate);
+  if (hour === null) {
+    return `${formatGoogleAllDayDate(eventDate)}/${formatGoogleAllDayDate(addDays(eventDate, 1))}`;
+  }
+  const source = [candidate.memo, candidate.note].filter(Boolean).join(" ");
+  const minuteMatch = source.match(/(?:오전|오후)?\s*\d{1,2}\s*[:시]\s*(\d{1,2})/);
+  const minute = minuteMatch ? Number(minuteMatch[1]) : 0;
+  const start = new Date(eventDate);
+  start.setHours(hour, Number.isFinite(minute) ? minute : 0, 0, 0);
+  const end = new Date(start);
+  end.setHours(start.getHours() + 1);
+  return `${formatGoogleDateTime(start)}/${formatGoogleDateTime(end)}`;
+}
+
+function formatGoogleAllDayDate(date) {
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function formatGoogleDateTime(date) {
+  return `${formatGoogleAllDayDate(date)}T${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
 }
 
 function renderCandidateList() {

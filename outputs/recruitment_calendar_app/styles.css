@@ -1219,6 +1219,7 @@ button:focus-visible {
 
 .candidate-actions button,
 .event-actions button,
+.event-actions a,
 .full-candidate-actions button {
   border: 1px solid var(--border);
   border-radius: 5px;
@@ -1228,6 +1229,7 @@ button:focus-visible {
   font-size: 13px;
   font-weight: 800;
   color: var(--text);
+  text-decoration: none;
 }
 
 .danger-action {
@@ -1254,8 +1256,12 @@ button:focus-visible {
   gap: 6px;
 }
 
-.event-actions button {
+.event-actions button,
+.event-actions a {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .progress-line {
