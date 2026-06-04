@@ -3,7 +3,7 @@ const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const MINUTES_BODY_PARA_PR_ID = "8";
-const MINUTES_BODY_CHAR_PR_ID = "6";
+const MINUTES_BODY_CHAR_PR_ID = "4";
 let minutesBodyStyle = {
   paraPrID: MINUTES_BODY_PARA_PR_ID,
   charPrID: MINUTES_BODY_CHAR_PR_ID,
@@ -2583,7 +2583,10 @@ async function configureMinutesBodyStyle(zip) {
     headerXml.match(/<hh:font\b[^>]*face="함초롬돋[움음]"[^>]*id="(\d+)"/)?.[1] ||
     "0";
   const charPrMatches = Array.from(headerXml.matchAll(/<hh:charPr\b[^>]*id="(\d+)"[\s\S]*?<\/hh:charPr>/g));
-  const hamCharPr = charPrMatches.find((match) => new RegExp(`<hh:fontRef[^>]*hangul="${hamFontId}"`).test(match[0]));
+  const hamCharPr =
+    charPrMatches.find((match) => new RegExp(`<hh:fontRef[^>]*hangul="${hamFontId}"`).test(match[0]) && /\bheight="1100"/.test(match[0])) ||
+    charPrMatches.find((match) => new RegExp(`<hh:fontRef[^>]*hangul="${hamFontId}"`).test(match[0]) && /\bheight="11\d{2}"/.test(match[0])) ||
+    charPrMatches.find((match) => new RegExp(`<hh:fontRef[^>]*hangul="${hamFontId}"`).test(match[0]));
   const paraPrMatches = Array.from(headerXml.matchAll(/<hh:paraPr\b[^>]*id="(\d+)"[\s\S]*?<\/hh:paraPr>/g));
   const justifyParaPr = paraPrMatches.find((match) => /<hh:align\b[^>]*horizontal="JUSTIFY"/.test(match[0]));
   if (hamCharPr?.[1]) minutesBodyStyle.charPrID = hamCharPr[1];
@@ -2602,7 +2605,7 @@ function appendMinutesText(xml, text) {
 }
 
 function buildHwpxTextParagraph(text) {
-  return `<hp:p id="0" paraPrIDRef="${minutesBodyStyle.paraPrID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${minutesBodyStyle.charPrID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="400" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
+  return `<hp:p id="0" paraPrIDRef="${minutesBodyStyle.paraPrID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${minutesBodyStyle.charPrID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1100" textheight="1100" baseline="935" spacing="440" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
 }
 
 function validateNoticeDraft(draft) {
