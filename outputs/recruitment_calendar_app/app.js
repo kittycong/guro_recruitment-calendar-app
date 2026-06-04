@@ -2236,9 +2236,22 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const evaluationSummary = evaluationDocs.length
     ? evaluationDocs.map((doc, index) => `${index + 1}. ${doc.name}: ${summarizeEvaluationText(doc.text)}`).join("\n")
     : "첨부된 면접평가표 없음";
+  const evaluationReasonByName = buildEvaluationReasonMap(evaluationDocs);
   const attendanceLines = buildMinutesAttendanceLines({ candidate, hiredPeople, rejected, absent, caseKey });
-  const contentLines = buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines, evaluationSummary, interviewees, absent, cancelledName });
-  const decisionLines = buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate });
+  const contentLines = buildMinutesContentLines({
+    candidate,
+    serial,
+    caseKey,
+    attendanceLines,
+    evaluationSummary,
+    evaluationReasonByName,
+    interviewees,
+    hiredPeople,
+    rejected,
+    absent,
+    cancelledName,
+  });
+  const decisionLines = buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate, evaluationReasonByName });
   const resultLine = decisionLines[0] || "";
   const resultDetailLines = decisionLines.slice(1);
   const agenda = minutesCase.agenda;
@@ -2274,9 +2287,14 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
     contentLines,
     decisionLines,
     evaluationSummary,
+    evaluationReasonByName,
     previewText: previewLines.join("\n"),
     fileTitle: `인사위원회 회의록_${minutesCase.agenda}(${formatCompactDate(parseDate(minutesDate))})_${hiredName || cancelledName || minutesCase.fileSuffix}`,
   };
+}
+
+function buildEvaluationReasonMap(evaluationDocs) {
+  return new Map(evaluationDocs.map((doc) => [doc.name, summarizeEvaluationText(doc.text)]));
 }
 
 function buildMinutesAttendanceLines({ hiredPeople, rejected, absent, caseKey }) {
@@ -2293,7 +2311,19 @@ function buildMinutesAttendanceLines({ hiredPeople, rejected, absent, caseKey })
   ];
 }
 
-function buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines, evaluationSummary, interviewees, absent, cancelledName }) {
+function buildMinutesContentLines({
+  candidate,
+  serial,
+  caseKey,
+  attendanceLines,
+  evaluationSummary,
+  evaluationReasonByName,
+  interviewees,
+  hiredPeople,
+  rejected,
+  absent,
+  cancelledName,
+}) {
   const intervieweeNames = interviewees.map((person) => person.name).filter(Boolean).join(", ");
   if (caseKey === "all_absent") {
     return [
@@ -2301,6 +2331,16 @@ function buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines,
       `${candidate.department} 면접 대상자 ${intervieweeNames || "전원"}은 당일 면접에 참석하지 않았음.`,
       `- [공고 ${serial}호] ${candidate.name} 1차 서류전형 합격 및 2차 면접 과정에서 면접 대상자 전원이 불참하여 채용이 진행되지 않았음.`,
       ...attendanceLines,
+    ];
+  }
+  if (caseKey === "no_hire_ineligible") {
+    return [
+      `<${candidate.department}>`,
+      `- [공고 ${serial}호] ${candidate.name} 공고에 따라 서류전형 합격자를 대상으로 면접을 진행하였음.`,
+      ...rejected.map((person) => buildEvaluatedContentLine(person, evaluationReasonByName, false)),
+      ...absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하여 채용 심의 대상에서 제외하였다.`),
+      "면접평가표 및 면접 결과를 검토한 결과 채용 기준에 적합한 대상자가 없어 채용하지 못함.",
+      `이에 ${candidate.department} 공석 충원을 위해 재공고 및 재채용 절차를 신속히 진행하기로 검토하였다.`,
     ];
   }
   if (caseKey === "hire_cancelled") {
@@ -2314,7 +2354,9 @@ function buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines,
   const baseLines = [
     `<${candidate.department}>`,
     `- [공고 ${serial}호] ${candidate.name} 공고를 진행하였음.`,
-    ...attendanceLines,
+    ...hiredPeople.map((person) => buildEvaluatedContentLine(person, evaluationReasonByName, true)),
+    ...rejected.map((person) => buildEvaluatedContentLine(person, evaluationReasonByName, false)),
+    ...absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하여 채용 심의 대상에서 제외하였다.`),
     "면접평가표 및 면접 결과를 바탕으로 채용 적합성을 심의하였다.",
   ];
   if (caseKey === "mixed") {
@@ -2327,8 +2369,20 @@ function buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines,
   return baseLines;
 }
 
+function buildEvaluatedContentLine(person, evaluationReasonByName, isHired) {
+  const reason = evaluationReasonByName.get(person.name);
+  if (isHired) {
+    return reason
+      ? `지원자 ${person.name}은 면접평가표 검토 결과 ${reason} 해당 업무에 적합하다고 판단하였다.`
+      : `지원자 ${person.name}은 면접 결과 해당 업무에 적합하다고 판단하였다.`;
+  }
+  return reason
+    ? `지원자 ${person.name}은 면접평가표 검토 결과 ${reason} 채용 기준에 적합하지 않은 것으로 판단하였다.`
+    : `지원자 ${person.name}은 면접 결과 채용 기준에 적합하지 않은 것으로 판단하였다.`;
+}
+
 function buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate }) {
-  const followUp = `추후 ${candidate.department} 채용공고를 신속히 진행하여 공석인 ${candidate.department}에 대한 추가 채용을 진행하기로 함.`;
+  const followUp = `추후 ${candidate.department} 채용공고를 신속히 진행하여 공석인 ${candidate.department}에 대한 재공고 및 재채용 절차를 진행하기로 함.`;
   if (caseKey === "all_absent") {
     return ["채용자 없음", followUp];
   }
@@ -2337,9 +2391,10 @@ function buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledNam
   }
   if (!hiredName) {
     return [
+      ...rejected.map((person) => `${person.name} 지원자: 면접평가표 및 면접 결과 채용 기준에 부적합하여 미채용.`),
+      ...absent.map((person) => `${person.name} 지원자: 면접 당일 불참으로 미채용.`),
       "채용자 없음",
-      rejected.length ? `미채용자: ${rejected.map((person) => `${person.name} 지원자`).join(", ")}` : "미채용자: 없음",
-      absent.length ? `불참자: ${absent.map((person) => person.name).join(", ")}` : "불참자: 없음",
+      "면접평가 결과 적합자가 없어 해당 채용은 미채용으로 종결함.",
       followUp,
     ];
   }
@@ -2411,6 +2466,13 @@ function applyKnownPersonnelMinutesCells(xml, minutes) {
   let next = xml
     .replace(/신규\s*직원\s*채용의\s*건|신규\s*채용의\s*건|직원채용\s*부적합\s*건|직원채용취소\s*의?\s*건/g, escapeXmlText(agenda))
     .replace(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일\s*\d{1,2}시\s*\d{2}분/g, escapeXmlText(meetingDateText));
+  next = replaceHwpxCellByAddress(next, 4, 2, minutes.contentLines);
+  next = replaceHwpxCellByAddress(next, 5, 2, minutes.decisionLines);
+  next = replaceHwpxCellByAddress(next, 6, 2, []);
+  next = replaceHwpxCellByAddress(next, 7, 2, []);
+  if (hasMeaningfulMinutesText(next, minutes)) {
+    return next;
+  }
   next = next.replace(
     /<hp:p[^>]*><hp:run[^>]*><hp:t>\s*&lt;[^<]+&gt;\s*<\/hp:t><\/hp:run>[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="4")/,
     minutes.contentLines.map(buildHwpxTextParagraph).join(""),
@@ -2420,6 +2482,16 @@ function applyKnownPersonnelMinutesCells(xml, minutes) {
     minutes.decisionLines.map(buildHwpxTextParagraph).join(""),
   );
   return next;
+}
+
+function replaceHwpxCellByAddress(xml, rowAddr, colAddr, lines) {
+  const cellPattern = /<hp:tc\b[\s\S]*?<\/hp:tc>/g;
+  return xml.replace(cellPattern, (cellXml) => {
+    const addressPattern = new RegExp(`<hp:cellAddr\\s+colAddr="${colAddr}"\\s+rowAddr="${rowAddr}"\\s*/>`);
+    if (!addressPattern.test(cellXml)) return cellXml;
+    const paragraphs = lines.length ? lines.map(buildHwpxTextParagraph).join("") : buildHwpxTextParagraph("");
+    return cellXml.replace(/(<hp:subList\b[^>]*>)[\s\S]*?(<\/hp:subList>)/, `$1${paragraphs}$2`);
+  });
 }
 
 function appendMinutesText(xml, text) {
