@@ -265,6 +265,7 @@ const els = {
   minutesTemplateFile: document.querySelector("#minutesTemplateFileInput"),
   evaluationFiles: document.querySelector("#evaluationFilesInput"),
   downloadMinutesButton: document.querySelector("#downloadMinutesButton"),
+  minutesDownloadStatus: document.querySelector("#minutesDownloadStatus"),
   searchInput: document.querySelector("#searchInput"),
   monthTitle: document.querySelector("#monthTitle"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
@@ -2037,10 +2038,15 @@ function downloadTxtNotice() {
 
 async function downloadPersonnelMinutes() {
   try {
+    setMinutesDownloadStatus("인사회의록 생성 중입니다...");
     const draft = getMinutesCandidate();
-    if (!validateMinutesDraft(draft)) return;
+    if (!validateMinutesDraft(draft)) {
+      setMinutesDownloadStatus("설정값을 확인한 뒤 다시 다운로드하세요.");
+      return;
+    }
     if (!window.JSZip) {
       alert("문서 생성 모듈을 불러오지 못했습니다. jszip.min.js 파일을 확인하세요.");
+      setMinutesDownloadStatus("문서 생성 모듈 오류로 다운로드하지 못했습니다.");
       return;
     }
 
@@ -2066,11 +2072,19 @@ async function downloadPersonnelMinutes() {
     }
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
-    downloadBlob(blob, `${safeFileName(minutes.fileTitle)}.hwpx`);
+    const fileName = `${safeFileName(minutes.fileTitle)}.hwpx`;
+    downloadBlob(blob, fileName);
+    setMinutesDownloadStatus(`${fileName} 다운로드를 시작했습니다.`);
   } catch (error) {
     console.error("인사회의록 생성 오류", error);
+    setMinutesDownloadStatus("인사회의록 생성 오류가 발생했습니다.");
     alert(`인사회의록 생성 오류: ${error.message || "파일 양식 또는 첨부파일을 확인하세요."}`);
   }
+}
+
+function setMinutesDownloadStatus(message) {
+  if (!els.minutesDownloadStatus) return;
+  els.minutesDownloadStatus.textContent = message;
 }
 
 function getMinutesCandidate() {
