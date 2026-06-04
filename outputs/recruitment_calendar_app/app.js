@@ -2036,34 +2036,41 @@ function downloadTxtNotice() {
 }
 
 async function downloadPersonnelMinutes() {
-  const draft = getMinutesCandidate();
-  if (!validateMinutesDraft(draft)) return;
-  if (!window.JSZip) {
-    alert("문서 생성 모듈을 불러오지 못했습니다. jszip.min.js 파일을 확인하세요.");
-    return;
-  }
+  try {
+    const draft = getMinutesCandidate();
+    if (!validateMinutesDraft(draft)) return;
+    if (!window.JSZip) {
+      alert("문서 생성 모듈을 불러오지 못했습니다. jszip.min.js 파일을 확인하세요.");
+      return;
+    }
 
-  const templateFile = els.minutesTemplateFile.files?.[0];
-  const evaluationFiles = Array.from(els.evaluationFiles.files || []);
-  const templateBuffer = await templateFile.arrayBuffer();
-  const evaluationDocs = await Promise.all(evaluationFiles.map(readEvaluationHwpx));
-  const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
-  const zip = await JSZip.loadAsync(templateBuffer);
-  const sectionPath = findFirstSectionPath(zip);
-  if (!sectionPath) {
-    alert("회의록 양식에서 본문 XML을 찾지 못했습니다. HWPX 파일인지 확인하세요.");
-    return;
-  }
+    const templateFile = els.minutesTemplateFile.files?.[0];
+    const evaluationFiles = Array.from(els.evaluationFiles.files || []);
+    assertHwpxUpload(templateFile, "인사회의록 양식");
+    evaluationFiles.forEach((file) => assertHwpxUpload(file, "면접평가표"));
+    const templateBuffer = await templateFile.arrayBuffer();
+    const evaluationDocs = await Promise.all(evaluationFiles.map(readEvaluationHwpx));
+    const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
+    const zip = await JSZip.loadAsync(templateBuffer);
+    const sectionPath = findFirstSectionPath(zip);
+    if (!sectionPath) {
+      alert("회의록 양식에서 본문 XML을 찾지 못했습니다. HWPX 파일인지 확인하세요.");
+      return;
+    }
 
-  let sectionXml = await zip.file(sectionPath).async("string");
-  sectionXml = applyPersonnelMinutesTemplate(sectionXml, minutes);
-  zip.file(sectionPath, sectionXml);
-  if (zip.file("Preview/PrvText.txt")) {
-    zip.file("Preview/PrvText.txt", minutes.previewText);
-  }
+    let sectionXml = await zip.file(sectionPath).async("string");
+    sectionXml = applyPersonnelMinutesTemplate(sectionXml, minutes);
+    zip.file(sectionPath, sectionXml);
+    if (zip.file("Preview/PrvText.txt")) {
+      zip.file("Preview/PrvText.txt", minutes.previewText);
+    }
 
-  const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
-  downloadBlob(blob, `${safeFileName(minutes.fileTitle)}.hwpx`);
+    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
+    downloadBlob(blob, `${safeFileName(minutes.fileTitle)}.hwpx`);
+  } catch (error) {
+    console.error("인사회의록 생성 오류", error);
+    alert(`인사회의록 생성 오류: ${error.message || "파일 양식 또는 첨부파일을 확인하세요."}`);
+  }
 }
 
 function getMinutesCandidate() {
@@ -2098,6 +2105,7 @@ function validateMinutesDraft(draft) {
 }
 
 async function readEvaluationHwpx(file) {
+  assertHwpxUpload(file, "면접평가표");
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
   const text = await extractHwpxText(zip);
   return {
@@ -2105,6 +2113,13 @@ async function readEvaluationHwpx(file) {
     text,
     name: inferEvaluationName(file.name, text),
   };
+}
+
+function assertHwpxUpload(file, label) {
+  if (!file) throw new Error(`${label} 파일을 선택하세요.`);
+  if (!/\.hwpx$/i.test(file.name)) {
+    throw new Error(`${label}는 HWPX 파일만 사용할 수 있습니다. 현재 파일: ${file.name}`);
+  }
 }
 
 async function extractHwpxText(zip) {
@@ -2229,10 +2244,19 @@ function applyPersonnelMinutesTemplate(xml, minutes) {
   ];
   const filled = replacements.reduce((value, [pattern, replacement]) => value.replace(pattern, escapeXmlText(replacement)), xml);
   const replacedKnownForm = applyKnownPersonnelMinutesCells(filled, minutes);
-  if (replacedKnownForm !== filled || filled !== xml) {
+  if (hasMeaningfulMinutesText(replacedKnownForm, minutes)) {
     return replacedKnownForm;
   }
   return appendMinutesText(filled, minutes.previewText);
+}
+
+function hasMeaningfulMinutesText(xml, minutes) {
+  const requiredTexts = [
+    minutes.resultLine,
+    minutes.attendanceLines[0],
+    minutes.hiredName ? `채용자: ${minutes.hiredName}` : "채용자: 없음",
+  ].filter(Boolean);
+  return requiredTexts.some((text) => xml.includes(escapeXmlText(text)));
 }
 
 function applyKnownPersonnelMinutesCells(xml, minutes) {
