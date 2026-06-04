@@ -2221,9 +2221,9 @@ function inferEvaluationName(fileName, text) {
 
 function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const interviewees = normalizeInterviewees(candidate.interviewees || []);
-  const evaluationNames = new Set(evaluationDocs.map((doc) => doc.name).filter(Boolean));
-  const present = interviewees.filter((person) => evaluationNames.has(person.name) || evaluationDocs.some((doc) => doc.text.includes(person.name)));
-  const absent = interviewees.filter((person) => !present.some((presentPerson) => presentPerson.name === person.name));
+  const evaluationDocsByPerson = new Map(interviewees.map((person) => [person.name, findEvaluationDocForPerson(person, evaluationDocs)]));
+  const present = interviewees.filter((person) => evaluationDocsByPerson.get(person.name));
+  const absent = interviewees.filter((person) => !evaluationDocsByPerson.get(person.name));
   const caseKey = PERSONNEL_MINUTES_CASES[els.minutesCase?.value] ? els.minutesCase.value : "hire_standard";
   const minutesCase = PERSONNEL_MINUTES_CASES[caseKey];
   const allowsHire = ["hire_standard", "mixed"].includes(caseKey);
@@ -2238,7 +2238,7 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const evaluationSummary = evaluationDocs.length
     ? evaluationDocs.map((doc, index) => `${index + 1}. ${doc.name}: ${summarizeEvaluationText(doc.text)}`).join("\n")
     : "첨부된 면접평가표 없음";
-  const evaluationReasonByName = buildEvaluationReasonMap(evaluationDocs);
+  const evaluationReasonByName = buildEvaluationReasonMap(evaluationDocsByPerson);
   const attendanceLines = buildMinutesAttendanceLines({ candidate, hiredPeople, rejected, absent, caseKey });
   const contentLines = buildMinutesContentLines({
     candidate,
@@ -2295,8 +2295,44 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   };
 }
 
-function buildEvaluationReasonMap(evaluationDocs) {
-  return new Map(evaluationDocs.map((doc) => [doc.name, summarizeEvaluationText(doc.text)]));
+function findEvaluationDocForPerson(person, evaluationDocs) {
+  return evaluationDocs.find((doc) => namesReferToSamePerson(person.name, doc.name) || personNameAppearsInText(person.name, doc.text));
+}
+
+function buildEvaluationReasonMap(evaluationDocsByPerson) {
+  return new Map(
+    Array.from(evaluationDocsByPerson.entries())
+      .filter(([, doc]) => doc)
+      .map(([personName, doc]) => [personName, summarizeEvaluationText(doc.text)]),
+  );
+}
+
+function personNameAppearsInText(personName, text) {
+  const normalizedText = normalizePersonName(text);
+  const normalizedName = normalizePersonName(personName);
+  if (!normalizedName) return false;
+  if (!normalizedName.includes("*")) return normalizedText.includes(normalizedName);
+  const pattern = new RegExp(normalizedName.split("*").map(escapeRegExp).join("[가-힣A-Za-z0-9]*"));
+  return pattern.test(normalizedText);
+}
+
+function namesReferToSamePerson(left, right) {
+  const a = normalizePersonName(left);
+  const b = normalizePersonName(right);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.length === b.length) {
+    return [...a].every((char, index) => char === "*" || b[index] === "*" || char === b[index]);
+  }
+  return personNameAppearsInText(a, b) || personNameAppearsInText(b, a);
+}
+
+function normalizePersonName(value) {
+  return String(value || "").replace(/\s+/g, "").replace(/[()（）\[\]{}]/g, "");
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function buildMinutesAttendanceLines({ hiredPeople, rejected, absent, caseKey }) {
