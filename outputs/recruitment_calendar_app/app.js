@@ -4,6 +4,10 @@ const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const MINUTES_BODY_PARA_PR_ID = "8";
 const MINUTES_BODY_CHAR_PR_ID = "6";
+let minutesBodyStyle = {
+  paraPrID: MINUTES_BODY_PARA_PR_ID,
+  charPrID: MINUTES_BODY_CHAR_PR_ID,
+};
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const EMPLOYMENT_TYPES = ["정규직", "계약직", "기간제", "기타"];
@@ -296,6 +300,7 @@ const els = {
   evaluationFiles: document.querySelector("#evaluationFilesInput"),
   downloadMinutesButton: document.querySelector("#downloadMinutesButton"),
   minutesDownloadStatus: document.querySelector("#minutesDownloadStatus"),
+  minutesTime: document.querySelector("#minutesTimeInput"),
   searchInput: document.querySelector("#searchInput"),
   monthTitle: document.querySelector("#monthTitle"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
@@ -1680,6 +1685,7 @@ function fillMinutesDefaults(candidate) {
   const meetingDate = candidate.confirmedInterviewDate || candidate.hireDate || toDateKey(new Date());
   const hiredPerson = normalizeInterviewees(candidate.interviewees || []).find((person) => person.status === "채용");
   els.minutesDate.value = meetingDate || "";
+  if (els.minutesTime && !els.minutesTime.value) els.minutesTime.value = "14:00";
   els.minutesHireStart.value = candidate.workStartDate || candidate.hireDate || "";
   els.minutesHiredName.value = hiredPerson?.name || "";
   els.minutesResult.value = hiredPerson ? "hire" : "no_hire";
@@ -2099,6 +2105,7 @@ async function downloadPersonnelMinutes() {
     const evaluationDocs = await Promise.all(evaluationFiles.map(readEvaluationHwpx));
     const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
     const zip = await JSZip.loadAsync(templateBuffer);
+    await configureMinutesBodyStyle(zip);
     const sectionPath = findFirstSectionPath(zip);
     if (!sectionPath) {
       alert("회의록 양식에서 본문 XML을 찾지 못했습니다. HWPX 파일인지 확인하세요.");
@@ -2232,6 +2239,7 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const hiredPeople = hiredName ? present.filter((person) => person.name === hiredName) : [];
   const rejected = present.filter((person) => person.name !== hiredName);
   const minutesDate = els.minutesDate.value || candidate.hireDate || candidate.confirmedInterviewDate;
+  const minutesTime = normalizeMinutesTime(els.minutesTime?.value || "14:00");
   const hireStartDate = els.minutesHireStart.value || candidate.workStartDate || candidate.hireDate || "";
   const primaryField = normalizeRecruitmentFields(candidate.recruitmentFields, candidate)[0] || defaultRecruitmentFields(candidate)[0];
   const serial = normalizeExecutionNo(candidate.executionNo, parseDate(candidate.noticeDate || minutesDate).getFullYear());
@@ -2260,7 +2268,7 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const previewLines = [
     "인사위원회 회의록",
     "",
-    `회의일자: ${formatNoticeDateWithWeekday(parseDate(minutesDate))}`,
+    `회의일시: ${formatMinutesMeetingDateTime(minutesDate, minutesTime)}`,
     `안건: ${agenda} (${candidate.name})`,
     `시행번호: ${serial}`,
     `채용부서: ${candidate.department}`,
@@ -2280,6 +2288,7 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
     caseKey,
     agenda,
     minutesDate,
+    minutesTime,
     hireStartDate,
     hiredName,
     cancelledName,
@@ -2305,6 +2314,20 @@ function buildEvaluationReasonMap(evaluationDocsByPerson) {
       .filter(([, doc]) => doc)
       .map(([personName, doc]) => [personName, summarizeEvaluationText(doc.text)]),
   );
+}
+
+function normalizeMinutesTime(value) {
+  const match = String(value || "").match(/(\d{1,2}):?(\d{2})?/);
+  if (!match) return "14:00";
+  const hour = Math.min(23, Math.max(0, Number(match[1]))).toString().padStart(2, "0");
+  const minute = Math.min(59, Math.max(0, Number(match[2] || 0))).toString().padStart(2, "0");
+  return `${hour}:${minute}`;
+}
+
+function formatMinutesMeetingDateTime(dateKey, timeValue) {
+  const date = parseDate(dateKey);
+  const [hour, minute] = normalizeMinutesTime(timeValue).split(":");
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${Number(hour)}시 ${minute}분`;
 }
 
 function personNameAppearsInText(personName, text) {
@@ -2455,11 +2478,25 @@ function buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledNam
 }
 
 function summarizeEvaluationText(text) {
-  return cleanExtractedDocumentText(text)
+  const cleaned = cleanExtractedDocumentText(text);
+  const opinion = extractEvaluationOpinion(cleaned);
+  return (opinion || cleaned)
+    .replace(/문서서식포탈비즈폼/g, " ")
+    .replace(/※?\s*면접평가표\s*작성방법\s*및\s*유의사항[\s\S]*?(?=1\.\s*인적사항|성\s*명|3\.\s*종합평가|심사의견|$)/g, " ")
+    .replace(/‣\s*면접방법[\s\S]*?(?=‣\s*주의사항|1\.\s*인적사항|성\s*명|$)/g, " ")
+    .replace(/‣\s*주의사항[\s\S]*?(?=1\.\s*인적사항|성\s*명|$)/g, " ")
     .replace(/\s+/g, " ")
     .replace(/[•·※★▶▷■□◆◇○●◎]/g, " ")
     .trim()
     .slice(0, 180) || "평가 내용 확인";
+}
+
+function extractEvaluationOpinion(text) {
+  const normalized = String(text || "").replace(/\r/g, "\n");
+  const opinionMatch = normalized.match(/심사의견\s*\n?([\s\S]*?)(?=\n?\s*평\s*가\s*(?:\n|$)|\n?\s*평가자\s*(?:\n|$)|\n?\s*평가기준\s*(?:\n|$)|$)/);
+  if (opinionMatch?.[1]) return opinionMatch[1].trim();
+  const summaryMatch = normalized.match(/3\.\s*종합평가[\s\S]*?심사의견\s*\n?([\s\S]*?)(?=\n?\s*평\s*가\s*(?:\n|$)|\n?\s*평가자\s*(?:\n|$)|\n?\s*평가기준\s*(?:\n|$)|$)/);
+  return summaryMatch?.[1]?.trim() || "";
 }
 
 function findFirstSectionPath(zip) {
@@ -2471,6 +2508,7 @@ function findFirstSectionPath(zip) {
 function applyPersonnelMinutesTemplate(xml, minutes) {
   const replacements = [
     [/{{\s*회의일자\s*}}/g, formatNoticeDateWithWeekday(parseDate(minutes.minutesDate))],
+    [/{{\s*회의일시\s*}}/g, formatMinutesMeetingDateTime(minutes.minutesDate, minutes.minutesTime)],
     [/{{\s*안건\s*}}/g, `${minutes.agenda} (${minutes.candidate.name})`],
     [/{{\s*시행번호\s*}}/g, minutes.serial],
     [/{{\s*채용부서\s*}}/g, minutes.candidate.department],
@@ -2500,7 +2538,7 @@ function hasMeaningfulMinutesText(xml, minutes) {
 
 function applyKnownPersonnelMinutesCells(xml, minutes) {
   const agenda = `${minutes.agenda} (${minutes.candidate.name})`;
-  const meetingDateText = `${parseDate(minutes.minutesDate).getFullYear()}년 ${parseDate(minutes.minutesDate).getMonth() + 1}월 ${parseDate(minutes.minutesDate).getDate()}일 14시 00분`;
+  const meetingDateText = formatMinutesMeetingDateTime(minutes.minutesDate, minutes.minutesTime);
   let next = xml
     .replace(/신규\s*직원\s*채용의\s*건|신규\s*채용의\s*건|직원채용\s*부적합\s*건|직원채용취소\s*의?\s*건/g, escapeXmlText(agenda))
     .replace(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일\s*\d{1,2}시\s*\d{2}분/g, escapeXmlText(meetingDateText));
@@ -2532,6 +2570,26 @@ function replaceHwpxCellByAddress(xml, rowAddr, colAddr, lines) {
   });
 }
 
+async function configureMinutesBodyStyle(zip) {
+  minutesBodyStyle = {
+    paraPrID: MINUTES_BODY_PARA_PR_ID,
+    charPrID: MINUTES_BODY_CHAR_PR_ID,
+  };
+  const headerFile = zip.file("Contents/header.xml");
+  if (!headerFile) return;
+  const headerXml = await headerFile.async("string");
+  const hamFontId =
+    headerXml.match(/<hh:font\b[^>]*id="(\d+)"[^>]*face="함초롬돋[움음]"/)?.[1] ||
+    headerXml.match(/<hh:font\b[^>]*face="함초롬돋[움음]"[^>]*id="(\d+)"/)?.[1] ||
+    "0";
+  const charPrMatches = Array.from(headerXml.matchAll(/<hh:charPr\b[^>]*id="(\d+)"[\s\S]*?<\/hh:charPr>/g));
+  const hamCharPr = charPrMatches.find((match) => new RegExp(`<hh:fontRef[^>]*hangul="${hamFontId}"`).test(match[0]));
+  const paraPrMatches = Array.from(headerXml.matchAll(/<hh:paraPr\b[^>]*id="(\d+)"[\s\S]*?<\/hh:paraPr>/g));
+  const justifyParaPr = paraPrMatches.find((match) => /<hh:align\b[^>]*horizontal="JUSTIFY"/.test(match[0]));
+  if (hamCharPr?.[1]) minutesBodyStyle.charPrID = hamCharPr[1];
+  if (justifyParaPr?.[1]) minutesBodyStyle.paraPrID = justifyParaPr[1];
+}
+
 function appendMinutesText(xml, text) {
   const paragraphs = text
     .split("\n")
@@ -2544,7 +2602,7 @@ function appendMinutesText(xml, text) {
 }
 
 function buildHwpxTextParagraph(text) {
-  return `<hp:p id="0" paraPrIDRef="${MINUTES_BODY_PARA_PR_ID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${MINUTES_BODY_CHAR_PR_ID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="400" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
+  return `<hp:p id="0" paraPrIDRef="${minutesBodyStyle.paraPrID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${minutesBodyStyle.charPrID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="400" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
 }
 
 function validateNoticeDraft(draft) {
