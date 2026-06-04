@@ -2150,9 +2150,23 @@ async function extractHwpxText(zip) {
 
 function extractXmlText(xml) {
   return Array.from(xml.matchAll(/<hp:t[^>]*>([\s\S]*?)<\/hp:t>|<hp:t\s*\/>/g))
-    .map((match) => decodeXmlText(match[1] || ""))
+    .map((match) => cleanExtractedDocumentText(decodeXmlText(match[1] || ""), { keepLines: true }))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function cleanExtractedDocumentText(value, options = {}) {
+  const lineBreak = options.keepLines ? "\n" : " ";
+  return String(value || "")
+    .replace(/<\/?h[ps]:[^>]*>/gi, lineBreak)
+    .replace(/<[^>]+>/g, lineBreak)
+    .replace(/\b(?:textpos|vertpos|vertsize|textheight|baseline|spacing|horzpos|horzsize|flags)="[^"]*"/gi, " ")
+    .replace(/\b(?:hp|hs):[a-zA-Z0-9_-]+\b/gi, " ")
+    .replace(/[<>]/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
     .trim();
 }
 
@@ -2230,7 +2244,7 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
 }
 
 function summarizeEvaluationText(text) {
-  return text
+  return cleanExtractedDocumentText(text)
     .replace(/\s+/g, " ")
     .replace(/[•·※★▶▷■□◆◇○●◎]/g, " ")
     .trim()
@@ -2833,7 +2847,8 @@ function displayRecruitmentListTitle(candidate) {
 }
 
 function displayExecutionNo(candidate) {
-  return candidate.executionNo || normalizeExecutionNo("", new Date().getFullYear());
+  const baseDate = candidate.noticeDate || candidate.confirmedInterviewDate || candidate.interviewDate || toDateKey(new Date());
+  return normalizeExecutionNo(candidate.executionNo, parseDate(baseDate).getFullYear());
 }
 
 function stripNoticePrefix(value) {
@@ -2842,8 +2857,17 @@ function stripNoticePrefix(value) {
 
 function normalizeExecutionNo(value, year) {
   const trimmed = String(value || "").trim();
-  if (!trimmed) return `GR${year}-A-000`;
-  if (/^\d{1,3}$/.test(trimmed)) return `GR2026-A-${trimmed.padStart(3, "0")}`;
+  const safeYear = Number.isFinite(Number(year)) ? Number(year) : new Date().getFullYear();
+  if (!trimmed) return `GR${safeYear}-A-000`;
+  if (/^\d{1,3}$/.test(trimmed)) return `GR${safeYear}-A-${trimmed.padStart(3, "0")}`;
+  const duplicateYear = trimmed.match(/^GR(\d{4})[-\s]*(?:GR)?\1[-\s]*([A-Z])[-\s]*(\d{1,3})$/i);
+  if (duplicateYear) return `GR${duplicateYear[1]}-${duplicateYear[2].toUpperCase()}-${duplicateYear[3].padStart(3, "0")}`;
+  const fullSerial = trimmed.match(/^GR(\d{4})[-\s]*([A-Z])[-\s]*(\d{1,3})$/i);
+  if (fullSerial) return `GR${fullSerial[1]}-${fullSerial[2].toUpperCase()}-${fullSerial[3].padStart(3, "0")}`;
+  const yearSerial = trimmed.match(/^(\d{4})[-\s]*([A-Z])[-\s]*(\d{1,3})$/i);
+  if (yearSerial) return `GR${yearSerial[1]}-${yearSerial[2].toUpperCase()}-${yearSerial[3].padStart(3, "0")}`;
+  const typeSerial = trimmed.match(/^([A-Z])[-\s]*(\d{1,3})$/i);
+  if (typeSerial) return `GR${safeYear}-${typeSerial[1].toUpperCase()}-${typeSerial[2].padStart(3, "0")}`;
   return trimmed;
 }
 
