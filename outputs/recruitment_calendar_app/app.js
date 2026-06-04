@@ -2,6 +2,8 @@ const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const MINUTES_BODY_PARA_PR_ID = "8";
+const MINUTES_BODY_CHAR_PR_ID = "6";
 const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const EMPLOYMENT_TYPES = ["정규직", "계약직", "기간제", "기타"];
@@ -2506,7 +2508,7 @@ function appendMinutesText(xml, text) {
 }
 
 function buildHwpxTextParagraph(text) {
-  return `<hp:p id="0" paraPrIDRef="1" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1200" textheight="1200" baseline="1020" spacing="720" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
+  return `<hp:p id="0" paraPrIDRef="${MINUTES_BODY_PARA_PR_ID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${MINUTES_BODY_CHAR_PR_ID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1000" textheight="1000" baseline="850" spacing="400" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
 }
 
 function validateNoticeDraft(draft) {
