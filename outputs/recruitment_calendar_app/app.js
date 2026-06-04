@@ -184,6 +184,33 @@ const RECRUITMENT_FIELD_PRESETS = {
     duty: "장애인자립생활주택 업무 담당",
   },
 };
+const PERSONNEL_MINUTES_CASES = {
+  hire_standard: {
+    label: "직원채용의 건 - 최종 채용",
+    agenda: "신규 직원 채용의 건",
+    fileSuffix: "채용",
+  },
+  no_hire_ineligible: {
+    label: "채용자 없음 - 부적합/미채용",
+    agenda: "직원채용 부적합 건",
+    fileSuffix: "채용자없음",
+  },
+  all_absent: {
+    label: "채용자 없음 - 면접 전원 불참",
+    agenda: "직원채용 부적합 건",
+    fileSuffix: "전원불참",
+  },
+  hire_cancelled: {
+    label: "채용취소 - 입사 전/당일 취소",
+    agenda: "직원채용취소의 건",
+    fileSuffix: "채용취소",
+  },
+  mixed: {
+    label: "혼합 - 채용자 있음 + 일부 재공고",
+    agenda: "신규 직원 채용의 건",
+    fileSuffix: "혼합의결",
+  },
+};
 const eventLabels = {
   notice: "공고",
   document: "접수",
@@ -261,6 +288,7 @@ const els = {
   minutesRecruitment: document.querySelector("#minutesRecruitmentInput"),
   minutesHireStart: document.querySelector("#minutesHireStartInput"),
   minutesHiredName: document.querySelector("#minutesHiredNameInput"),
+  minutesCase: document.querySelector("#minutesCaseInput"),
   minutesResult: document.querySelector("#minutesResultInput"),
   minutesTemplateFile: document.querySelector("#minutesTemplateFileInput"),
   evaluationFiles: document.querySelector("#evaluationFilesInput"),
@@ -380,6 +408,14 @@ function bindEvents() {
   els.minutesRecruitment.addEventListener("change", () => {
     const candidate = state.candidates.find((item) => item.id === els.minutesRecruitment.value);
     if (candidate) fillMinutesDefaults(candidate);
+  });
+  els.minutesCase.addEventListener("change", () => {
+    if (["no_hire_ineligible", "all_absent", "hire_cancelled"].includes(els.minutesCase.value)) {
+      els.minutesResult.value = "no_hire";
+    }
+    if (["hire_standard", "mixed"].includes(els.minutesCase.value) && els.minutesHiredName.value.trim()) {
+      els.minutesResult.value = "hire";
+    }
   });
   els.addSelectedInterviewButton.addEventListener("click", addInterviewForSelectedDate);
   els.addSelectedDeadlineButton.addEventListener("click", addDeadlineForSelectedDate);
@@ -1645,6 +1681,9 @@ function fillMinutesDefaults(candidate) {
   els.minutesHireStart.value = candidate.workStartDate || candidate.hireDate || "";
   els.minutesHiredName.value = hiredPerson?.name || "";
   els.minutesResult.value = hiredPerson ? "hire" : "no_hire";
+  if (els.minutesCase) {
+    els.minutesCase.value = hiredPerson ? "hire_standard" : "no_hire_ineligible";
+  }
 }
 
 function selectBestDate(candidate) {
@@ -2183,35 +2222,31 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const evaluationNames = new Set(evaluationDocs.map((doc) => doc.name).filter(Boolean));
   const present = interviewees.filter((person) => evaluationNames.has(person.name) || evaluationDocs.some((doc) => doc.text.includes(person.name)));
   const absent = interviewees.filter((person) => !present.some((presentPerson) => presentPerson.name === person.name));
-  const hiredName = els.minutesResult.value === "hire" ? (els.minutesHiredName.value.trim() || present.find((person) => person.status === "채용")?.name || "") : "";
+  const caseKey = PERSONNEL_MINUTES_CASES[els.minutesCase?.value] ? els.minutesCase.value : "hire_standard";
+  const minutesCase = PERSONNEL_MINUTES_CASES[caseKey];
+  const allowsHire = ["hire_standard", "mixed"].includes(caseKey);
+  const hiredName = els.minutesResult.value === "hire" && allowsHire ? (els.minutesHiredName.value.trim() || present.find((person) => person.status === "채용")?.name || "") : "";
+  const cancelledName = caseKey === "hire_cancelled" ? (els.minutesHiredName.value.trim() || interviewees[0]?.name || "해당") : "";
   const hiredPeople = hiredName ? present.filter((person) => person.name === hiredName) : [];
   const rejected = present.filter((person) => person.name !== hiredName);
   const minutesDate = els.minutesDate.value || candidate.hireDate || candidate.confirmedInterviewDate;
   const hireStartDate = els.minutesHireStart.value || candidate.workStartDate || candidate.hireDate || "";
   const primaryField = normalizeRecruitmentFields(candidate.recruitmentFields, candidate)[0] || defaultRecruitmentFields(candidate)[0];
   const serial = normalizeExecutionNo(candidate.executionNo, parseDate(candidate.noticeDate || minutesDate).getFullYear());
-  const resultLine =
-    els.minutesResult.value === "hire" && hiredName
-      ? `지원자 ${hiredName}을 최종 채용하기로 하며, 입사예정일은 ${hireStartDate ? formatNoticeDateWithWeekday(parseDate(hireStartDate)) : "추후 협의"}로 한다.`
-      : `${candidate.department}은 채용자 없음으로 다음 공고를 신속히 진행하기로 함.`;
-  const attendanceLines = [
-    ...hiredPeople.map((person) => `지원자 ${person.name}은 면접평가표를 바탕으로 심의한 결과 최종 채용하기로 하였다.`),
-    ...rejected.map((person) => `지원자 ${person.name}은 면접평가표를 바탕으로 심의하였으나 채용하지 않기로 하였다.`),
-    ...absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하였다.`),
-  ];
-  const resultDetailLines = [
-    hiredName ? `채용자: ${hiredName} (${candidate.department})` : "채용자: 없음",
-    rejected.length ? `탈락자: ${rejected.map((person) => person.name).join(", ")}` : "탈락자: 없음",
-    absent.length ? `불참자: ${absent.map((person) => person.name).join(", ")}` : "불참자: 없음",
-  ];
   const evaluationSummary = evaluationDocs.length
     ? evaluationDocs.map((doc, index) => `${index + 1}. ${doc.name}: ${summarizeEvaluationText(doc.text)}`).join("\n")
     : "첨부된 면접평가표 없음";
+  const attendanceLines = buildMinutesAttendanceLines({ candidate, hiredPeople, rejected, absent, caseKey });
+  const contentLines = buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines, evaluationSummary, interviewees, absent, cancelledName });
+  const decisionLines = buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate });
+  const resultLine = decisionLines[0] || "";
+  const resultDetailLines = decisionLines.slice(1);
+  const agenda = minutesCase.agenda;
   const previewLines = [
     "인사위원회 회의록",
     "",
     `회의일자: ${formatNoticeDateWithWeekday(parseDate(minutesDate))}`,
-    `안건: 직원채용의 건 (${candidate.name})`,
+    `안건: ${agenda} (${candidate.name})`,
     `시행번호: ${serial}`,
     `채용부서: ${candidate.department}`,
     `채용분야: ${primaryField.fieldName}`,
@@ -2219,28 +2254,111 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
     `면접일자: ${formatNoticeDateWithWeekday(parseDate(candidate.confirmedInterviewDate))}`,
     "",
     "심의내용",
-    ...attendanceLines,
-    "",
-    "면접평가표 확인",
-    evaluationSummary,
+    ...contentLines,
     "",
     "의결사항",
-    resultLine,
-    ...resultDetailLines,
+    ...decisionLines,
   ];
   return {
     candidate,
     serial,
+    caseKey,
+    agenda,
     minutesDate,
     hireStartDate,
     hiredName,
+    cancelledName,
     resultLine,
     resultDetailLines,
     attendanceLines,
+    contentLines,
+    decisionLines,
     evaluationSummary,
     previewText: previewLines.join("\n"),
-    fileTitle: `인사위원회 회의록_직원채용의 건(${formatCompactDate(parseDate(minutesDate))})_${hiredName || "채용자없음"}`,
+    fileTitle: `인사위원회 회의록_${minutesCase.agenda}(${formatCompactDate(parseDate(minutesDate))})_${hiredName || cancelledName || minutesCase.fileSuffix}`,
   };
+}
+
+function buildMinutesAttendanceLines({ hiredPeople, rejected, absent, caseKey }) {
+  if (caseKey === "all_absent") {
+    return absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하였다.`);
+  }
+  if (caseKey === "hire_cancelled") {
+    return absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하였다.`);
+  }
+  return [
+    ...hiredPeople.map((person) => `지원자 ${person.name}은 면접 과정에서 직무 이해도와 태도가 확인되어 해당 업무에 적합하다고 판단하였다.`),
+    ...rejected.map((person) => `지원자 ${person.name}은 면접평가표를 바탕으로 심의하였으나 업무 수행 적합성이 미흡하여 미채용하기로 하였다.`),
+    ...absent.map((person) => `지원자 ${person.name}은 면접 당일에 불참하였다.`),
+  ];
+}
+
+function buildMinutesContentLines({ candidate, serial, caseKey, attendanceLines, evaluationSummary, interviewees, absent, cancelledName }) {
+  const intervieweeNames = interviewees.map((person) => person.name).filter(Boolean).join(", ");
+  if (caseKey === "all_absent") {
+    return [
+      `<${candidate.department}>`,
+      `${candidate.department} 면접 대상자 ${intervieweeNames || "전원"}은 당일 면접에 참석하지 않았음.`,
+      `- [공고 ${serial}호] ${candidate.name} 1차 서류전형 합격 및 2차 면접 과정에서 면접 대상자 전원이 불참하여 채용이 진행되지 않았음.`,
+      ...attendanceLines,
+    ];
+  }
+  if (caseKey === "hire_cancelled") {
+    return [
+      `<${candidate.department}>`,
+      `${candidate.department}에 지원한 ${cancelledName}은 면접 결과 해당 업무에 적합해 보여 채용 진행하기로 하였으나, 입사 전 또는 입사 당일 채용 거절 의사를 밝힘.`,
+      `이에, 추후 ${candidate.department} 채용공고를 신속히 진행하여 공석인 ${candidate.department}에 대한 추가 채용을 진행하기로 함.`,
+      ...attendanceLines,
+    ];
+  }
+  const baseLines = [
+    `<${candidate.department}>`,
+    `- [공고 ${serial}호] ${candidate.name} 공고를 진행하였음.`,
+    ...attendanceLines,
+    "면접평가표 및 면접 결과를 바탕으로 채용 적합성을 심의하였다.",
+  ];
+  if (caseKey === "mixed") {
+    baseLines.push(`일부 채용 분야는 채용자를 선정하고, 미충원 분야는 추후 ${candidate.department} 채용공고를 진행하기로 검토하였다.`);
+  }
+  baseLines.push(evaluationSummary);
+  if (caseKey === "no_hire_ineligible" && absent.length && absent.length === interviewees.length) {
+    baseLines.splice(1, 0, `${candidate.department} 면접 대상자 전원이 면접 당일 불참하여 채용 심의를 진행하지 못하였다.`);
+  }
+  return baseLines;
+}
+
+function buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate }) {
+  const followUp = `추후 ${candidate.department} 채용공고를 신속히 진행하여 공석인 ${candidate.department}에 대한 추가 채용을 진행하기로 함.`;
+  if (caseKey === "all_absent") {
+    return ["채용자 없음", followUp];
+  }
+  if (caseKey === "hire_cancelled") {
+    return [`${cancelledName} 지원자는 채용 거부로 인한 미채용 처리하기로 의결하였다.`, followUp];
+  }
+  if (!hiredName) {
+    return [
+      "채용자 없음",
+      rejected.length ? `미채용자: ${rejected.map((person) => `${person.name} 지원자`).join(", ")}` : "미채용자: 없음",
+      absent.length ? `불참자: ${absent.map((person) => person.name).join(", ")}` : "불참자: 없음",
+      followUp,
+    ];
+  }
+  const lines = [
+    `채용자: ${hiredName} (${candidate.department})`,
+    `입사일: ${hireStartDate ? formatNoticeDateWithWeekday(parseDate(hireStartDate)) : "추후 협의"}`,
+    "고용형태: 3개월 수습 후, 정규직 전환",
+    "임금: 서울시 기준 사회복지시설 종사자 인건비 기준에 따름",
+  ];
+  if (rejected.length) {
+    lines.unshift(...rejected.map((person) => `${person.name} 지원자: 평가결과 미채용.`));
+  }
+  if (absent.length) {
+    lines.unshift(...absent.map((person) => `${person.name} 지원자: 면접 당일 불참으로 미채용.`));
+  }
+  if (caseKey === "mixed") {
+    lines.push(followUp);
+  }
+  return lines;
 }
 
 function summarizeEvaluationText(text) {
@@ -2260,13 +2378,13 @@ function findFirstSectionPath(zip) {
 function applyPersonnelMinutesTemplate(xml, minutes) {
   const replacements = [
     [/{{\s*회의일자\s*}}/g, formatNoticeDateWithWeekday(parseDate(minutes.minutesDate))],
-    [/{{\s*안건\s*}}/g, `직원채용의 건 (${minutes.candidate.name})`],
+    [/{{\s*안건\s*}}/g, `${minutes.agenda} (${minutes.candidate.name})`],
     [/{{\s*시행번호\s*}}/g, minutes.serial],
     [/{{\s*채용부서\s*}}/g, minutes.candidate.department],
     [/{{\s*면접일자\s*}}/g, formatNoticeDateWithWeekday(parseDate(minutes.candidate.confirmedInterviewDate))],
-    [/{{\s*심의내용\s*}}/g, minutes.attendanceLines.join("\n")],
+    [/{{\s*심의내용\s*}}/g, minutes.contentLines.join("\n")],
     [/{{\s*평가요약\s*}}/g, minutes.evaluationSummary],
-    [/{{\s*의결사항\s*}}/g, [minutes.resultLine, ...minutes.resultDetailLines].join("\n")],
+    [/{{\s*의결사항\s*}}/g, minutes.decisionLines.join("\n")],
     [/{{\s*최종채용자\s*}}/g, minutes.hiredName || "없음"],
     [/{{\s*입사예정일\s*}}/g, minutes.hireStartDate ? formatNoticeDateWithWeekday(parseDate(minutes.hireStartDate)) : "추후 협의"],
   ];
@@ -2281,39 +2399,25 @@ function applyPersonnelMinutesTemplate(xml, minutes) {
 function hasMeaningfulMinutesText(xml, minutes) {
   const requiredTexts = [
     minutes.resultLine,
-    minutes.attendanceLines[0],
+    minutes.contentLines[0],
     minutes.hiredName ? `채용자: ${minutes.hiredName}` : "채용자: 없음",
   ].filter(Boolean);
   return requiredTexts.some((text) => xml.includes(escapeXmlText(text)));
 }
 
 function applyKnownPersonnelMinutesCells(xml, minutes) {
-  const agenda = `직원채용의 건 (${minutes.candidate.name})`;
+  const agenda = `${minutes.agenda} (${minutes.candidate.name})`;
   const meetingDateText = `${parseDate(minutes.minutesDate).getFullYear()}년 ${parseDate(minutes.minutesDate).getMonth() + 1}월 ${parseDate(minutes.minutesDate).getDate()}일 14시 00분`;
-  const contentLines = [
-    `<${minutes.candidate.department}>`,
-    `- [공고 ${minutes.serial} 호] ${minutes.candidate.name} 공고를 진행하였음.`,
-    ...minutes.attendanceLines,
-    "면접평가표 및 면접 결과를 바탕으로 채용 적합성을 심의하였다.",
-    minutes.evaluationSummary,
-  ];
-  const decisionLines = [
-    minutes.resultLine,
-    ...minutes.resultDetailLines,
-    `입사일: ${minutes.hireStartDate ? formatNoticeDateWithWeekday(parseDate(minutes.hireStartDate)) : "추후 협의"}`,
-    "고용형태: 3개월 수습 후, 정규직 전환",
-    "임금: 서울시 기준 사회복지시설 종사자 인건비 기준에 따름",
-  ];
   let next = xml
-    .replace(/신규 채용의 건/g, escapeXmlText(agenda))
+    .replace(/신규\s*직원\s*채용의\s*건|신규\s*채용의\s*건|직원채용\s*부적합\s*건|직원채용취소\s*의?\s*건/g, escapeXmlText(agenda))
     .replace(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일\s*\d{1,2}시\s*\d{2}분/g, escapeXmlText(meetingDateText));
   next = next.replace(
     /<hp:p[^>]*><hp:run[^>]*><hp:t>\s*&lt;[^<]+&gt;\s*<\/hp:t><\/hp:run>[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="4")/,
-    contentLines.map(buildHwpxTextParagraph).join(""),
+    minutes.contentLines.map(buildHwpxTextParagraph).join(""),
   );
   next = next.replace(
     /<hp:p[^>]*><hp:run[^>]*><hp:t>채용자:[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="5")/,
-    decisionLines.map(buildHwpxTextParagraph).join(""),
+    minutes.decisionLines.map(buildHwpxTextParagraph).join(""),
   );
   return next;
 }

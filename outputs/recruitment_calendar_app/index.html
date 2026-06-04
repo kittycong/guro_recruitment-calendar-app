@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260604-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260604-4" />
   </head>
   <body>
     <div class="app-shell">
@@ -415,6 +415,16 @@
                 <input id="minutesHiredNameInput" type="text" placeholder="예: 홍민서" />
               </label>
               <label>
+                샘플 문장 유형
+                <select id="minutesCaseInput">
+                  <option value="hire_standard">직원채용의 건 - 최종 채용</option>
+                  <option value="no_hire_ineligible">채용자 없음 - 부적합/미채용</option>
+                  <option value="all_absent">채용자 없음 - 면접 전원 불참</option>
+                  <option value="hire_cancelled">채용취소 - 입사 전/당일 취소</option>
+                  <option value="mixed">혼합 - 채용자 있음 + 일부 재공고</option>
+                </select>
+              </label>
+              <label>
                 채용 결과 및 후속조치
                 <select id="minutesResultInput">
                   <option value="hire">최종 채용</option>
@@ -447,8 +457,8 @@
     </div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="./jszip.min.js?v=20260604-3"></script>
-    <script src="./template-data.js?v=20260604-3"></script>
-    <script src="./app.js?v=20260604-3"></script>
+    <script src="./jszip.min.js?v=20260604-4"></script>
+    <script src="./template-data.js?v=20260604-4"></script>
+    <script src="./app.js?v=20260604-4"></script>
   </body>
 </html>
