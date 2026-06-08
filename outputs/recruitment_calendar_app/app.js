@@ -228,6 +228,7 @@ const eventLabels = {
   eligibility: "적격여부",
   hire: "채용",
   probation: "수습종료",
+  probationStart: "입사일",
   probationReview: "수습평가작성",
   probationEnd: "수습종료",
 };
@@ -237,7 +238,7 @@ const state = {
   selectedDate: toDateKey(new Date()),
   candidates: loadCandidates(),
   probations: loadProbations(),
-  filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire", "probationReview", "probationEnd"]),
+  filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire", "probationStart", "probationReview", "probationEnd"]),
   search: "",
   employmentTypeFilter: localStorage.getItem("recruitment-employment-type-filter") || "all",
   calendarSize: ["compact", "normal"].includes(localStorage.getItem("recruitment-calendar-size")) ? localStorage.getItem("recruitment-calendar-size") : "normal",
@@ -1893,6 +1894,15 @@ function getAllEvents() {
     const summary = buildProbationSummary(record);
     const candidate = probationRecordAsCandidate(record);
     return [
+      record.hireDate
+        ? {
+            type: "probationStart",
+            date: record.hireDate,
+            candidate,
+            probation: record,
+            detail: "입사일",
+          }
+        : null,
       summary.reviewDate
         ? {
             type: "probationReview",
@@ -1926,6 +1936,12 @@ function probationRecordAsCandidate(record) {
     memo: record.note || "",
     hireDate: record.hireDate,
   };
+}
+
+function formatProbationCalendarName(record) {
+  if (!record) return "";
+  const work = [record.department, record.duty].filter(Boolean).join("-");
+  return `(${record.name || "이름미정"})/${work ? `(${work})` : "(부서-업무)"}`;
 }
 
 function getWorkStartEvents(candidate) {
@@ -1983,6 +1999,7 @@ function calendarEventLabel(event) {
   if (event.type === "screening") return `서류심사 · ${department}`;
   if (event.type === "interview") return `${interviewPeriodLabel(event.period)} · ${department}`;
   if (event.type === "hire") return `발표/채용 · ${department}`;
+  if (event.type === "probationStart") return `입사일 · ${formatProbationCalendarName(event.probation)}`;
   if (event.type === "probationReview") return `수습평가작성 · ${department} · ${event.probation?.name || ""}`;
   if (event.type === "probationEnd") return `수습종료 · ${department} · ${event.probation?.name || ""}`;
   if (event.type === "workStart") {
@@ -2072,7 +2089,7 @@ function departmentKey(department) {
 }
 
 function eventOrder(type) {
-  return { notice: 1, deadline: 2, screening: 3, interview: 4, workStart: 5, hire: 6, eligibility: 7, probationReview: 8, probationEnd: 9, probation: 10, document: 11 }[type] || 12;
+  return { notice: 1, deadline: 2, screening: 3, interview: 4, workStart: 5, hire: 6, eligibility: 7, probationStart: 8, probationReview: 9, probationEnd: 10, probation: 11, document: 12 }[type] || 13;
 }
 
 function exportCsv() {

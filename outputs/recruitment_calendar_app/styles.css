@@ -946,6 +946,11 @@ button:focus-visible {
   background: var(--warning-bg);
 }
 
+.event-chip.probationStart {
+  color: #3b5f82;
+  background: #e9f1fb;
+}
+
 .event-chip.probationReview {
   color: #2f6f75;
   background: #e9f6f4;
