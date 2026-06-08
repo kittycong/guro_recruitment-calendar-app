@@ -1,4 +1,5 @@
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
+const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
 const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -227,13 +228,16 @@ const eventLabels = {
   eligibility: "적격여부",
   hire: "채용",
   probation: "수습종료",
+  probationReview: "수습평가작성",
+  probationEnd: "수습종료",
 };
 
 const state = {
   currentMonth: startOfMonth(new Date()),
   selectedDate: toDateKey(new Date()),
   candidates: loadCandidates(),
-  filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire"]),
+  probations: loadProbations(),
+  filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire", "probationReview", "probationEnd"]),
   search: "",
   employmentTypeFilter: localStorage.getItem("recruitment-employment-type-filter") || "all",
   calendarSize: ["compact", "normal"].includes(localStorage.getItem("recruitment-calendar-size")) ? localStorage.getItem("recruitment-calendar-size") : "normal",
@@ -301,6 +305,24 @@ const els = {
   downloadMinutesButton: document.querySelector("#downloadMinutesButton"),
   minutesDownloadStatus: document.querySelector("#minutesDownloadStatus"),
   minutesTime: document.querySelector("#minutesTimeInput"),
+  probationRows: document.querySelector("#probationRows"),
+  addProbationButton: document.querySelector("#addProbationButton"),
+  probationId: document.querySelector("#probationIdInput"),
+  probationName: document.querySelector("#probationNameInput"),
+  probationDepartment: document.querySelector("#probationDepartmentInput"),
+  probationDuty: document.querySelector("#probationDutyInput"),
+  probationPosition: document.querySelector("#probationPositionInput"),
+  probationHireDate: document.querySelector("#probationHireDateInput"),
+  probationResult: document.querySelector("#probationResultInput"),
+  probationScores: document.querySelector("#probationScoresInput"),
+  probationTotalScore: document.querySelector("#probationTotalScoreInput"),
+  probationNote: document.querySelector("#probationNoteInput"),
+  probationEvaluationText: document.querySelector("#probationEvaluationTextInput"),
+  probationTemplateFile: document.querySelector("#probationTemplateFileInput"),
+  probationWrittenDate: document.querySelector("#probationWrittenDateInput"),
+  saveProbationButton: document.querySelector("#saveProbationButton"),
+  downloadProbationHwpxButton: document.querySelector("#downloadProbationHwpxButton"),
+  probationStatus: document.querySelector("#probationStatus"),
   searchInput: document.querySelector("#searchInput"),
   monthTitle: document.querySelector("#monthTitle"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
@@ -412,6 +434,13 @@ function bindEvents() {
   });
   els.createReissueButton.addEventListener("click", createReissueRecruitment);
   els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
+  els.addProbationButton?.addEventListener("click", resetProbationForm);
+  els.saveProbationButton?.addEventListener("click", saveProbationFromForm);
+  els.downloadProbationHwpxButton?.addEventListener("click", downloadProbationHwpx);
+  [els.probationHireDate, els.probationScores, els.probationTotalScore, els.probationResult].forEach((input) => {
+    input?.addEventListener("input", updateProbationComputedFields);
+    input?.addEventListener("change", updateProbationComputedFields);
+  });
   els.minutesRecruitment.addEventListener("change", () => {
     const candidate = state.candidates.find((item) => item.id === els.minutesRecruitment.value);
     if (candidate) fillMinutesDefaults(candidate);
@@ -597,6 +626,7 @@ function render() {
   renderCandidateList();
   renderFullCandidateList();
   renderInterviewManagement();
+  renderProbationList();
   renderSearchResults();
   renderKanban();
   renderTimeline();
@@ -1814,7 +1844,7 @@ function safeGetFilteredEvents() {
 }
 
 function getAllEvents() {
-  return state.candidates.flatMap((candidate) => {
+  const recruitmentEvents = state.candidates.flatMap((candidate) => {
     const events = [];
     const schedule = buildSchedule(candidate);
     const interviewDate = getInterviewDate(candidate);
@@ -1859,6 +1889,43 @@ function getAllEvents() {
     }
     return events;
   });
+  const probationEvents = state.probations.flatMap((record) => {
+    const summary = buildProbationSummary(record);
+    const candidate = probationRecordAsCandidate(record);
+    return [
+      summary.reviewDate
+        ? {
+            type: "probationReview",
+            date: summary.reviewDate,
+            candidate,
+            probation: record,
+            detail: "수습평가 작성일",
+          }
+        : null,
+      summary.endDate
+        ? {
+            type: "probationEnd",
+            date: summary.endDate,
+            candidate,
+            probation: record,
+            detail: probationResultLabel(record.result),
+          }
+        : null,
+    ].filter(Boolean);
+  });
+  return [...recruitmentEvents, ...probationEvents];
+}
+
+function probationRecordAsCandidate(record) {
+  return {
+    id: record.id,
+    name: `${record.name} 수습평가`,
+    department: record.department,
+    employmentType: "정규직",
+    status: "수습중",
+    memo: record.note || "",
+    hireDate: record.hireDate,
+  };
 }
 
 function getWorkStartEvents(candidate) {
@@ -1916,6 +1983,8 @@ function calendarEventLabel(event) {
   if (event.type === "screening") return `서류심사 · ${department}`;
   if (event.type === "interview") return `${interviewPeriodLabel(event.period)} · ${department}`;
   if (event.type === "hire") return `발표/채용 · ${department}`;
+  if (event.type === "probationReview") return `수습평가작성 · ${department} · ${event.probation?.name || ""}`;
+  if (event.type === "probationEnd") return `수습종료 · ${department} · ${event.probation?.name || ""}`;
   if (event.type === "workStart") {
     const count = event.field?.count || event.candidate.hireCount || 1;
     return `채용시작 · ${department} · ${count}명`;
@@ -2003,7 +2072,7 @@ function departmentKey(department) {
 }
 
 function eventOrder(type) {
-  return { notice: 1, deadline: 2, screening: 3, interview: 4, workStart: 5, hire: 6, eligibility: 7, probation: 8, document: 9 }[type] || 10;
+  return { notice: 1, deadline: 2, screening: 3, interview: 4, workStart: 5, hire: 6, eligibility: 7, probationReview: 8, probationEnd: 9, probation: 10, document: 11 }[type] || 12;
 }
 
 function exportCsv() {
@@ -2037,6 +2106,333 @@ function buildCsvRow(candidate) {
     candidate.status,
     candidate.memo,
   ];
+}
+
+function renderProbationList() {
+  if (!els.probationRows) return;
+  const rows = state.probations
+    .slice()
+    .sort((a, b) => (a.hireDate || "").localeCompare(b.hireDate || "") || a.name.localeCompare(b.name, "ko"));
+  els.probationRows.innerHTML = rows
+    .map((record, index) => {
+      const summary = buildProbationSummary(record);
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${summary.year}년</td>
+          <td>${escapeHtml(record.name)}</td>
+          <td>${escapeHtml(record.department)}</td>
+          <td>${escapeHtml(record.duty)}</td>
+          <td>${escapeHtml(record.position)}</td>
+          <td>${escapeHtml(record.hireDate)}</td>
+          <td class="strong-date">${escapeHtml(summary.endDate)}</td>
+          <td>${escapeHtml(summary.renewalDate)}</td>
+          <td>${escapeHtml(summary.reviewDate)}</td>
+          <td>${escapeHtml(record.writtenDate || "")}</td>
+          <td>${escapeHtml(probationResultLabel(record.result))}</td>
+          <td class="danger-note">${escapeHtml(record.note || "")}</td>
+          <td class="table-actions">
+            <button type="button" data-probation-edit="${escapeHtml(record.id)}">수정</button>
+            <button type="button" data-probation-calendar="${escapeHtml(summary.reviewDate)}">달력</button>
+            <button type="button" data-probation-delete="${escapeHtml(record.id)}">삭제</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+  els.probationRows.querySelectorAll("[data-probation-edit]").forEach((button) => {
+    button.addEventListener("click", () => fillProbationForm(state.probations.find((record) => record.id === button.dataset.probationEdit)));
+  });
+  els.probationRows.querySelectorAll("[data-probation-calendar]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedDate = button.dataset.probationCalendar;
+      state.currentMonth = startOfMonth(parseDate(state.selectedDate));
+      state.activeView = "calendar";
+      render();
+    });
+  });
+  els.probationRows.querySelectorAll("[data-probation-delete]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.probations = state.probations.filter((record) => record.id !== button.dataset.probationDelete);
+      persistProbations();
+      resetProbationForm();
+      render();
+    });
+  });
+}
+
+function resetProbationForm() {
+  if (!els.probationId) return;
+  els.probationId.value = "";
+  els.probationName.value = "";
+  els.probationDepartment.value = "";
+  els.probationDuty.value = "";
+  els.probationPosition.value = "간사";
+  els.probationHireDate.value = "";
+  els.probationResult.value = "renew";
+  els.probationScores.value = "";
+  els.probationTotalScore.value = "";
+  els.probationNote.value = "";
+  els.probationEvaluationText.value = "";
+  els.probationWrittenDate.value = "";
+  setProbationStatus("수습자는 입사일 기준으로 수습끝과 평가작성일이 자동 계산됩니다.");
+}
+
+function fillProbationForm(record) {
+  if (!record || !els.probationId) return;
+  const summary = buildProbationSummary(record);
+  els.probationId.value = record.id;
+  els.probationName.value = record.name || "";
+  els.probationDepartment.value = record.department || "";
+  els.probationDuty.value = record.duty || "";
+  els.probationPosition.value = record.position || "";
+  els.probationHireDate.value = record.hireDate || "";
+  els.probationResult.value = record.result || "renew";
+  els.probationScores.value = (record.scores || []).join(",");
+  els.probationTotalScore.value = record.totalScore || "";
+  els.probationNote.value = record.note || "";
+  els.probationEvaluationText.value = record.evaluationText || defaultProbationEvaluationText(record);
+  els.probationWrittenDate.value = record.writtenDate || summary.reviewDate || "";
+  setProbationStatus(`${record.name} 수습끝 ${summary.endDate}, 평가작성일 ${summary.reviewDate}`);
+}
+
+function saveProbationFromForm() {
+  const record = readProbationForm();
+  if (!record.name || !record.hireDate) {
+    alert("이름과 입사일을 입력하세요.");
+    return;
+  }
+  const index = state.probations.findIndex((item) => item.id === record.id);
+  if (index >= 0) state.probations[index] = record;
+  else state.probations.push(record);
+  persistProbations();
+  fillProbationForm(record);
+  render();
+}
+
+function readProbationForm() {
+  const scores = normalizeProbationScores(els.probationScores.value);
+  const calculatedTotal = scores.length ? scores.reduce((sum, score) => sum + score, 0) : "";
+  return {
+    id: els.probationId.value || crypto.randomUUID(),
+    name: els.probationName.value.trim(),
+    department: els.probationDepartment.value.trim(),
+    duty: els.probationDuty.value.trim(),
+    position: els.probationPosition.value.trim() || "간사",
+    hireDate: els.probationHireDate.value,
+    result: els.probationResult.value || "renew",
+    note: els.probationNote.value.trim(),
+    scores,
+    totalScore: els.probationTotalScore.value ? Number(els.probationTotalScore.value) : calculatedTotal,
+    writtenDate: els.probationWrittenDate.value,
+    evaluationText: els.probationEvaluationText.value.trim(),
+  };
+}
+
+function updateProbationComputedFields() {
+  if (!els.probationHireDate?.value) return;
+  const record = readProbationForm();
+  const summary = buildProbationSummary(record);
+  if (!els.probationWrittenDate.value) els.probationWrittenDate.value = summary.reviewDate;
+  if (!els.probationTotalScore.value && record.scores.length) els.probationTotalScore.value = record.totalScore;
+  setProbationStatus(`수습끝 ${summary.endDate}, 평가작성일 ${summary.reviewDate}, 등급 ${probationGrade(record.totalScore || 0)}`);
+}
+
+function buildProbationSummary(record) {
+  const hireDate = record.hireDate ? parseDate(record.hireDate) : null;
+  const end = hireDate ? addDays(addMonths(hireDate, 3), -1) : null;
+  const review = end ? addDays(end, -31) : null;
+  const renewal = end ? addDays(addYears(end, 1), -1) : null;
+  return {
+    year: hireDate ? hireDate.getFullYear() : "",
+    endDate: end ? toDateKey(end) : "",
+    reviewDate: review ? toDateKey(review) : "",
+    renewalDate: renewal ? toDateKey(renewal) : "",
+  };
+}
+
+function normalizeProbationScores(value) {
+  if (Array.isArray(value)) return value.map(Number).filter((score) => Number.isFinite(score));
+  return String(value || "")
+    .split(/[,\s/]+/)
+    .map((item) => Number(item.trim()))
+    .filter((score) => Number.isFinite(score));
+}
+
+function probationGrade(score) {
+  const total = Number(score || 0);
+  if (total >= 91) return "S";
+  if (total >= 81) return "A";
+  if (total >= 71) return "B";
+  if (total >= 61) return "C";
+  return "D";
+}
+
+function probationResultLabel(value) {
+  return {
+    renew: "수습종료 및 정규직 재계약",
+    end: "수습종료",
+    leave: "수습종료(퇴사)",
+  }[value] || value || "";
+}
+
+function setProbationStatus(message) {
+  if (els.probationStatus) els.probationStatus.textContent = message;
+}
+
+async function downloadProbationHwpx() {
+  try {
+    const record = readProbationForm();
+    if (!record.name || !record.department || !record.hireDate) {
+      alert("수습평가 대상자의 이름, 부서, 입사일을 입력하세요.");
+      return;
+    }
+    const templateFile = els.probationTemplateFile.files?.[0];
+    assertHwpxUpload(templateFile, "수습평가표 양식");
+    if (!window.JSZip) {
+      alert("문서 생성 모듈을 불러오지 못했습니다.");
+      return;
+    }
+    const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
+    const sectionPath = findFirstSectionPath(zip);
+    if (!sectionPath) {
+      alert("수습평가표 양식에서 본문 XML을 찾지 못했습니다.");
+      return;
+    }
+    const payload = buildProbationEvaluationPayload(record);
+    let sectionXml = await zip.file(sectionPath).async("string");
+    sectionXml = applyProbationEvaluationTemplate(sectionXml, payload);
+    zip.file(sectionPath, sectionXml);
+    if (zip.file("Preview/PrvText.txt")) zip.file("Preview/PrvText.txt", buildProbationPreviewText(payload));
+    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
+    const fileName = `${safeFileName(`수습직원 근무평가표_${payload.name}_${payload.resultLabel}`)}.hwpx`;
+    downloadBlob(blob, fileName);
+    setProbationStatus(`${fileName} 다운로드를 시작했습니다.`);
+  } catch (error) {
+    console.error("수습평가표 생성 오류", error);
+    alert(`수습평가표 생성 오류: ${error.message || "양식 또는 입력값을 확인하세요."}`);
+    setProbationStatus("수습평가표 생성 오류가 발생했습니다.");
+  }
+}
+
+function buildProbationEvaluationPayload(record) {
+  const summary = buildProbationSummary(record);
+  const scores = normalizeProbationScores(record.scores);
+  const totalScore = Number(record.totalScore || scores.reduce((sum, score) => sum + score, 0) || 0);
+  return {
+    ...record,
+    scores,
+    totalScore,
+    grade: probationGrade(totalScore),
+    resultLabel: probationResultLabel(record.result),
+    periodText: `${formatNoticeDate(parseDate(record.hireDate))}\n~ ${formatNoticeDate(parseDate(summary.endDate))}`,
+    writtenDateText: formatNoticeDate(parseDate(record.writtenDate || summary.reviewDate)),
+    evaluationText: record.evaluationText || defaultProbationEvaluationText({ ...record, totalScore }),
+    summary,
+  };
+}
+
+function applyProbationEvaluationTemplate(xml, payload) {
+  let next = xml;
+  next = replaceProbationDateTexts(next, payload);
+  next = replaceKnownProbationTexts(next, payload);
+  next = replaceProbationScoreRows(next, payload.scores, payload.totalScore);
+  next = replaceProbationEvaluationParagraph(next, payload.evaluationText);
+  next = replaceFinalEvaluationRow(next, payload);
+  return next;
+}
+
+function replaceProbationDateTexts(xml, payload) {
+  const dates = [payload.writtenDateText, formatNoticeDate(parseDate(payload.hireDate)), formatNoticeDate(parseDate(payload.summary.endDate))];
+  let index = 0;
+  return xml.replace(/<hp:t>(\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.)<\/hp:t>/g, (match) => {
+    const replacement = dates[index] || dates.at(-1);
+    index += 1;
+    return `<hp:t>${escapeXmlText(replacement)}</hp:t>`;
+  });
+}
+
+function replaceKnownProbationTexts(xml, payload) {
+  let next = xml;
+  ["000", "박수빈"].forEach((name) => {
+    next = replaceHwpxPlainText(next, new RegExp(escapeRegExp(name), "g"), payload.name);
+  });
+  ["복지사업팀"].forEach((department) => {
+    next = replaceHwpxPlainText(next, new RegExp(escapeRegExp(department), "g"), payload.department);
+  });
+  next = replaceHwpxPlainText(next, /간사/g, payload.position);
+  return next;
+}
+
+function replaceProbationScoreRows(xml, scores, totalScore) {
+  let scoreIndex = 0;
+  return xml.replace(/<hp:tr\b[\s\S]*?<\/hp:tr>/g, (rowXml) => {
+    if (/합\s*계/.test(rowXml)) return replaceLastNumericText(rowXml, totalScore);
+    const hasQuestion = /담당직무|업무추진|문제나 상황|자기역할|규율|용모|동료 및 관련|명예|새로운 업무|자기개발|체력|아이디어/.test(rowXml);
+    if (!hasQuestion || scoreIndex >= scores.length) return rowXml;
+    const next = replaceLastNumericText(rowXml, scores[scoreIndex]);
+    scoreIndex += 1;
+    return next;
+  });
+}
+
+function replaceLastNumericText(xml, value) {
+  const matches = Array.from(xml.matchAll(/<hp:t>(\d+)<\/hp:t>/g));
+  const last = matches.at(-1);
+  if (!last) return xml;
+  return `${xml.slice(0, last.index)}<hp:t>${escapeXmlText(value)}</hp:t>${xml.slice(last.index + last[0].length)}`;
+}
+
+function replaceProbationEvaluationParagraph(xml, evaluationText) {
+  const paragraphs = String(evaluationText || "")
+    .split(/\r?\n/)
+    .map((line) => buildHwpxTextParagraph(line))
+    .join("");
+  return xml.replace(/(<hp:p\b[\s\S]*?<hp:t>2\.\s*종합평가<\/hp:t>[\s\S]*?<\/hp:p>)[\s\S]*?(?=<hp:p\b[\s\S]*?<hp:t>3\.\s*최종평가<\/hp:t>)/, `$1${paragraphs}`);
+}
+
+function replaceFinalEvaluationRow(xml, payload) {
+  let finalSectionStarted = false;
+  return xml.replace(/<hp:tr\b[\s\S]*?<\/hp:tr>/g, (rowXml) => {
+    if (/3\.\s*최종평가/.test(rowXml)) finalSectionStarted = true;
+    if (!finalSectionStarted || !/평가등급|점\s*수|성\s*명|소\s*속|직\s*위/.test(rowXml)) return rowXml;
+    let next = rowXml;
+    next = replaceHwpxPlainText(next, new RegExp(escapeRegExp(payload.department), "g"), payload.department);
+    next = replaceHwpxPlainText(next, /<hp:t>(?:000|박수빈)<\/hp:t>/g, payload.name);
+    next = replaceLastNumericText(next, payload.totalScore);
+    next = next.replace(/<hp:t>[SABCD]<\/hp:t>/, `<hp:t>${payload.grade}</hp:t>`);
+    return next;
+  });
+}
+
+function replaceHwpxPlainText(xml, pattern, replacement) {
+  return xml.replace(pattern, (match) => {
+    if (String(match).startsWith("<hp:t>")) return `<hp:t>${escapeXmlText(replacement)}</hp:t>`;
+    return escapeXmlText(replacement);
+  });
+}
+
+function defaultProbationEvaluationText(record) {
+  const result = record.result || "renew";
+  if (result === "leave" || probationGrade(record.totalScore || 0) === "D") {
+    return `수습 기간 동안 ${record.department || "해당 부서"} 직무 수행에 요구되는 핵심 역량 측면에서 부족한 수준이 확인됨.\n업무 지식의 이해 및 적용, 업무 흐름 파악, 지시사항 이행 과정에서 보완이 필요한 사항이 확인됨.\n종합적으로 볼 때 해당 업무를 독립적으로 수행하기 위한 기본 역량이 충분히 확보되지 않은 것으로 평가됨.`;
+  }
+  return `수습 기간 동안 ${record.department || "해당 부서"} 직무 수행에 필요한 기본적인 업무 이해와 수행 능력은 전반적으로 양호한 수준을 보임.\n주어진 역할을 안정적으로 수행하고 있으며, 의사소통 및 문제 해결 과정에서 기본적인 대응 능력을 갖추고 있는 것으로 확인됨.\n현재 단계에서는 실무 수행이 가능한 수준으로 판단되며, 향후 경험 축적과 피드백을 통해 업무 완성도를 높일 수 있을 것으로 기대됨.`;
+}
+
+function buildProbationPreviewText(payload) {
+  return [
+    "수습직원 근무평가표",
+    `성명: ${payload.name}`,
+    `부서: ${payload.department}`,
+    `직위: ${payload.position}`,
+    `평가기간: ${payload.periodText.replace("\n", " ")}`,
+    `점수: ${payload.totalScore}`,
+    `평가등급: ${payload.grade}`,
+    `최종구분: ${payload.resultLabel}`,
+    "",
+    payload.evaluationText,
+  ].join("\n");
 }
 
 async function downloadHwpxNotice() {
@@ -2989,6 +3385,10 @@ function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.candidates));
 }
 
+function persistProbations() {
+  localStorage.setItem(PROBATION_STORAGE_KEY, JSON.stringify(state.probations));
+}
+
 function loadCandidates() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
@@ -3054,6 +3454,41 @@ function loadCandidates() {
       interviewees: [{ name: "최지훈", phone: "010-4444-4444" }],
     },
   ]);
+}
+
+function loadProbations() {
+  const saved = localStorage.getItem(PROBATION_STORAGE_KEY);
+  if (saved) {
+    try {
+      return normalizeProbations(JSON.parse(saved));
+    } catch {
+      localStorage.removeItem(PROBATION_STORAGE_KEY);
+    }
+  }
+  return normalizeProbations([
+    { id: "probation-park-subin", name: "박수빈", department: "복지사업팀", duty: "사업팀", position: "간사", hireDate: "2026-01-12", result: "leave", note: "수습종료(퇴사) 완료", scores: [6, 7, 6, 6, 6, 2, 3, 2, 5, 2, 6, 3, 6], totalScore: 60 },
+    { id: "probation-shin-guncheol", name: "신건철", department: "사무국", duty: "사무국장", position: "사무국장", hireDate: "2026-01-19", result: "renew", note: "육아휴직대체", scores: [8, 8, 8, 7, 9, 4, 5, 5, 5, 3, 7, 4, 6], totalScore: 79 },
+    { id: "probation-kim-yuri", name: "김유리", department: "활동지원팀", duty: "활동지원사업/육아휴직", position: "간사", hireDate: "2026-02-02", result: "leave", note: "수습종료(퇴사)", scores: [], totalScore: "" },
+    { id: "probation-kang-jina", name: "강지나", department: "복지사업팀(다형2)", duty: "주택", position: "간사", hireDate: "2026-03-03", result: "renew", note: "", scores: [], totalScore: "" },
+    { id: "probation-hong-minseo", name: "홍민서", department: "복지사업팀(다형2)", duty: "주택", position: "간사", hireDate: "2026-06-08", result: "renew", note: "", scores: [], totalScore: "" },
+    { id: "probation-yu-wanjeong", name: "유완정", department: "복지사업팀(다형1)", duty: "주택", position: "간사", hireDate: "2026-06-15", result: "renew", note: "", scores: [], totalScore: "" },
+  ]);
+}
+
+function normalizeProbations(items) {
+  return (Array.isArray(items) ? items : []).map((item) => ({
+    id: item.id || crypto.randomUUID(),
+    name: item.name || "",
+    department: item.department || "",
+    duty: item.duty || "",
+    position: item.position || "간사",
+    hireDate: item.hireDate || "",
+    result: item.result || "renew",
+    note: item.note || "",
+    scores: normalizeProbationScores(item.scores || []),
+    totalScore: item.totalScore === "" || item.totalScore === undefined ? "" : Number(item.totalScore),
+    writtenDate: item.writtenDate || "",
+  }));
 }
 
 function mergeRegisteredRecruitments(candidates) {
@@ -3450,6 +3885,12 @@ function addMonths(date, amount) {
   next.setMonth(next.getMonth() + amount);
   const maxDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
   next.setDate(Math.min(originalDay, maxDay));
+  return next;
+}
+
+function addYears(date, amount) {
+  const next = new Date(date);
+  next.setFullYear(next.getFullYear() + amount);
   return next;
 }
 

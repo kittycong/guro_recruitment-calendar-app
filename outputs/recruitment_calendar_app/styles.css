@@ -946,6 +946,16 @@ button:focus-visible {
   background: var(--warning-bg);
 }
 
+.event-chip.probationReview {
+  color: #2f6f75;
+  background: #e9f6f4;
+}
+
+.event-chip.probationEnd {
+  color: #ba1641;
+  background: #fff1f5;
+}
+
 .event-chip.past-event {
   opacity: 0.48;
   filter: grayscale(0.35);
@@ -1488,6 +1498,75 @@ button:focus-visible {
   gap: 8px;
 }
 
+.probation-page {
+  gap: 14px;
+}
+
+.probation-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.probation-table {
+  width: 100%;
+  min-width: 1180px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.probation-table th,
+.probation-table td {
+  border: 1px solid var(--border);
+  padding: 9px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.probation-table th {
+  background: #91aebe;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.probation-table td {
+  background: #fbfdfc;
+}
+
+.probation-table .strong-date {
+  color: #cf142b;
+  font-weight: 900;
+}
+
+.probation-table .danger-note {
+  color: #f00000;
+  font-weight: 900;
+}
+
+.table-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  min-width: 170px;
+}
+
+.table-actions button {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #fffdf9;
+  padding: 5px 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.probation-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px;
+}
+
 .full-candidate-row {
   display: grid;
   grid-template-columns: minmax(220px, 1.4fr) minmax(260px, 1.5fr) minmax(150px, 0.8fr) auto;
@@ -1706,6 +1785,7 @@ hr {
   .interviewee-row,
   .recruitment-field-row,
   .document-actions,
+  .probation-form-grid,
   .reissue-grid,
   .timeline-row {
     grid-template-columns: 1fr;

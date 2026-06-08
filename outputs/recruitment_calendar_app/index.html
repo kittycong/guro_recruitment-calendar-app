@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260604-9" />
+    <link rel="stylesheet" href="./styles.css?v=20260608-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -199,6 +199,7 @@
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
           <button type="button" class="view-tab" data-view="interviews">면접관리</button>
           <button type="button" class="view-tab" data-view="list">채용목록</button>
+          <button type="button" class="view-tab" data-view="probation">수습관리</button>
           <button type="button" class="view-tab" data-view="documents">문서 생성</button>
           <button type="button" class="view-tab" data-view="kanban">칸반</button>
           <button type="button" class="view-tab" data-view="timeline">타임라인</button>
@@ -307,6 +308,83 @@
               <button type="button" class="primary-button list-add-button" id="addListRecruitmentButton">채용 공고 추가</button>
             </div>
             <div id="fullCandidateList" class="full-candidate-list"></div>
+          </div>
+        </section>
+
+        <section class="view-panel" id="probationView" aria-label="수습평가자 목록">
+          <div class="list-page probation-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Probation</p>
+                <h2>수습평가자 목록</h2>
+              </div>
+              <button type="button" class="primary-button list-add-button" id="addProbationButton">수습자 추가</button>
+            </div>
+            <div class="probation-table-wrap">
+              <table class="probation-table">
+                <thead>
+                  <tr>
+                    <th>연번</th>
+                    <th>입사년도</th>
+                    <th>이름</th>
+                    <th>부서</th>
+                    <th>업무</th>
+                    <th>직위</th>
+                    <th>입사일</th>
+                    <th>수습끝</th>
+                    <th>재계약일+1년</th>
+                    <th>근무평가 작성일</th>
+                    <th>작성날짜</th>
+                    <th>근무종료 여부</th>
+                    <th>비고</th>
+                    <th>작업</th>
+                  </tr>
+                </thead>
+                <tbody id="probationRows"></tbody>
+              </table>
+            </div>
+            <section class="document-panel probation-editor" aria-label="수습평가 설정">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Evaluation File</p>
+                  <h2>수습평가표 HWPX 생성</h2>
+                </div>
+                <span>HWPX</span>
+              </div>
+              <div class="probation-form-grid">
+                <input id="probationIdInput" type="hidden" />
+                <label>이름<input id="probationNameInput" type="text" placeholder="예: 홍민서" /></label>
+                <label>부서<input id="probationDepartmentInput" type="text" placeholder="예: 복지사업팀(다형2)" /></label>
+                <label>업무<input id="probationDutyInput" type="text" placeholder="예: 주택" /></label>
+                <label>직위<input id="probationPositionInput" type="text" placeholder="예: 간사" /></label>
+                <label>입사일<input id="probationHireDateInput" type="date" /></label>
+                <label>처리유형
+                  <select id="probationResultInput">
+                    <option value="renew">수습종료 및 정규직 재계약</option>
+                    <option value="end">수습종료</option>
+                    <option value="leave">수습종료(퇴사)</option>
+                  </select>
+                </label>
+                <label>평점 13개
+                  <input id="probationScoresInput" type="text" placeholder="예: 8,8,8,7,9,4,5,5,5,3,7,4,6" />
+                </label>
+                <label>합계점수<input id="probationTotalScoreInput" type="number" min="0" max="100" placeholder="자동합계" /></label>
+                <label>비고<input id="probationNoteInput" type="text" placeholder="예: 수습종료(퇴사), 육아휴직대체" /></label>
+              </div>
+              <label>
+                2. 종합평가 평가내용
+                <textarea id="probationEvaluationTextInput" rows="5" placeholder="수습 기간 동안의 업무수행, 근무자세, 발전가능성 평가 내용을 입력하세요."></textarea>
+              </label>
+              <div class="probation-form-grid">
+                <label>수습평가표 양식 HWPX<input id="probationTemplateFileInput" class="file-input" type="file" accept=".hwpx" /></label>
+                <label>작성날짜<input id="probationWrittenDateInput" type="date" /></label>
+              </div>
+              <div class="document-actions">
+                <button class="primary-button full-button" id="saveProbationButton" type="button">수습자 저장</button>
+                <button class="secondary-button full-button" id="downloadProbationHwpxButton" type="button">수습평가표 생성 후 다운로드</button>
+              </div>
+              <p class="helper-text" id="probationStatus">수습자는 입사일 기준으로 수습끝과 평가작성일이 자동 계산됩니다.</p>
+            </section>
           </div>
         </section>
 
@@ -461,8 +539,8 @@
     </div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="./jszip.min.js?v=20260604-9"></script>
-    <script src="./template-data.js?v=20260604-9"></script>
-    <script src="./app.js?v=20260604-9"></script>
+    <script src="./jszip.min.js?v=20260608-1"></script>
+    <script src="./template-data.js?v=20260608-1"></script>
+    <script src="./app.js?v=20260608-1"></script>
   </body>
 </html>
