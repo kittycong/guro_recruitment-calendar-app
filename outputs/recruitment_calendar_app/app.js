@@ -1628,7 +1628,7 @@ function fillCareerInquiryForm(hire) {
   els.careerDepartment.value = detail.department || hire.department || "";
   els.careerPosition.value = detail.position || hire.position || "";
   els.careerOrg.value = detail.org || "";
-  els.careerRecipient.value = detail.recipient || "센터장";
+  els.careerRecipient.value = detail.recipient || detail.org || "";
   els.careerExecutionNo.value = executionDigits(detail.executionNo || hire.executionNo || "");
   els.careerRequestDate.value = detail.requestDate || toDateKey(new Date());
   els.careerMemo.value = detail.memo || "";
@@ -1645,7 +1645,7 @@ function readCareerInquiryForm() {
     department: els.careerDepartment.value.trim(),
     position: els.careerPosition.value.trim(),
     org: els.careerOrg.value.trim(),
-    recipient: els.careerRecipient.value.trim() || "센터장",
+    recipient: els.careerRecipient.value.trim() || els.careerOrg.value.trim(),
     executionNo,
     requestDate: els.careerRequestDate.value || toDateKey(new Date()),
     memo: els.careerMemo.value.trim(),
@@ -1724,17 +1724,14 @@ function assertHwpxPackageUpload(file, label) {
 function applyCareerInquiryTemplate(xml, detail) {
   const requestDateText = formatNoticeDate(parseDate(detail.requestDate));
   const executionNo = detail.executionNo || "GR2026-000";
+  const recipient = detail.recipient || detail.org || "수신처 미입력";
   let next = xml;
-  next = replaceHwpxTextNode(next, "센터장", detail.recipient || "센터장");
+  next = replaceNextTextAfterLabel(next, "수신자", recipient);
   next = replaceHwpxTextNode(next, "구로장애인자립생활센터 종사자 전력조회 요청", "구로장애인자립생활센터 종사자 전력조회 요청");
-  next = replaceHwpxTextNode(next, /강지나\(\d{2}\.\d{2}\.\d{2}\)/g, `${detail.name}(${detail.birth})`);
+  next = replaceHwpxTextNode(next, /[가-힣]{2,5}\(\d{2}\.\d{2}\.\d{2}\)/g, `${detail.name}(${detail.birth})`);
   next = replaceHwpxTextNode(next, /구로센터\s*GR\d{4}-\d{3}/g, `구로센터 ${executionNo}`);
   next = replaceHwpxTextNode(next, /GR\d{4}-\d{3}/g, executionNo);
   next = replaceHwpxTextNode(next, /\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\./g, requestDateText);
-  if (detail.org || detail.memo) {
-    const memoLine = `※ 경력증명서 기준 확인기관: ${detail.org || "미입력"}${detail.memo ? ` / 참고: ${detail.memo}` : ""}`;
-    next = insertCareerMemoBeforeAttachment(next, memoLine);
-  }
   return next;
 }
 
@@ -1755,18 +1752,28 @@ function replaceHwpxTextNode(xml, pattern, replacement) {
   });
 }
 
-function insertCareerMemoBeforeAttachment(xml, memoLine) {
-  const paragraph = buildHwpxTextParagraph(memoLine);
-  if (xml.includes("<hp:t>붙임")) {
-    return xml.replace(/(?=<hp:p\b[\s\S]*?<hp:t>붙임)/, paragraph);
-  }
-  return appendMinutesText(xml, memoLine);
+function replaceNextTextAfterLabel(xml, label, replacement) {
+  let foundLabel = false;
+  let replaced = false;
+  return xml.replace(/<hp:t>([\s\S]*?)<\/hp:t>/g, (match, text) => {
+    const decoded = decodeXmlText(text).trim();
+    if (replaced) return match;
+    if (!foundLabel && decoded === label) {
+      foundLabel = true;
+      return match;
+    }
+    if (foundLabel && decoded) {
+      replaced = true;
+      return `<hp:t>${escapeXmlText(replacement)}</hp:t>`;
+    }
+    return match;
+  });
 }
 
 function buildCareerInquiryPreviewText(detail) {
   return [
     "구로장애인자립생활센터 종사자 전력조회 요청",
-    `수신자: ${detail.recipient || "센터장"}`,
+    `수신자: ${detail.recipient || detail.org || ""}`,
     `대상자: ${detail.name}(${detail.birth})`,
     `시행: 구로센터 ${detail.executionNo || ""}`,
     `접수일: ${formatNoticeDate(parseDate(detail.requestDate))}`,

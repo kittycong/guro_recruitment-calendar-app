@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260609-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -337,8 +337,8 @@
                 <label>생년월일<input id="careerBirthInput" type="text" placeholder="예: 97.09.09" /></label>
                 <label>채용부서<input id="careerDepartmentInput" type="text" placeholder="예: 복지사업팀(주택)" /></label>
                 <label>직위<input id="careerPositionInput" type="text" placeholder="예: 간사" /></label>
-                <label>경력증명서 기관<input id="careerOrgInput" type="text" placeholder="예: ○○장애인자립생활센터" /></label>
-                <label>수신자<input id="careerRecipientInput" type="text" placeholder="예: 센터장" value="센터장" /></label>
+                <label>수신처 이름<input id="careerOrgInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
+                <label>수신자<input id="careerRecipientInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
                 <label>시행번호
                   <div class="execution-input">
                     <span>GR2026-</span>
@@ -349,7 +349,7 @@
               </div>
               <label>
                 경력증명서 메모
-                <textarea id="careerMemoInput" rows="4" placeholder="경력증명서에 적힌 근무기간, 직위, 기관 담당자 등 참고사항을 적어두세요."></textarea>
+                <textarea id="careerMemoInput" rows="4" placeholder="앱 내부 참고용입니다. 공문 본문에는 넣지 않습니다."></textarea>
               </label>
               <div class="probation-form-grid">
                 <label>전력조회 공문 양식<input id="careerTemplateFileInput" class="file-input" type="file" accept=".hwpx,.hwtx" /></label>
@@ -591,8 +591,8 @@
     </div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="./jszip.min.js?v=20260609-1"></script>
-    <script src="./template-data.js?v=20260609-1"></script>
-    <script src="./app.js?v=20260609-1"></script>
+    <script src="./jszip.min.js?v=20260609-2"></script>
+    <script src="./template-data.js?v=20260609-2"></script>
+    <script src="./app.js?v=20260609-2"></script>
   </body>
 </html>
