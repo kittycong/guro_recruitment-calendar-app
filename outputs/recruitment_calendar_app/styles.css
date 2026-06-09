@@ -1503,6 +1503,45 @@ button:focus-visible {
   gap: 8px;
 }
 
+.hired-people-list {
+  display: grid;
+  gap: 10px;
+}
+
+.hired-person-card {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.3fr) minmax(320px, 1.6fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--hire);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 13px;
+}
+
+.hired-person-main,
+.hired-person-meta {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.hired-person-main strong {
+  font-size: 16px;
+}
+
+.hired-person-main span,
+.hired-person-meta span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.career-inquiry-editor {
+  border-left: 5px solid var(--hire);
+}
+
 .probation-page {
   gap: 14px;
 }
@@ -1799,6 +1838,10 @@ hr {
   .deadline-banner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .hired-person-card {
+    grid-template-columns: 1fr;
   }
 
   .timeline-dates {

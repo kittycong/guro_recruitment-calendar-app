@@ -1,5 +1,6 @@
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
+const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
 const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -238,6 +239,7 @@ const state = {
   selectedDate: toDateKey(new Date()),
   candidates: loadCandidates(),
   probations: loadProbations(),
+  hiredDetails: loadHiredDetails(),
   filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire", "probationStart", "probationReview", "probationEnd"]),
   search: "",
   employmentTypeFilter: localStorage.getItem("recruitment-employment-type-filter") || "all",
@@ -324,6 +326,21 @@ const els = {
   saveProbationButton: document.querySelector("#saveProbationButton"),
   downloadProbationHwpxButton: document.querySelector("#downloadProbationHwpxButton"),
   probationStatus: document.querySelector("#probationStatus"),
+  hiredPeopleList: document.querySelector("#hiredPeopleList"),
+  careerInquiryKey: document.querySelector("#careerInquiryKeyInput"),
+  careerName: document.querySelector("#careerNameInput"),
+  careerBirth: document.querySelector("#careerBirthInput"),
+  careerDepartment: document.querySelector("#careerDepartmentInput"),
+  careerPosition: document.querySelector("#careerPositionInput"),
+  careerOrg: document.querySelector("#careerOrgInput"),
+  careerRecipient: document.querySelector("#careerRecipientInput"),
+  careerExecutionNo: document.querySelector("#careerExecutionNoInput"),
+  careerRequestDate: document.querySelector("#careerRequestDateInput"),
+  careerMemo: document.querySelector("#careerMemoInput"),
+  careerTemplateFile: document.querySelector("#careerTemplateFileInput"),
+  saveCareerInquiryButton: document.querySelector("#saveCareerInquiryButton"),
+  downloadCareerInquiryButton: document.querySelector("#downloadCareerInquiryButton"),
+  careerInquiryStatus: document.querySelector("#careerInquiryStatus"),
   searchInput: document.querySelector("#searchInput"),
   monthTitle: document.querySelector("#monthTitle"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
@@ -438,6 +455,11 @@ function bindEvents() {
   els.addProbationButton?.addEventListener("click", resetProbationForm);
   els.saveProbationButton?.addEventListener("click", saveProbationFromForm);
   els.downloadProbationHwpxButton?.addEventListener("click", downloadProbationHwpx);
+  els.saveCareerInquiryButton?.addEventListener("click", saveCareerInquiryDetails);
+  els.downloadCareerInquiryButton?.addEventListener("click", downloadCareerInquiryDocument);
+  els.careerExecutionNo?.addEventListener("input", () => {
+    els.careerExecutionNo.value = els.careerExecutionNo.value.replace(/\D/g, "").slice(0, 3);
+  });
   [els.probationHireDate, els.probationScores, els.probationTotalScore, els.probationResult].forEach((input) => {
     input?.addEventListener("input", updateProbationComputedFields);
     input?.addEventListener("change", updateProbationComputedFields);
@@ -626,6 +648,7 @@ function render() {
   renderSelectedDay();
   renderCandidateList();
   renderFullCandidateList();
+  renderHiredPeopleList();
   renderInterviewManagement();
   renderProbationList();
   renderSearchResults();
@@ -1524,6 +1547,232 @@ function renderFullCandidateList() {
     row.querySelector('[data-list-action="calendar"]').addEventListener("click", () => selectBestDate(candidate));
     row.querySelector('[data-list-action="delete"]').addEventListener("click", () => deleteCandidate(candidate));
   });
+}
+
+function renderHiredPeopleList() {
+  if (!els.hiredPeopleList) return;
+  const hires = getHiredPeople();
+  if (!hires.length) {
+    els.hiredPeopleList.innerHTML = `<div class="empty-state">채용자로 표시된 대상자가 없습니다. 면접대상자 상태를 '채용'으로 변경하면 여기에 표시됩니다.</div>`;
+    return;
+  }
+  els.hiredPeopleList.innerHTML = hires
+    .map((hire, index) => {
+      const detail = state.hiredDetails[hire.key] || {};
+      return `
+        <article class="hired-person-card" data-hired-key="${escapeHtml(hire.key)}">
+          <div class="hired-person-main">
+            <strong>${index + 1}. ${escapeHtml(hire.name)}</strong>
+            <span>${escapeHtml(hire.department)} · ${escapeHtml(hire.position)} · ${escapeHtml(hire.recruitmentTitle)}</span>
+          </div>
+          <div class="hired-person-meta">
+            <span>입사일 ${escapeHtml(hire.workStartDate || hire.hireDate || "미입력")}</span>
+            <span>생년월일 ${escapeHtml(detail.birth || "미입력")}</span>
+            <span>경력기관 ${escapeHtml(detail.org || "미입력")}</span>
+            <span>전력조회 ${detail.executionNo ? escapeHtml(detail.executionNo) : "미작성"}</span>
+          </div>
+          <div class="full-candidate-actions">
+            <button type="button" data-hired-action="edit">정보입력</button>
+            <button type="button" data-hired-action="document">공문생성</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+  els.hiredPeopleList.querySelectorAll(".hired-person-card").forEach((card) => {
+    const hire = hires.find((item) => item.key === card.dataset.hiredKey);
+    if (!hire) return;
+    card.querySelector('[data-hired-action="edit"]').addEventListener("click", () => fillCareerInquiryForm(hire));
+    card.querySelector('[data-hired-action="document"]').addEventListener("click", () => {
+      fillCareerInquiryForm(hire);
+      els.careerTemplateFile?.focus();
+    });
+  });
+}
+
+function getHiredPeople() {
+  return state.candidates.flatMap((candidate) => {
+    const fields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate);
+    const primaryField = fields[0] || {};
+    return normalizeInterviewees(candidate.interviewees)
+      .filter((person) => person.status === "채용")
+      .map((person) => ({
+        key: `${candidate.id}:${person.id || person.name}`,
+        candidateId: candidate.id,
+        personId: person.id || "",
+        name: person.name,
+        phone: person.phone || "",
+        department: candidate.department || primaryField.department || "",
+        duty: primaryField.duty || primaryField.fieldName || candidate.name || "",
+        position: inferPositionFromField(primaryField, candidate),
+        recruitmentTitle: displayRecruitmentListTitle(candidate),
+        hireDate: candidate.hireDate || "",
+        workStartDate: primaryField.workStartDate || candidate.workStartDate || candidate.hireDate || "",
+        executionNo: candidate.executionNo || "",
+      }));
+  });
+}
+
+function inferPositionFromField(field, candidate) {
+  const text = [field?.fieldName, candidate.name, field?.duty].filter(Boolean).join(" ");
+  if (/사무국장/.test(text)) return "사무국장";
+  if (/팀장/.test(text)) return "팀장";
+  return "간사";
+}
+
+function fillCareerInquiryForm(hire) {
+  const detail = state.hiredDetails[hire.key] || {};
+  els.careerInquiryKey.value = hire.key;
+  els.careerName.value = detail.name || hire.name || "";
+  els.careerBirth.value = detail.birth || "";
+  els.careerDepartment.value = detail.department || hire.department || "";
+  els.careerPosition.value = detail.position || hire.position || "";
+  els.careerOrg.value = detail.org || "";
+  els.careerRecipient.value = detail.recipient || "센터장";
+  els.careerExecutionNo.value = executionDigits(detail.executionNo || hire.executionNo || "");
+  els.careerRequestDate.value = detail.requestDate || toDateKey(new Date());
+  els.careerMemo.value = detail.memo || "";
+  setCareerInquiryStatus(`${hire.name} 채용자 정보를 불러왔습니다.`);
+}
+
+function readCareerInquiryForm() {
+  const key = els.careerInquiryKey.value || `manual:${els.careerName.value.trim() || crypto.randomUUID()}`;
+  const executionNo = els.careerExecutionNo.value ? `GR2026-${executionDigits(els.careerExecutionNo.value)}` : "";
+  return {
+    key,
+    name: els.careerName.value.trim(),
+    birth: normalizeBirthText(els.careerBirth.value),
+    department: els.careerDepartment.value.trim(),
+    position: els.careerPosition.value.trim(),
+    org: els.careerOrg.value.trim(),
+    recipient: els.careerRecipient.value.trim() || "센터장",
+    executionNo,
+    requestDate: els.careerRequestDate.value || toDateKey(new Date()),
+    memo: els.careerMemo.value.trim(),
+  };
+}
+
+function saveCareerInquiryDetails() {
+  const detail = readCareerInquiryForm();
+  if (!detail.name) {
+    alert("채용자 성명을 입력하세요.");
+    return;
+  }
+  state.hiredDetails[detail.key] = detail;
+  persistHiredDetails();
+  renderHiredPeopleList();
+  setCareerInquiryStatus(`${detail.name} 채용자 정보를 저장했습니다.`);
+}
+
+function normalizeBirthText(value) {
+  const raw = String(value || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 6) return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 6)}`;
+  if (digits.length === 8) return `${digits.slice(2, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 8)}`;
+  return raw;
+}
+
+function setCareerInquiryStatus(message) {
+  if (els.careerInquiryStatus) els.careerInquiryStatus.textContent = message;
+}
+
+async function downloadCareerInquiryDocument() {
+  try {
+    const detail = readCareerInquiryForm();
+    if (!detail.name || !detail.birth) {
+      alert("채용자 성명과 생년월일을 입력하세요.");
+      return;
+    }
+    const templateFile = els.careerTemplateFile.files?.[0];
+    assertHwpxPackageUpload(templateFile, "전력조회 공문 양식");
+    if (!window.JSZip) {
+      alert("문서 생성 모듈을 불러오지 못했습니다.");
+      return;
+    }
+    state.hiredDetails[detail.key] = detail;
+    persistHiredDetails();
+    const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
+    const sectionPath = findFirstSectionPath(zip);
+    if (!sectionPath) {
+      alert("전력조회 공문 양식에서 본문 XML을 찾지 못했습니다.");
+      return;
+    }
+    let sectionXml = await zip.file(sectionPath).async("string");
+    sectionXml = applyCareerInquiryTemplate(sectionXml, detail);
+    zip.file(sectionPath, sectionXml);
+    if (zip.file("Preview/PrvText.txt")) zip.file("Preview/PrvText.txt", buildCareerInquiryPreviewText(detail));
+    const ext = /\.hwtx$/i.test(templateFile.name) ? "hwtx" : "hwpx";
+    const fileName = `${safeFileName(`${detail.executionNo || "GR2026-000"} 구로장애인자립생활센터 종사자 전력조회 요청(${detail.name})`)}.${ext}`;
+    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
+    downloadBlob(blob, fileName);
+    renderHiredPeopleList();
+    setCareerInquiryStatus(`${fileName} 다운로드를 시작했습니다.`);
+  } catch (error) {
+    console.error("전력조회 공문 생성 오류", error);
+    alert(`전력조회 공문 생성 오류: ${error.message || "양식 또는 입력값을 확인하세요."}`);
+    setCareerInquiryStatus("전력조회 공문 생성 오류가 발생했습니다.");
+  }
+}
+
+function assertHwpxPackageUpload(file, label) {
+  if (!file) throw new Error(`${label} 파일을 선택하세요.`);
+  if (!/\.(hwpx|hwtx)$/i.test(file.name)) {
+    throw new Error(`${label}는 HWPX 또는 HWTX 파일만 사용할 수 있습니다. 현재 파일: ${file.name}`);
+  }
+}
+
+function applyCareerInquiryTemplate(xml, detail) {
+  const requestDateText = formatNoticeDate(parseDate(detail.requestDate));
+  const executionNo = detail.executionNo || "GR2026-000";
+  let next = xml;
+  next = replaceHwpxTextNode(next, "센터장", detail.recipient || "센터장");
+  next = replaceHwpxTextNode(next, "구로장애인자립생활센터 종사자 전력조회 요청", "구로장애인자립생활센터 종사자 전력조회 요청");
+  next = replaceHwpxTextNode(next, /강지나\(\d{2}\.\d{2}\.\d{2}\)/g, `${detail.name}(${detail.birth})`);
+  next = replaceHwpxTextNode(next, /구로센터\s*GR\d{4}-\d{3}/g, `구로센터 ${executionNo}`);
+  next = replaceHwpxTextNode(next, /GR\d{4}-\d{3}/g, executionNo);
+  next = replaceHwpxTextNode(next, /\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\./g, requestDateText);
+  if (detail.org || detail.memo) {
+    const memoLine = `※ 경력증명서 기준 확인기관: ${detail.org || "미입력"}${detail.memo ? ` / 참고: ${detail.memo}` : ""}`;
+    next = insertCareerMemoBeforeAttachment(next, memoLine);
+  }
+  return next;
+}
+
+function replaceHwpxTextNode(xml, pattern, replacement) {
+  if (pattern instanceof RegExp) {
+    return xml.replace(/<hp:t>([\s\S]*?)<\/hp:t>/g, (match, text) => {
+      const decoded = decodeXmlText(text);
+      pattern.lastIndex = 0;
+      if (!pattern.test(decoded)) return match;
+      pattern.lastIndex = 0;
+      return `<hp:t>${escapeXmlText(decoded.replace(pattern, replacement))}</hp:t>`;
+    });
+  }
+  return xml.replace(/<hp:t>([\s\S]*?)<\/hp:t>/g, (match, text) => {
+    const decoded = decodeXmlText(text);
+    if (decoded !== pattern) return match;
+    return `<hp:t>${escapeXmlText(replacement)}</hp:t>`;
+  });
+}
+
+function insertCareerMemoBeforeAttachment(xml, memoLine) {
+  const paragraph = buildHwpxTextParagraph(memoLine);
+  if (xml.includes("<hp:t>붙임")) {
+    return xml.replace(/(?=<hp:p\b[\s\S]*?<hp:t>붙임)/, paragraph);
+  }
+  return appendMinutesText(xml, memoLine);
+}
+
+function buildCareerInquiryPreviewText(detail) {
+  return [
+    "구로장애인자립생활센터 종사자 전력조회 요청",
+    `수신자: ${detail.recipient || "센터장"}`,
+    `대상자: ${detail.name}(${detail.birth})`,
+    `시행: 구로센터 ${detail.executionNo || ""}`,
+    `접수일: ${formatNoticeDate(parseDate(detail.requestDate))}`,
+    `경력증명서 기관: ${detail.org || ""}`,
+    detail.memo ? `메모: ${detail.memo}` : "",
+  ].filter(Boolean).join("\n");
 }
 
 function renderInterviewManagement() {
@@ -3406,6 +3655,10 @@ function persistProbations() {
   localStorage.setItem(PROBATION_STORAGE_KEY, JSON.stringify(state.probations));
 }
 
+function persistHiredDetails() {
+  localStorage.setItem(HIRED_STORAGE_KEY, JSON.stringify(state.hiredDetails));
+}
+
 function loadCandidates() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
@@ -3490,6 +3743,17 @@ function loadProbations() {
     { id: "probation-hong-minseo", name: "홍민서", department: "복지사업팀(다형2)", duty: "주택", position: "간사", hireDate: "2026-06-08", result: "renew", note: "", scores: [], totalScore: "" },
     { id: "probation-yu-wanjeong", name: "유완정", department: "복지사업팀(다형1)", duty: "주택", position: "간사", hireDate: "2026-06-15", result: "renew", note: "", scores: [], totalScore: "" },
   ]);
+}
+
+function loadHiredDetails() {
+  const saved = localStorage.getItem(HIRED_STORAGE_KEY);
+  if (!saved) return {};
+  try {
+    return JSON.parse(saved) || {};
+  } catch {
+    localStorage.removeItem(HIRED_STORAGE_KEY);
+    return {};
+  }
 }
 
 function normalizeProbations(items) {

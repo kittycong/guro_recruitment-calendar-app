@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260608-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260609-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -199,6 +199,7 @@
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
           <button type="button" class="view-tab" data-view="interviews">면접관리</button>
           <button type="button" class="view-tab" data-view="list">채용목록</button>
+          <button type="button" class="view-tab" data-view="hires">채용자 목록</button>
           <button type="button" class="view-tab" data-view="probation">수습관리</button>
           <button type="button" class="view-tab" data-view="documents">문서 생성</button>
           <button type="button" class="view-tab" data-view="kanban">칸반</button>
@@ -308,6 +309,57 @@
               <button type="button" class="primary-button list-add-button" id="addListRecruitmentButton">채용 공고 추가</button>
             </div>
             <div id="fullCandidateList" class="full-candidate-list"></div>
+          </div>
+        </section>
+
+        <section class="view-panel" id="hiresView" aria-label="채용자 목록">
+          <div class="list-page hires-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Hired Staff</p>
+                <h2>채용자 목록</h2>
+              </div>
+              <span class="calendar-sync-status">전력조회 공문</span>
+            </div>
+            <div id="hiredPeopleList" class="hired-people-list"></div>
+            <section class="document-panel career-inquiry-editor" aria-label="전력조회 공문 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Career Inquiry</p>
+                  <h2>전력조회 공문 생성</h2>
+                </div>
+                <span>HWPX / HWTX</span>
+              </div>
+              <p class="helper-text">채용자 선택 후 경력증명서 기준 기관명, 생년월일, 시행번호를 입력하면 전력조회 요청 공문을 생성합니다.</p>
+              <div class="probation-form-grid">
+                <input id="careerInquiryKeyInput" type="hidden" />
+                <label>성명<input id="careerNameInput" type="text" placeholder="예: 강지나" /></label>
+                <label>생년월일<input id="careerBirthInput" type="text" placeholder="예: 97.09.09" /></label>
+                <label>채용부서<input id="careerDepartmentInput" type="text" placeholder="예: 복지사업팀(주택)" /></label>
+                <label>직위<input id="careerPositionInput" type="text" placeholder="예: 간사" /></label>
+                <label>경력증명서 기관<input id="careerOrgInput" type="text" placeholder="예: ○○장애인자립생활센터" /></label>
+                <label>수신자<input id="careerRecipientInput" type="text" placeholder="예: 센터장" value="센터장" /></label>
+                <label>시행번호
+                  <div class="execution-input">
+                    <span>GR2026-</span>
+                    <input id="careerExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="045" />
+                  </div>
+                </label>
+                <label>접수일<input id="careerRequestDateInput" type="date" /></label>
+              </div>
+              <label>
+                경력증명서 메모
+                <textarea id="careerMemoInput" rows="4" placeholder="경력증명서에 적힌 근무기간, 직위, 기관 담당자 등 참고사항을 적어두세요."></textarea>
+              </label>
+              <div class="probation-form-grid">
+                <label>전력조회 공문 양식<input id="careerTemplateFileInput" class="file-input" type="file" accept=".hwpx,.hwtx" /></label>
+              </div>
+              <div class="document-actions">
+                <button class="primary-button full-button" id="saveCareerInquiryButton" type="button">채용자 정보 저장</button>
+                <button class="secondary-button full-button" id="downloadCareerInquiryButton" type="button">전력조회 공문 생성 후 다운로드</button>
+              </div>
+              <p class="helper-text" id="careerInquiryStatus">채용자 목록에서 선택하면 기본 정보가 불러와집니다.</p>
+            </section>
           </div>
         </section>
 
@@ -539,8 +591,8 @@
     </div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="./jszip.min.js?v=20260608-2"></script>
-    <script src="./template-data.js?v=20260608-2"></script>
-    <script src="./app.js?v=20260608-2"></script>
+    <script src="./jszip.min.js?v=20260609-1"></script>
+    <script src="./template-data.js?v=20260609-1"></script>
+    <script src="./app.js?v=20260609-1"></script>
   </body>
 </html>
