@@ -1,3 +1,203 @@
+// ============================================
+// Step Form Manager - 기존 기능 유지하며 통합
+// ============================================
+
+class StepFormManager {
+  constructor() {
+    this.currentStep = 1;
+    this.maxStep = 4;
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.updateProgress();
+  }
+
+  setupEventListeners() {
+    // Step Tab Navigation
+    document.querySelectorAll('.step-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const step = parseInt(tab.dataset.step);
+        if (this.validateStep(this.currentStep)) {
+          this.goToStep(step);
+        }
+      });
+    });
+
+    // Step Navigation Buttons
+    document.getElementById('prevButton')?.addEventListener('click', () => {
+      this.prevStep();
+    });
+
+    document.getElementById('nextButton')?.addEventListener('click', () => {
+      if (this.validateStep(this.currentStep)) {
+        this.nextStep();
+      }
+    });
+
+    // Form Submit
+    const form = document.getElementById('candidateForm');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        if (this.currentStep !== this.maxStep) {
+          e.preventDefault();
+          if (this.validateStep(this.currentStep)) {
+            this.nextStep();
+          }
+        }
+      });
+    }
+  }
+
+  goToStep(step) {
+    if (step < 1 || step > this.maxStep) return;
+    
+    // Hide all steps
+    document.querySelectorAll('.form-step').forEach(el => {
+      el.classList.remove('active');
+    });
+
+    // Show selected step
+    document.querySelector(`.form-step[data-step="${step}"]`)?.classList.add('active');
+
+    // Update tabs
+    document.querySelectorAll('.step-tab').forEach((tab) => {
+      tab.classList.toggle('active', parseInt(tab.dataset.step) === step);
+    });
+
+    this.currentStep = step;
+    this.updateProgress();
+    this.updateReview();
+    this.updateNavButtons();
+  }
+
+  nextStep() {
+    if (this.currentStep < this.maxStep) {
+      this.goToStep(this.currentStep + 1);
+    } else if (this.currentStep === this.maxStep) {
+      // 최종 저장
+      const form = document.getElementById('candidateForm');
+      const submitEvent = new Event('submit', { cancelable: false });
+      form.dispatchEvent(submitEvent);
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.goToStep(this.currentStep - 1);
+    }
+  }
+
+  updateProgress() {
+    const progress = (this.currentStep / this.maxStep) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+    document.getElementById('stepNumber').textContent = this.currentStep;
+  }
+
+  updateNavButtons() {
+    const prevBtn = document.getElementById('prevButton');
+    const nextBtn = document.getElementById('nextButton');
+    const submitBtn = document.getElementById('submitButton');
+
+    if (prevBtn) {
+      prevBtn.style.display = this.currentStep > 1 ? 'block' : 'none';
+    }
+
+    if (nextBtn) {
+      nextBtn.style.display = this.currentStep < this.maxStep ? 'block' : 'none';
+      nextBtn.textContent = this.currentStep === this.maxStep - 1 ? '검토하기 →' : '다음 →';
+    }
+
+    if (submitBtn) {
+      submitBtn.style.display = this.currentStep === this.maxStep ? 'block' : 'none';
+    }
+  }
+
+  validateStep(step) {
+    const errors = [];
+
+    if (step === 1) {
+      const name = document.getElementById('nameInput').value.trim();
+      const count = document.getElementById('hireCountInput').value;
+
+      if (!name) errors.push('채용 건명을 입력하세요');
+      if (!count || parseInt(count) < 1) errors.push('채용 명수는 1 이상이어야 합니다');
+    }
+
+    if (step === 2) {
+      // Step 2는 선택사항 많음 - 검증 최소화
+    }
+
+    if (step === 3) {
+      const interviewDate = document.getElementById('confirmedInterviewDateInput').value;
+      const hireDate = document.getElementById('hireDateInput').value;
+
+      if (interviewDate && hireDate && interviewDate > hireDate) {
+        errors.push('면접 일자는 채용 일자보다 빨라야 합니다');
+      }
+    }
+
+    if (errors.length > 0) {
+      alert('입력 오류:\n\n' + errors.join('\n'));
+      return false;
+    }
+
+    return true;
+  }
+
+  updateReview() {
+    if (this.currentStep === 4) {
+      document.getElementById('review-name').textContent = 
+        document.getElementById('nameInput').value || '-';
+      document.getElementById('review-department').textContent = 
+        document.getElementById('departmentInput').value || '-';
+      document.getElementById('review-count').textContent = 
+        (document.getElementById('hireCountInput').value || '0') + '명';
+      document.getElementById('review-serial').textContent = 
+        'GR2026-A-' + (document.getElementById('executionNoInput').value || '042');
+
+      document.getElementById('review-source').textContent = 
+        document.getElementById('sourceInput').value || '-';
+      document.getElementById('review-type').textContent = 
+        document.getElementById('noticeTypeInput').value === 'urgent' ? '긴급' : '일반';
+      document.getElementById('review-notice-date').textContent = 
+        document.getElementById('noticeDateInput').value || '-';
+      document.getElementById('review-employment').textContent = 
+        document.getElementById('employmentTypeInput').value || '-';
+
+      document.getElementById('review-interview').textContent = 
+        document.getElementById('confirmedInterviewDateInput').value || '-';
+      document.getElementById('review-start').textContent = 
+        document.getElementById('workStartDateInput').value || '-';
+      document.getElementById('review-hire').textContent = 
+        document.getElementById('hireDateInput').value || '-';
+      
+      const months = parseInt(document.getElementById('probationMonthsInput').value) || 0;
+      document.getElementById('review-probation').textContent = months + '개월' || '-';
+    }
+  }
+
+  reset() {
+    this.currentStep = 1;
+    this.goToStep(1);
+    document.getElementById('candidateForm').reset();
+  }
+}
+
+// 페이지 로드 시 Step Form Manager 초기화
+let stepFormManager;
+document.addEventListener('DOMContentLoaded', () => {
+  stepFormManager = new StepFormManager();
+});
+
+// Reset 버튼 연결
+document.getElementById('resetFormButton')?.addEventListener('click', () => {
+  if (stepFormManager) {
+    stepFormManager.reset();
+  }
+});
+
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
 const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";

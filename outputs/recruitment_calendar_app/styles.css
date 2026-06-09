@@ -1867,3 +1867,187 @@ hr {
     font-size: 12px;
   }
 }
+
+/* ============================================
+   Step Form 스타일
+   ============================================ */
+
+.step-progress {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 253, 249, 0.2);
+}
+
+.progress-bar {
+  height: 4px;
+  background: rgba(255, 253, 249, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f5d0df, #ba4f80);
+  width: 25%;
+  transition: width 0.3s ease;
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: #f5d0df;
+  text-align: center;
+}
+
+.step-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.step-tab {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 253, 249, 0.1);
+  color: #f5d0df;
+  border: 1px solid rgba(255, 253, 249, 0.2);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-tab:hover {
+  background: rgba(255, 253, 249, 0.15);
+  border-color: rgba(255, 253, 249, 0.3);
+}
+
+.step-tab.active {
+  background: #ba4f80;
+  color: #fff8fb;
+  border-color: #ba4f80;
+}
+
+.form-step {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.form-step.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.step-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--primary-soft);
+}
+
+.review-section {
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.review-section h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.review-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 0.75rem;
+}
+
+.review-list dt {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.review-list dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.step-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.step-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.step-actions .primary-button {
+  background: var(--primary);
+  color: var(--surface);
+  border-color: var(--primary);
+  cursor: pointer;
+}
+
+.step-actions .primary-button:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.step-actions .secondary-button {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+  cursor: pointer;
+}
+
+.step-actions .secondary-button:hover {
+  background: var(--surface-muted);
+}
+
+@media (max-width: 768px) {
+  .step-tabs {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem;
+  }
+
+  .step-tab {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .step-actions {
+    flex-direction: column;
+  }
+
+  .step-actions button {
+    width: 100%;
+  }
+
+  .review-list {
+    grid-template-columns: 1fr;
+  }
+}
