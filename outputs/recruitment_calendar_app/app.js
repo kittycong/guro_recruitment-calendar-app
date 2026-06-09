@@ -1,322 +1,3 @@
-// ============================================
-// 데이터 복구 & 마이그레이션 로직
-// ============================================
-
-const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
-const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
-
-// 페이지 로드 시 가장 먼저 실행
-function initializeDataRecovery() {
-  const savedCandidates = localStorage.getItem(STORAGE_KEY);
-  const savedProbations = localStorage.getItem(PROBATION_STORAGE_KEY);
-  
-  if (!savedCandidates) {
-    recoverFromBackup();
-  }
-  
-  return {
-    hasCandidates: !!savedCandidates,
-    hasProbations: !!savedProbations,
-    candidatesCount: savedCandidates ? JSON.parse(savedCandidates).length : 0
-  };
-}
-
-// 백업에서 복구
-function recoverFromBackup() {
-  const backupKey = 'recruitment-calendar-recruitments-backup';
-  const backup = localStorage.getItem(backupKey);
-  
-  if (backup) {
-    localStorage.setItem(STORAGE_KEY, backup);
-    return true;
-  }
-  return false;
-}
-
-// 현재 데이터 백업
-function backupCurrentData() {
-  const current = localStorage.getItem(STORAGE_KEY);
-  if (current) {
-    localStorage.setItem('recruitment-calendar-recruitments-backup', current);
-  }
-}
-
-// 데이터 진단
-function diagnoseStorage() {
-  const keys = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('recruitment')) {
-      const data = localStorage.getItem(key);
-      keys.push({
-        key,
-        size: data?.length || 0,
-        records: key.includes('recruitment') && key.includes('v') ? 
-          (JSON.parse(data)?.length || '?') : 'N/A'
-      });
-    }
-  }
-  return keys;
-}
-
-// 데이터 내보내기
-function exportAllData() {
-  const data = {
-    candidates: localStorage.getItem(STORAGE_KEY),
-    probations: localStorage.getItem(PROBATION_STORAGE_KEY),
-    timestamp: new Date().toISOString()
-  };
-  
-  const jsonStr = JSON.stringify(data, null, 2);
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `recruitment-backup-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// 데이터 가져오기
-function importDataFromFile(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (data.candidates) {
-        localStorage.setItem(STORAGE_KEY, data.candidates);
-      }
-      if (data.probations) {
-        localStorage.setItem(PROBATION_STORAGE_KEY, data.probations);
-      }
-      alert('✅ 데이터가 복구되었습니다! 페이지를 새로고침하세요.');
-      location.reload();
-    } catch (err) {
-      alert('❌ 파일 형식이 올바르지 않습니다.');
-    }
-  };
-  reader.readAsText(file);
-}
-
-// 페이지 로드 시 자동 실행
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    initializeDataRecovery();
-    backupCurrentData();
-  });
-} else {
-  initializeDataRecovery();
-  backupCurrentData();
-}
-
-// 전역 함수 노출
-window.recruitmentDataRecovery = {
-  diagnose: diagnoseStorage,
-  export: exportAllData,
-  import: importDataFromFile,
-  recover: recoverFromBackup
-};
-
-// ============================================
-// Step Form Manager - 기존 기능 유지하며 통합
-// ============================================
-
-class StepFormManager {
-  constructor() {
-    this.currentStep = 1;
-    this.maxStep = 4;
-    this.init();
-  }
-
-  init() {
-    this.setupEventListeners();
-    this.updateProgress();
-  }
-
-  setupEventListeners() {
-    // Step Tab Navigation
-    document.querySelectorAll('.step-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        const step = parseInt(tab.dataset.step);
-        if (this.validateStep(this.currentStep)) {
-          this.goToStep(step);
-        }
-      });
-    });
-
-    // Step Navigation Buttons
-    document.getElementById('prevButton')?.addEventListener('click', () => {
-      this.prevStep();
-    });
-
-    document.getElementById('nextButton')?.addEventListener('click', () => {
-      if (this.validateStep(this.currentStep)) {
-        this.nextStep();
-      }
-    });
-
-    // Form Submit
-    const form = document.getElementById('candidateForm');
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        if (this.currentStep !== this.maxStep) {
-          e.preventDefault();
-          if (this.validateStep(this.currentStep)) {
-            this.nextStep();
-          }
-        }
-      });
-    }
-  }
-
-  goToStep(step) {
-    if (step < 1 || step > this.maxStep) return;
-    
-    // Hide all steps
-    document.querySelectorAll('.form-step').forEach(el => {
-      el.classList.remove('active');
-    });
-
-    // Show selected step
-    document.querySelector(`.form-step[data-step="${step}"]`)?.classList.add('active');
-
-    // Update tabs
-    document.querySelectorAll('.step-tab').forEach((tab) => {
-      tab.classList.toggle('active', parseInt(tab.dataset.step) === step);
-    });
-
-    this.currentStep = step;
-    this.updateProgress();
-    this.updateReview();
-    this.updateNavButtons();
-  }
-
-  nextStep() {
-    if (this.currentStep < this.maxStep) {
-      this.goToStep(this.currentStep + 1);
-    } else if (this.currentStep === this.maxStep) {
-      // 최종 저장
-      const form = document.getElementById('candidateForm');
-      const submitEvent = new Event('submit', { cancelable: false });
-      form.dispatchEvent(submitEvent);
-    }
-  }
-
-  prevStep() {
-    if (this.currentStep > 1) {
-      this.goToStep(this.currentStep - 1);
-    }
-  }
-
-  updateProgress() {
-    const progress = (this.currentStep / this.maxStep) * 100;
-    document.getElementById('progressFill').style.width = progress + '%';
-    document.getElementById('stepNumber').textContent = this.currentStep;
-  }
-
-  updateNavButtons() {
-    const prevBtn = document.getElementById('prevButton');
-    const nextBtn = document.getElementById('nextButton');
-    const submitBtn = document.getElementById('submitButton');
-
-    if (prevBtn) {
-      prevBtn.style.display = this.currentStep > 1 ? 'block' : 'none';
-    }
-
-    if (nextBtn) {
-      nextBtn.style.display = this.currentStep < this.maxStep ? 'block' : 'none';
-      nextBtn.textContent = this.currentStep === this.maxStep - 1 ? '검토하기 →' : '다음 →';
-    }
-
-    if (submitBtn) {
-      submitBtn.style.display = this.currentStep === this.maxStep ? 'block' : 'none';
-    }
-  }
-
-  validateStep(step) {
-    const errors = [];
-
-    if (step === 1) {
-      const name = document.getElementById('nameInput').value.trim();
-      const count = document.getElementById('hireCountInput').value;
-
-      if (!name) errors.push('채용 건명을 입력하세요');
-      if (!count || parseInt(count) < 1) errors.push('채용 명수는 1 이상이어야 합니다');
-    }
-
-    if (step === 2) {
-      // Step 2는 선택사항 많음 - 검증 최소화
-    }
-
-    if (step === 3) {
-      const interviewDate = document.getElementById('confirmedInterviewDateInput').value;
-      const hireDate = document.getElementById('hireDateInput').value;
-
-      if (interviewDate && hireDate && interviewDate > hireDate) {
-        errors.push('면접 일자는 채용 일자보다 빨라야 합니다');
-      }
-    }
-
-    if (errors.length > 0) {
-      alert('입력 오류:\n\n' + errors.join('\n'));
-      return false;
-    }
-
-    return true;
-  }
-
-  updateReview() {
-    if (this.currentStep === 4) {
-      document.getElementById('review-name').textContent = 
-        document.getElementById('nameInput').value || '-';
-      document.getElementById('review-department').textContent = 
-        document.getElementById('departmentInput').value || '-';
-      document.getElementById('review-count').textContent = 
-        (document.getElementById('hireCountInput').value || '0') + '명';
-      document.getElementById('review-serial').textContent = 
-        'GR2026-A-' + (document.getElementById('executionNoInput').value || '042');
-
-      document.getElementById('review-source').textContent = 
-        document.getElementById('sourceInput').value || '-';
-      document.getElementById('review-type').textContent = 
-        document.getElementById('noticeTypeInput').value === 'urgent' ? '긴급' : '일반';
-      document.getElementById('review-notice-date').textContent = 
-        document.getElementById('noticeDateInput').value || '-';
-      document.getElementById('review-employment').textContent = 
-        document.getElementById('employmentTypeInput').value || '-';
-
-      document.getElementById('review-interview').textContent = 
-        document.getElementById('confirmedInterviewDateInput').value || '-';
-      document.getElementById('review-start').textContent = 
-        document.getElementById('workStartDateInput').value || '-';
-      document.getElementById('review-hire').textContent = 
-        document.getElementById('hireDateInput').value || '-';
-      
-      const months = parseInt(document.getElementById('probationMonthsInput').value) || 0;
-      document.getElementById('review-probation').textContent = months + '개월' || '-';
-    }
-  }
-
-  reset() {
-    this.currentStep = 1;
-    this.goToStep(1);
-    document.getElementById('candidateForm').reset();
-  }
-}
-
-// 페이지 로드 시 Step Form Manager 초기화
-let stepFormManager;
-document.addEventListener('DOMContentLoaded', () => {
-  stepFormManager = new StepFormManager();
-});
-
-// Reset 버튼 연결
-document.getElementById('resetFormButton')?.addEventListener('click', () => {
-  if (stepFormManager) {
-    stepFormManager.reset();
-  }
-});
-
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
 const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
@@ -4542,3 +4223,131 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
+// ============================================
+// Step Form Manager - 기존 기능과 독립적
+// ============================================
+
+class StepFormManager {
+  constructor() {
+    this.currentStep = 1;
+    this.maxStep = 4;
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.updateProgress();
+  }
+
+  setupEventListeners() {
+    document.querySelectorAll('.step-tab')?.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const step = parseInt(tab.dataset.step);
+        if (this.validateStep(this.currentStep)) {
+          this.goToStep(step);
+        }
+      });
+    });
+
+    document.getElementById('prevButton')?.addEventListener('click', () => {
+      this.prevStep();
+    });
+
+    document.getElementById('nextButton')?.addEventListener('click', () => {
+      if (this.validateStep(this.currentStep)) {
+        this.nextStep();
+      }
+    });
+  }
+
+  goToStep(step) {
+    if (step < 1 || step > this.maxStep) return;
+    
+    document.querySelectorAll('.form-step').forEach(el => {
+      el.classList.remove('active');
+    });
+
+    document.querySelector(`.form-step[data-step="${step}"]`)?.classList.add('active');
+
+    document.querySelectorAll('.step-tab').forEach((tab) => {
+      tab.classList.toggle('active', parseInt(tab.dataset.step) === step);
+    });
+
+    this.currentStep = step;
+    this.updateProgress();
+    this.updateReview();
+    this.updateNavButtons();
+  }
+
+  nextStep() {
+    if (this.currentStep < this.maxStep) {
+      this.goToStep(this.currentStep + 1);
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.goToStep(this.currentStep - 1);
+    }
+  }
+
+  updateProgress() {
+    const progress = (this.currentStep / this.maxStep) * 100;
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = progress + '%';
+    const num = document.getElementById('stepNumber');
+    if (num) num.textContent = this.currentStep;
+  }
+
+  updateNavButtons() {
+    const prevBtn = document.getElementById('prevButton');
+    const nextBtn = document.getElementById('nextButton');
+    const submitBtn = document.getElementById('submitButton');
+
+    if (prevBtn) {
+      prevBtn.style.display = this.currentStep > 1 ? 'block' : 'none';
+    }
+
+    if (nextBtn) {
+      nextBtn.style.display = this.currentStep < this.maxStep ? 'block' : 'none';
+      nextBtn.textContent = this.currentStep === this.maxStep - 1 ? '검토하기 →' : '다음 →';
+    }
+
+    if (submitBtn) {
+      submitBtn.style.display = this.currentStep === this.maxStep ? 'block' : 'none';
+    }
+  }
+
+  validateStep(step) {
+    if (step === 1) {
+      const name = document.getElementById('nameInput')?.value.trim();
+      if (!name) {
+        alert('채용 건명을 입력하세요');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  updateReview() {
+    if (this.currentStep === 4) {
+      document.getElementById('review-name').textContent = 
+        document.getElementById('nameInput')?.value || '-';
+    }
+  }
+
+  reset() {
+    this.currentStep = 1;
+    this.goToStep(1);
+    document.getElementById('candidateForm')?.reset();
+  }
+}
+
+// Step Form 초기화 (기존 초기화 후 실행)
+setTimeout(() => {
+  const stepFormManager = new StepFormManager();
+  document.getElementById('resetFormButton')?.addEventListener('click', () => {
+    stepFormManager.reset();
+  });
+}, 100);

@@ -2,11 +2,9 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#6e2432" />
-    <link rel="manifest" href="./manifest.json" />
-    <title>채용 달력 관리 v2.0</title>
-    <link rel="stylesheet" href="./styles.css?v=20260609-integrated" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>채용 달력 관리</title>
+    <link rel="stylesheet" href="./styles.css?v=20260609-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -14,7 +12,7 @@
         <div class="brand">
           <div>
             <h1>채용 달력 관리</h1>
-            <p>Step-by-step으로 공고를 등록하고 달력에서 관리</p>
+            <p>서류, 면접, 채용, 수습 종료 일정을 한 화면에서 관리</p>
           </div>
         </div>
 
@@ -23,220 +21,122 @@
             <h2>채용 공고 등록</h2>
             <button class="icon-button" id="resetFormButton" type="button" aria-label="입력 초기화" title="입력 초기화">↺</button>
           </div>
-
-          <!-- Step Progress Bar -->
-          <div class="step-progress">
-            <div class="progress-bar">
-              <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="step-label">
-              <span id="stepNumber">1</span> / 4 단계
-            </div>
-          </div>
-
-          <!-- Step Tabs -->
-          <div class="step-tabs">
-            <button class="step-tab active" data-step="1">1. 기본정보</button>
-            <button class="step-tab" data-step="2">2. 공고정보</button>
-            <button class="step-tab" data-step="3">3. 일정관리</button>
-            <button class="step-tab" data-step="4">4. 검토</button>
-          </div>
-
           <form id="candidateForm" class="candidate-form">
             <input type="hidden" id="candidateId" />
-
-            <!-- Step 1: 기본정보 -->
-            <div class="form-step active" data-step="1">
-              <div class="step-title">기본정보</div>
-              
+            <label>
+              채용건명
+              <input id="nameInput" type="text" required placeholder="예: 생활지원팀 사회복지사 채용" />
+            </label>
+            <div class="date-grid">
               <label>
-                채용건명
-                <input id="nameInput" type="text" required placeholder="예: 생활지원팀 사회복지사 채용" />
+                부서
+                <select id="departmentInput" required>
+                  <option>사무행정팀</option>
+                  <option>활동지원팀</option>
+                  <option>복지사업팀</option>
+                  <option>복지사업팀(주택)</option>
+                </select>
               </label>
-
-              <div class="date-grid">
-                <label>
-                  부서
-                  <select id="departmentInput" required>
-                    <option>사무행정팀</option>
-                    <option>활동지원팀</option>
-                    <option>복지사업팀</option>
-                    <option>복지사업팀(주택)</option>
-                  </select>
-                </label>
-                <label>
-                  채용명수
-                  <input id="hireCountInput" type="number" min="1" max="99" value="1" />
-                </label>
-              </div>
-
               <label>
-                시행번호
-                <div class="execution-input">
-                  <span>GR2026-A-</span>
-                  <input id="executionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="042" />
+                채용명수
+                <input id="hireCountInput" type="number" min="1" max="99" value="1" />
+              </label>
+            </div>
+            <label>
+              지원경로
+              <select id="sourceInput">
+                <option>워크넷</option>
+                <option>사람인</option>
+                <option>잡코리아</option>
+                <option>추천</option>
+                <option>홈페이지</option>
+                <option>기타</option>
+              </select>
+            </label>
+
+            <div class="date-grid">
+              <label>
+                공고유형
+                <select id="noticeTypeInput">
+                  <option value="urgent">긴급 공고</option>
+                  <option value="normal">일반 공고</option>
+                </select>
+              </label>
+              <label>
+                공고일
+                <input id="noticeDateInput" type="date" />
+              </label>
+            </div>
+
+            <label>
+              채용유형
+              <select id="employmentTypeInput">
+                <option>정규직</option>
+                <option>계약직</option>
+                <option>기간제</option>
+                <option>기타</option>
+              </select>
+            </label>
+
+            <label>
+              시행번호
+              <div class="execution-input">
+                <span>GR2026-A-</span>
+                <input id="executionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="042" />
+              </div>
+            </label>
+
+            <div class="date-grid">
+              <label>
+                면접 확정일
+                <input id="confirmedInterviewDateInput" type="date" />
+              </label>
+              <label>
+                근무개시일
+                <input id="workStartDateInput" type="date" />
+              </label>
+              <label>
+                채용일자
+                <input id="hireDateInput" type="date" />
+              </label>
+              <label>
+                수습개월
+                <input id="probationMonthsInput" type="number" min="0" max="24" value="3" />
+              </label>
+            </div>
+
+            <label>
+              최종상태
+              <select id="statusInput">
+                <option>진행중</option>
+                <option>채용</option>
+                <option>불합격</option>
+                <option>포기</option>
+                <option>보류</option>
+              </select>
+            </label>
+            <label>
+              메모
+              <textarea id="memoInput" rows="3" placeholder="특이사항, 준비서류, 면접 메모"></textarea>
+            </label>
+            <section class="form-section">
+              <div class="section-title-row">
+                <div>
+                  <strong>면접 대상자</strong>
+                  <span>이름, 연락처, 진행 상태를 개별로 관리</span>
                 </div>
-              </label>
-            </div>
-
-            <!-- Step 2: 공고정보 -->
-            <div class="form-step" data-step="2">
-              <div class="step-title">공고정보</div>
-
-              <label>
-                지원경로
-                <select id="sourceInput">
-                  <option>워크넷</option>
-                  <option>사람인</option>
-                  <option>잡코리아</option>
-                  <option>추천</option>
-                  <option>홈페이지</option>
-                  <option>기타</option>
-                </select>
-              </label>
-
-              <div class="date-grid">
-                <label>
-                  공고유형
-                  <select id="noticeTypeInput">
-                    <option value="urgent">긴급 공고</option>
-                    <option value="normal">일반 공고</option>
-                  </select>
-                </label>
-                <label>
-                  공고일
-                  <input id="noticeDateInput" type="date" />
-                </label>
+                <button class="small-button" id="addIntervieweeButton" type="button">추가</button>
               </div>
+              <div id="intervieweeRows" class="interviewee-editor" aria-label="면접 대상자 목록"></div>
+              <textarea id="intervieweesInput" rows="4" hidden></textarea>
+            </section>
 
-              <label>
-                채용유형
-                <select id="employmentTypeInput">
-                  <option>정규직</option>
-                  <option>계약직</option>
-                  <option>기간제</option>
-                  <option>기타</option>
-                </select>
-              </label>
-
-              <label>
-                메모
-                <textarea id="memoInput" rows="3" placeholder="특이사항, 준비서류, 면접 메모"></textarea>
-              </label>
-            </div>
-
-            <!-- Step 3: 일정관리 -->
-            <div class="form-step" data-step="3">
-              <div class="step-title">일정관리</div>
-
-              <div class="date-grid">
-                <label>
-                  면접 확정일
-                  <input id="confirmedInterviewDateInput" type="date" />
-                </label>
-                <label>
-                  근무개시일
-                  <input id="workStartDateInput" type="date" />
-                </label>
-              </div>
-
-              <div class="date-grid">
-                <label>
-                  채용일자
-                  <input id="hireDateInput" type="date" />
-                </label>
-                <label>
-                  수습개월
-                  <input id="probationMonthsInput" type="number" min="0" max="24" value="3" />
-                </label>
-              </div>
-
-              <label>
-                최종상태
-                <select id="statusInput">
-                  <option>진행중</option>
-                  <option>채용</option>
-                  <option>불합격</option>
-                  <option>포기</option>
-                  <option>보류</option>
-                </select>
-              </label>
-
-              <section class="form-section">
-                <div class="section-title-row">
-                  <div>
-                    <strong>면접 대상자</strong>
-                    <span>이름, 연락처, 진행 상태를 개별로 관리</span>
-                  </div>
-                  <button class="small-button" id="addIntervieweeButton" type="button">추가</button>
-                </div>
-                <div id="intervieweeRows" class="interviewee-editor" aria-label="면접 대상자 목록"></div>
-                <textarea id="intervieweesInput" rows="4" hidden></textarea>
-              </section>
-            </div>
-
-            <!-- Step 4: 검토 및 저장 -->
-            <div class="form-step" data-step="4">
-              <div class="step-title">검토 및 저장</div>
-
-              <div class="review-section">
-                <h3>✓ 기본정보</h3>
-                <dl class="review-list">
-                  <dt>채용 건명</dt>
-                  <dd id="review-name">-</dd>
-                  <dt>부서</dt>
-                  <dd id="review-department">-</dd>
-                  <dt>채용 명수</dt>
-                  <dd id="review-count">-</dd>
-                  <dt>시행번호</dt>
-                  <dd id="review-serial">-</dd>
-                </dl>
-              </div>
-
-              <div class="review-section">
-                <h3>✓ 공고정보</h3>
-                <dl class="review-list">
-                  <dt>지원경로</dt>
-                  <dd id="review-source">-</dd>
-                  <dt>공고유형</dt>
-                  <dd id="review-type">-</dd>
-                  <dt>공고일</dt>
-                  <dd id="review-notice-date">-</dd>
-                  <dt>채용유형</dt>
-                  <dd id="review-employment">-</dd>
-                </dl>
-              </div>
-
-              <div class="review-section">
-                <h3>✓ 일정</h3>
-                <dl class="review-list">
-                  <dt>면접일</dt>
-                  <dd id="review-interview">-</dd>
-                  <dt>근무 개시일</dt>
-                  <dd id="review-start">-</dd>
-                  <dt>채용일</dt>
-                  <dd id="review-hire">-</dd>
-                  <dt>수습 개월</dt>
-                  <dd id="review-probation">-</dd>
-                </dl>
-              </div>
-            </div>
-
-            <!-- Schedule Preview (기존 유지) -->
             <section class="schedule-preview" aria-label="자동 생성 일정">
               <div class="schedule-preview-title">자동 생성 일정</div>
               <dl id="schedulePreview"></dl>
             </section>
 
-            <!-- Step Navigation -->
-            <div class="step-actions">
-              <button type="button" id="prevButton" class="secondary-button" style="display: none;">← 이전</button>
-              <button type="button" id="nextButton" class="primary-button">다음 →</button>
-              <button type="submit" id="submitButton" class="primary-button" style="display: none;">저장</button>
-            </div>
-
-            <!-- 기존 버튼들 (숨김) -->
-            <div class="form-actions" style="display: none;">
+            <div class="form-actions">
               <button class="primary-button" type="submit">저장</button>
               <button class="secondary-button" id="deleteButton" type="button" disabled>삭제</button>
             </div>
@@ -298,60 +198,401 @@
         <nav class="view-tabs" aria-label="화면 전환">
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
           <button type="button" class="view-tab" data-view="interviews">면접관리</button>
+          <button type="button" class="view-tab" data-view="list">채용목록</button>
+          <button type="button" class="view-tab" data-view="hires">채용자 목록</button>
+          <button type="button" class="view-tab" data-view="probation">수습관리</button>
+          <button type="button" class="view-tab" data-view="documents">문서 생성</button>
           <button type="button" class="view-tab" data-view="kanban">칸반</button>
           <button type="button" class="view-tab" data-view="timeline">타임라인</button>
-          <button type="button" class="view-tab" data-view="list">리스트</button>
-          <button type="button" class="view-tab" data-view="documents">문서생성</button>
-          <button type="button" class="view-tab" data-view="hires">채용</button>
-          <button type="button" class="view-tab" data-view="probation">수습</button>
         </nav>
 
-        <div id="viewContainer" class="view-container">
-          <!-- 달력 뷰 -->
-          <div id="calendarView" class="view active">
-            <div id="calendar" class="calendar"></div>
+        <section class="content-grid view-panel active" id="calendarView">
+          <div class="calendar-panel">
+            <div class="filter-row" aria-label="일정 필터">
+              <span class="filter-note">달력에는 공고, 서류마감, 면접, 발표/채용 일정이 표시됩니다.</span>
+              <label class="calendar-select-filter">
+                채용유형
+                <select id="employmentTypeFilterInput">
+                  <option value="all">전체</option>
+                  <option value="정규직">정규직</option>
+                  <option value="계약직">계약직</option>
+                  <option value="기간제">기간제</option>
+                  <option value="기타">기타</option>
+                </select>
+              </label>
+              <div class="calendar-size-control" aria-label="달력 크기">
+                <button type="button" class="size-button" data-calendar-size="compact">작게</button>
+                <button type="button" class="size-button active" data-calendar-size="normal">보통</button>
+              </div>
+              <div class="calendar-legend" aria-label="일정 구분">
+                <span class="legend-notice">공고</span>
+                <span class="legend-deadline">서류마감</span>
+                <span class="legend-screening">서류심사</span>
+                <span class="legend-morning">오전면접</span>
+                <span class="legend-afternoon">오후면접</span>
+                <span class="legend-work">채용시작</span>
+              </div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid" aria-label="채용 일정 달력"></div>
+            <section class="today-task-panel" aria-label="오늘 채용 업무">
+              <div class="today-task-header">
+                <strong>오늘 해야 할 채용 업무</strong>
+                <span id="todayTaskCount">0건</span>
+              </div>
+              <div id="todayTaskList" class="today-task-list"></div>
+            </section>
           </div>
 
-          <!-- 면접자 관리 뷰 -->
-          <div id="interviewsView" class="view" style="display: none;">
-            <table id="intervieweeTable" class="data-table"></table>
-          </div>
+          <aside class="day-panel" aria-label="선택일 일정">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Selected day</p>
+                <h2 id="selectedDateTitle"></h2>
+              </div>
+            </div>
+            <div class="side-tabs" aria-label="우측 패널">
+              <button type="button" class="side-tab active" data-right-tab="day">선택일 일정</button>
+              <button type="button" class="side-tab" data-right-tab="list">채용건 목록</button>
+              <button type="button" class="side-tab" data-right-tab="search">검색 결과</button>
+            </div>
+            <section class="side-pane active" data-right-pane="day">
+              <div class="day-actions">
+                <button type="button" class="primary-button compact-action" id="addSelectedInterviewButton">면접 추가</button>
+                <button type="button" class="secondary-button compact-action" id="addSelectedDeadlineButton">서류마감 추가</button>
+              </div>
+              <div id="selectedEvents" class="event-list"></div>
+            </section>
+            <section class="side-pane" data-right-pane="list">
+              <div id="candidateList" class="candidate-list"></div>
+            </section>
+            <section class="side-pane" data-right-pane="search">
+              <div id="searchResults" class="candidate-list"></div>
+            </section>
+          </aside>
+        </section>
 
-          <!-- 칸반 보드 뷰 -->
-          <div id="kanbanView" class="view" style="display: none;">
-            <div id="kanban" class="kanban-board"></div>
+        <section class="view-panel" id="interviewsView" aria-label="면접 일정 관리">
+          <div class="interview-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Interviews</p>
+                <h2>면접 일정 관리</h2>
+              </div>
+              <button type="button" class="primary-button list-add-button" id="addInterviewScheduleButton">면접 추가</button>
+            </div>
+            <div class="interview-overview-grid">
+              <section class="interview-board" aria-label="확정 면접">
+                <div class="interview-board-header">
+                  <h3>확정 면접</h3>
+                  <span id="confirmedInterviewCount">0건</span>
+                </div>
+                <div id="confirmedInterviewList" class="interview-management-list"></div>
+              </section>
+              <section class="interview-board" aria-label="예정 면접">
+                <div class="interview-board-header">
+                  <h3>예정 면접</h3>
+                  <span id="plannedInterviewCount">0건</span>
+                </div>
+                <div id="plannedInterviewList" class="interview-management-list"></div>
+              </section>
+            </div>
           </div>
+        </section>
 
-          <!-- 타임라인 뷰 -->
-          <div id="timelineView" class="view" style="display: none;">
-            <div id="timeline" class="timeline-container"></div>
+        <section class="view-panel" id="listView" aria-label="전체 채용 목록">
+          <div class="list-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Recruitments</p>
+                <h2>전체 채용 목록</h2>
+              </div>
+              <button type="button" class="primary-button list-add-button" id="addListRecruitmentButton">채용 공고 추가</button>
+            </div>
+            <div id="fullCandidateList" class="full-candidate-list"></div>
           </div>
+        </section>
 
-          <!-- 리스트 뷰 -->
-          <div id="listView" class="view" style="display: none;">
-            <table id="candidateList" class="data-table"></table>
+        <section class="view-panel" id="hiresView" aria-label="채용자 목록">
+          <div class="list-page hires-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Hired Staff</p>
+                <h2>채용자 목록</h2>
+              </div>
+              <span class="calendar-sync-status">전력조회 공문</span>
+            </div>
+            <div id="hiredPeopleList" class="hired-people-list"></div>
+            <section class="document-panel career-inquiry-editor" aria-label="전력조회 공문 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Career Inquiry</p>
+                  <h2>전력조회 공문 생성</h2>
+                </div>
+                <span>HWPX / HWTX</span>
+              </div>
+              <p class="helper-text">채용자 선택 후 경력증명서 기준 기관명, 생년월일, 시행번호를 입력하면 전력조회 요청 공문을 생성합니다.</p>
+              <div class="probation-form-grid">
+                <input id="careerInquiryKeyInput" type="hidden" />
+                <label>성명<input id="careerNameInput" type="text" placeholder="예: 강지나" /></label>
+                <label>생년월일<input id="careerBirthInput" type="text" placeholder="예: 97.09.09" /></label>
+                <label>채용부서<input id="careerDepartmentInput" type="text" placeholder="예: 복지사업팀(주택)" /></label>
+                <label>직위<input id="careerPositionInput" type="text" placeholder="예: 간사" /></label>
+                <label>수신처 이름<input id="careerOrgInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
+                <label>수신자<input id="careerRecipientInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
+                <label>시행번호
+                  <div class="execution-input">
+                    <span>GR2026-</span>
+                    <input id="careerExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="045" />
+                  </div>
+                </label>
+                <label>접수일<input id="careerRequestDateInput" type="date" /></label>
+              </div>
+              <label>
+                경력증명서 메모
+                <textarea id="careerMemoInput" rows="4" placeholder="앱 내부 참고용입니다. 공문 본문에는 넣지 않습니다."></textarea>
+              </label>
+              <div class="probation-form-grid">
+                <label>전력조회 공문 양식<input id="careerTemplateFileInput" class="file-input" type="file" accept=".hwpx,.hwtx" /></label>
+              </div>
+              <div class="document-actions">
+                <button class="primary-button full-button" id="saveCareerInquiryButton" type="button">채용자 정보 저장</button>
+                <button class="secondary-button full-button" id="downloadCareerInquiryButton" type="button">전력조회 공문 생성 후 다운로드</button>
+              </div>
+              <p class="helper-text" id="careerInquiryStatus">채용자 목록에서 선택하면 기본 정보가 불러와집니다.</p>
+            </section>
           </div>
+        </section>
 
-          <!-- 문서 생성 뷰 -->
-          <div id="documentsView" class="view" style="display: none;">
-            <div id="documentsContainer" class="documents-container"></div>
+        <section class="view-panel" id="probationView" aria-label="수습평가자 목록">
+          <div class="list-page probation-page">
+            <div class="list-page-header">
+              <div>
+                <p class="eyebrow">Probation</p>
+                <h2>수습평가자 목록</h2>
+              </div>
+              <button type="button" class="primary-button list-add-button" id="addProbationButton">수습자 추가</button>
+            </div>
+            <div class="probation-table-wrap">
+              <table class="probation-table">
+                <thead>
+                  <tr>
+                    <th>연번</th>
+                    <th>입사년도</th>
+                    <th>이름</th>
+                    <th>부서</th>
+                    <th>업무</th>
+                    <th>직위</th>
+                    <th>입사일</th>
+                    <th>수습끝</th>
+                    <th>재계약일+1년</th>
+                    <th>근무평가 작성일</th>
+                    <th>작성날짜</th>
+                    <th>근무종료 여부</th>
+                    <th>비고</th>
+                    <th>작업</th>
+                  </tr>
+                </thead>
+                <tbody id="probationRows"></tbody>
+              </table>
+            </div>
+            <section class="document-panel probation-editor" aria-label="수습평가 설정">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Evaluation File</p>
+                  <h2>수습평가표 HWPX 생성</h2>
+                </div>
+                <span>HWPX</span>
+              </div>
+              <div class="probation-form-grid">
+                <input id="probationIdInput" type="hidden" />
+                <label>이름<input id="probationNameInput" type="text" placeholder="예: 홍민서" /></label>
+                <label>부서<input id="probationDepartmentInput" type="text" placeholder="예: 복지사업팀(다형2)" /></label>
+                <label>업무<input id="probationDutyInput" type="text" placeholder="예: 주택" /></label>
+                <label>직위<input id="probationPositionInput" type="text" placeholder="예: 간사" /></label>
+                <label>입사일<input id="probationHireDateInput" type="date" /></label>
+                <label>처리유형
+                  <select id="probationResultInput">
+                    <option value="renew">수습종료 및 정규직 재계약</option>
+                    <option value="end">수습종료</option>
+                    <option value="leave">수습종료(퇴사)</option>
+                  </select>
+                </label>
+                <label>평점 13개
+                  <input id="probationScoresInput" type="text" placeholder="예: 8,8,8,7,9,4,5,5,5,3,7,4,6" />
+                </label>
+                <label>합계점수<input id="probationTotalScoreInput" type="number" min="0" max="100" placeholder="자동합계" /></label>
+                <label>비고<input id="probationNoteInput" type="text" placeholder="예: 수습종료(퇴사), 육아휴직대체" /></label>
+              </div>
+              <label>
+                2. 종합평가 평가내용
+                <textarea id="probationEvaluationTextInput" rows="5" placeholder="수습 기간 동안의 업무수행, 근무자세, 발전가능성 평가 내용을 입력하세요."></textarea>
+              </label>
+              <div class="probation-form-grid">
+                <label>수습평가표 양식 HWPX<input id="probationTemplateFileInput" class="file-input" type="file" accept=".hwpx" /></label>
+                <label>작성날짜<input id="probationWrittenDateInput" type="date" /></label>
+              </div>
+              <div class="document-actions">
+                <button class="primary-button full-button" id="saveProbationButton" type="button">수습자 저장</button>
+                <button class="secondary-button full-button" id="downloadProbationHwpxButton" type="button">수습평가표 생성 후 다운로드</button>
+              </div>
+              <p class="helper-text" id="probationStatus">수습자는 입사일 기준으로 수습끝과 평가작성일이 자동 계산됩니다.</p>
+            </section>
           </div>
+        </section>
 
-          <!-- 채용 뷰 -->
-          <div id="hiresView" class="view" style="display: none;">
-            <table id="hiresList" class="data-table"></table>
-          </div>
+        <section class="view-panel" id="documentsView" aria-label="공고 및 한글 문서 생성">
+          <div class="document-page">
+            <section class="document-panel reissue-generator" aria-label="적격자 없음 재공고 등록">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Re-notice</p>
+                  <h2>적격자 없음 재공고</h2>
+                </div>
+                <span>일정 등록</span>
+              </div>
+              <p class="helper-text">기존 공고를 복사해 새 시행번호와 접수일자로 재공고 일정을 등록합니다. 등록 후 바로 공고 HWPX 생성값으로 불러옵니다.</p>
+              <div class="reissue-grid">
+                <label>
+                  기존 공고
+                  <select id="reissueSourceInput">
+                    <option value="">기존 공고 선택</option>
+                  </select>
+                </label>
+                <label>
+                  재공고 유형
+                  <select id="reissueNoticeTypeInput">
+                    <option value="urgent">긴급 공고</option>
+                    <option value="normal">일반 공고</option>
+                  </select>
+                </label>
+                <label>
+                  새 공고/접수일
+                  <input id="reissueNoticeDateInput" type="date" />
+                </label>
+                <label>
+                  새 시행번호
+                  <div class="execution-input">
+                    <span>GR2026-A-</span>
+                    <input id="reissueExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="049" />
+                  </div>
+                </label>
+              </div>
+              <button class="primary-button full-button" id="createReissueButton" type="button">재공고 일정 등록</button>
+            </section>
 
-          <!-- 수습 뷰 -->
-          <div id="probationView" class="view" style="display: none;">
-            <table id="probationList" class="data-table"></table>
+            <section class="document-panel notice-generator" aria-label="공고파일 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Notice File</p>
+                  <h2>공고파일 생성</h2>
+                </div>
+                <span>HWPX / TXT</span>
+              </div>
+              <p class="helper-text">이미 등록된 공고를 선택하면 시행번호, 접수일자, 채용분야가 자동으로 불러와집니다.</p>
+              <label>
+                대상 공고
+                <select id="noticeRecruitmentInput">
+                  <option value="">현재 입력 중인 공고</option>
+                </select>
+              </label>
+              <div class="section-title-row field-title-row">
+                <div>
+                  <strong>붙임1 채용분야</strong>
+                  <span>한 공고에 모집분야가 여러 개면 행을 추가하세요.</span>
+                </div>
+                <button class="small-button" id="addRecruitmentFieldButton" type="button">분야 추가</button>
+              </div>
+              <div id="recruitmentFieldRows" class="recruitment-field-editor" aria-label="채용분야 설정"></div>
+              <label>
+                공고 양식
+                <select id="noticeTemplateInput">
+                  <option value="sample_notice">샘플 양식 - 직원 채용공고</option>
+                </select>
+              </label>
+              <div class="document-actions">
+                <button class="secondary-button full-button" id="downloadHwpxButton" type="button">한글 공고 다운로드</button>
+                <button class="secondary-button full-button" id="downloadTxtButton" type="button">메모장용 TXT 다운로드</button>
+              </div>
+            </section>
+
+            <section class="document-panel minutes-generator" aria-label="인사회의록 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Personnel Minutes</p>
+                  <h2>인사회의록 생성</h2>
+                </div>
+                <span>HWPX 1개</span>
+              </div>
+              <p class="helper-text">회의록 양식 1개와 면접자별 평가표를 모두 첨부하면 인사위원회 회의록 1개를 생성한 뒤 바로 다운로드합니다.</p>
+              <label>
+                대상 공고
+                <select id="minutesRecruitmentInput">
+                  <option value="">현재 입력 중인 공고</option>
+                </select>
+              </label>
+              <div class="date-grid">
+                <label>
+                  회의일
+                  <input id="minutesDateInput" type="date" />
+                </label>
+                <label>
+                  회의시간
+                  <input id="minutesTimeInput" type="time" value="14:00" />
+                </label>
+                <label>
+                  입사예정일
+                  <input id="minutesHireStartInput" type="date" />
+                </label>
+              </div>
+              <label>
+                최종 채용자
+                <input id="minutesHiredNameInput" type="text" placeholder="예: 홍민서" />
+              </label>
+              <label>
+                샘플 문장 유형
+                <select id="minutesCaseInput">
+                  <option value="hire_standard">직원채용의 건 - 최종 채용</option>
+                  <option value="no_hire_ineligible">채용자 없음 - 부적합/미채용</option>
+                  <option value="all_absent">채용자 없음 - 면접 전원 불참</option>
+                  <option value="hire_cancelled">채용취소 - 입사 전/당일 취소</option>
+                  <option value="mixed">혼합 - 채용자 있음 + 일부 재공고</option>
+                </select>
+              </label>
+              <label>
+                채용 결과 및 후속조치
+                <select id="minutesResultInput">
+                  <option value="hire">최종 채용</option>
+                  <option value="no_hire">채용자 없음 / 재공고 진행</option>
+                </select>
+              </label>
+              <label>
+                인사회의록 양식 HWPX
+                <input id="minutesTemplateFileInput" class="file-input" type="file" accept=".hwpx" />
+              </label>
+              <label>
+                개인별 면접평가표 HWPX
+                <input id="evaluationFilesInput" class="file-input" type="file" accept=".hwpx" multiple />
+              </label>
+              <p class="helper-text">예: 면접자가 3명이면 평가표 HWPX 3개를 함께 선택합니다. 평가표가 없는 면접대상자는 불참으로 반영됩니다.</p>
+              <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 생성 후 다운로드</button>
+              <p class="helper-text" id="minutesDownloadStatus">생성할 항목을 설정한 뒤 다운로드하세요.</p>
+            </section>
           </div>
-        </div>
+        </section>
+
+        <section class="view-panel" id="kanbanView" aria-label="지원자 진행 상황">
+          <div id="kanbanBoard" class="kanban-board"></div>
+        </section>
+
+        <section class="view-panel" id="timelineView" aria-label="채용건 타임라인">
+          <div id="timelineBoard" class="timeline-board"></div>
+        </section>
       </main>
     </div>
 
-    <script src="./jszip.min.js"></script>
-    <script src="./template-data.js"></script>
-    <script src="./app.js?v=20260609-integrated"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="./jszip.min.js?v=20260609-2"></script>
+    <script src="./template-data.js?v=20260609-2"></script>
+    <script src="./app.js?v=20260609-2"></script>
   </body>
 </html>
