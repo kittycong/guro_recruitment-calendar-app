@@ -1,4 +1,123 @@
 // ============================================
+// 데이터 복구 & 마이그레이션 로직
+// ============================================
+
+const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
+const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
+
+// 페이지 로드 시 가장 먼저 실행
+function initializeDataRecovery() {
+  const savedCandidates = localStorage.getItem(STORAGE_KEY);
+  const savedProbations = localStorage.getItem(PROBATION_STORAGE_KEY);
+  
+  if (!savedCandidates) {
+    recoverFromBackup();
+  }
+  
+  return {
+    hasCandidates: !!savedCandidates,
+    hasProbations: !!savedProbations,
+    candidatesCount: savedCandidates ? JSON.parse(savedCandidates).length : 0
+  };
+}
+
+// 백업에서 복구
+function recoverFromBackup() {
+  const backupKey = 'recruitment-calendar-recruitments-backup';
+  const backup = localStorage.getItem(backupKey);
+  
+  if (backup) {
+    localStorage.setItem(STORAGE_KEY, backup);
+    return true;
+  }
+  return false;
+}
+
+// 현재 데이터 백업
+function backupCurrentData() {
+  const current = localStorage.getItem(STORAGE_KEY);
+  if (current) {
+    localStorage.setItem('recruitment-calendar-recruitments-backup', current);
+  }
+}
+
+// 데이터 진단
+function diagnoseStorage() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('recruitment')) {
+      const data = localStorage.getItem(key);
+      keys.push({
+        key,
+        size: data?.length || 0,
+        records: key.includes('recruitment') && key.includes('v') ? 
+          (JSON.parse(data)?.length || '?') : 'N/A'
+      });
+    }
+  }
+  return keys;
+}
+
+// 데이터 내보내기
+function exportAllData() {
+  const data = {
+    candidates: localStorage.getItem(STORAGE_KEY),
+    probations: localStorage.getItem(PROBATION_STORAGE_KEY),
+    timestamp: new Date().toISOString()
+  };
+  
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `recruitment-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 데이터 가져오기
+function importDataFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.candidates) {
+        localStorage.setItem(STORAGE_KEY, data.candidates);
+      }
+      if (data.probations) {
+        localStorage.setItem(PROBATION_STORAGE_KEY, data.probations);
+      }
+      alert('✅ 데이터가 복구되었습니다! 페이지를 새로고침하세요.');
+      location.reload();
+    } catch (err) {
+      alert('❌ 파일 형식이 올바르지 않습니다.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// 페이지 로드 시 자동 실행
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initializeDataRecovery();
+    backupCurrentData();
+  });
+} else {
+  initializeDataRecovery();
+  backupCurrentData();
+}
+
+// 전역 함수 노출
+window.recruitmentDataRecovery = {
+  diagnose: diagnoseStorage,
+  export: exportAllData,
+  import: importDataFromFile,
+  recover: recoverFromBackup
+};
+
+// ============================================
 // Step Form Manager - 기존 기능 유지하며 통합
 // ============================================
 
