@@ -4351,3 +4351,168 @@ setTimeout(() => {
     stepFormManager.reset();
   });
 }, 100);
+
+// ============================================
+// Step Form Manager (수정 버전)
+// ============================================
+
+class StepFormManager {
+  constructor() {
+    this.currentStep = 1;
+    this.maxStep = 4;
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.updateProgress();
+    this.updateNavButtons();
+  }
+
+  setupEventListeners() {
+    document.querySelectorAll('.step-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const step = parseInt(tab.dataset.step);
+        if (this.validateStep(this.currentStep)) {
+          this.goToStep(step);
+        }
+      });
+    });
+
+    document.getElementById('prevButton')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.prevStep();
+    });
+
+    document.getElementById('nextButton')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (this.validateStep(this.currentStep)) {
+        this.nextStep();
+      }
+    });
+
+    document.getElementById('resetFormButton')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.reset();
+    });
+  }
+
+  goToStep(step) {
+    if (step < 1 || step > this.maxStep) return;
+    
+    document.querySelectorAll('.form-step').forEach(el => {
+      el.classList.remove('active');
+    });
+
+    document.querySelector(`.form-step[data-step="${step}"]`)?.classList.add('active');
+
+    document.querySelectorAll('.step-tab').forEach(tab => {
+      tab.classList.toggle('active', parseInt(tab.dataset.step) === step);
+    });
+
+    this.currentStep = step;
+    this.updateProgress();
+    this.updateNavButtons();
+  }
+
+  nextStep() {
+    if (this.currentStep < this.maxStep) {
+      this.goToStep(this.currentStep + 1);
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.goToStep(this.currentStep - 1);
+    }
+  }
+
+  updateProgress() {
+    const fill = document.getElementById('progressFill');
+    if (fill) fill.style.width = ((this.currentStep / this.maxStep) * 100) + '%';
+    const num = document.getElementById('stepNumber');
+    if (num) num.textContent = this.currentStep;
+  }
+
+  updateNavButtons() {
+    const prevBtn = document.getElementById('prevButton');
+    const nextBtn = document.getElementById('nextButton');
+    
+    if (prevBtn) prevBtn.style.display = this.currentStep > 1 ? 'block' : 'none';
+    if (nextBtn) nextBtn.style.display = this.currentStep < this.maxStep ? 'block' : 'none';
+  }
+
+  validateStep(step) {
+    if (step === 1) {
+      const name = document.getElementById('nameInput')?.value.trim();
+      if (!name) {
+        alert('채용 건명을 입력하세요');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  reset() {
+    this.currentStep = 1;
+    this.goToStep(1);
+    document.getElementById('candidateForm')?.reset();
+  }
+}
+
+// ============================================
+// 칸반 보드 드래그드롭 개선
+// ============================================
+
+function initKanbanDragDrop() {
+  let draggedCard = null;
+
+  document.addEventListener('dragstart', (e) => {
+    if (e.target.closest('.kanban-card')) {
+      draggedCard = e.target.closest('.kanban-card');
+      e.target.closest('.kanban-card').style.opacity = '0.5';
+    }
+  });
+
+  document.addEventListener('dragend', (e) => {
+    if (draggedCard) {
+      draggedCard.style.opacity = '1';
+      draggedCard = null;
+    }
+  });
+
+  document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const column = e.target.closest('.kanban-column');
+    if (column && draggedCard) {
+      const cardsContainer = column.querySelector('.kanban-cards');
+      if (cardsContainer && draggedCard.parentElement !== cardsContainer) {
+        cardsContainer.appendChild(draggedCard);
+        draggedCard.style.opacity = '1';
+        
+        // 상태 저장
+        saveKanbanState();
+      }
+    }
+  });
+}
+
+function saveKanbanState() {
+  const kanbanState = {};
+  document.querySelectorAll('.kanban-column').forEach(col => {
+    const status = col.dataset.status || col.getAttribute('data-column');
+    const cardIds = Array.from(col.querySelectorAll('.kanban-card')).map(card => card.dataset.id);
+    kanbanState[status] = cardIds;
+  });
+  localStorage.setItem('kanban-state', JSON.stringify(kanbanState));
+}
+
+// 페이지 로드 후 초기화
+setTimeout(() => {
+  window.stepFormManager = new StepFormManager();
+  initKanbanDragDrop();
+}, 100);

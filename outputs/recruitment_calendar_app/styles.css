@@ -7,16 +7,16 @@
   --muted: #5f5559;
   --border: #d6c9cd;
   --border-strong: #8f7f86;
-  --primary: #6e2432;
+  --primary: #D4C4B9;
   --primary-dark: #56202a;
-  --primary-soft: #f5d0df;
+  --primary-soft: #E8DCC8;
   --notice: #60463e;
   --document: #5f899b;
   --screening: #866f7b;
-  --interview: #6e2432;
+  --interview: #D4C4B9;
   --eligibility: #658480;
   --hire: #4f716b;
-  --probation: #ba4f80;
+  --probation: #8B7355;
   --danger: #9d2637;
   --warning-bg: #fff8a8;
   --radius: 8px;
@@ -58,7 +58,7 @@ button {
 }
 
 .sidebar {
-  background: linear-gradient(180deg, #6e2432 0%, #60463e 100%);
+  background: linear-gradient(180deg, #D4C4B9 0%, #60463e 100%);
   color: #fff8fb;
   padding: 22px;
   overflow-y: auto;
@@ -83,7 +83,7 @@ button {
 
 .brand p {
   margin: 8px 0 0;
-  color: #f5d0df;
+  color: #E8DCC8;
   line-height: 1.5;
 }
 
@@ -559,7 +559,7 @@ button:focus-visible {
 }
 
 .deadline-banner strong {
-  color: #6e2432;
+  color: #D4C4B9;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -582,7 +582,7 @@ button:focus-visible {
   border: 1px solid #e7dc78;
   border-radius: 6px;
   background: #fffdf9;
-  color: #6e2432;
+  color: #D4C4B9;
   min-height: 30px;
   padding: 0 9px;
   font-size: 13px;
@@ -843,7 +843,7 @@ button:focus-visible {
 }
 
 .day-cell.selected {
-  background: #f5d0df;
+  background: #E8DCC8;
 }
 
 .day-cell.drop-target {
@@ -1261,7 +1261,7 @@ button:focus-visible {
 }
 
 .status-badge.rejected {
-  background: #f5d0df;
+  background: #E8DCC8;
   color: #7d2433;
 }
 
@@ -1458,7 +1458,7 @@ button:focus-visible {
 }
 
 .interview-segment {
-  background: #6e2432;
+  background: #D4C4B9;
 }
 
 .probation-segment {
@@ -1867,3 +1867,198 @@ hr {
     font-size: 12px;
   }
 }
+
+/* ============================================
+   레이아웃 최적화 & 비율 개선
+   ============================================ */
+
+/* 사이드바 폼 영역 축소 */
+.panel {
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-heading {
+  flex-shrink: 0;
+  padding: 0.75rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.panel-heading h2 {
+  font-size: 1rem;
+  margin: 0.25rem 0;
+  line-height: 1.2;
+}
+
+.panel-heading p {
+  font-size: 0.8rem;
+  margin: 0.1rem 0;
+  opacity: 0.8;
+}
+
+/* 폼 요소 컴팩트화 */
+.candidate-form label {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.candidate-form input,
+.candidate-form select,
+.candidate-form textarea {
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.candidate-form textarea {
+  max-height: 60px;
+}
+
+/* Step 탭 컴팩트화 */
+.step-progress {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.step-tabs {
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.step-tab {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
+}
+
+/* 메뉴와 콘텐츠 사이 간격 최소화 */
+.view-tabs {
+  margin-bottom: 0.5rem;
+  gap: 0.25rem;
+}
+
+.view-tab {
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+}
+
+.summary-strip {
+  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+}
+
+.metric {
+  padding: 0.5rem 0.75rem;
+}
+
+.metric span {
+  font-size: 0.75rem;
+}
+
+.metric strong {
+  font-size: 1.1rem;
+}
+
+/* 스크롤 영역 최적화 */
+.view-container {
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* 전체 레이아웃 비율 */
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0.5rem;
+  height: 100vh;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+}
+
+.toolbar h2 {
+  font-size: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+/* 테이블 가독성 */
+.data-table {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.5rem 0.75rem;
+}
+
+/* 달력 최적화 */
+.calendar {
+  font-size: 0.95rem;
+}
+
+.calendar-day {
+  padding: 0.4rem;
+  min-height: auto;
+}
+
+/* 칸반 보드 */
+.kanban-board {
+  gap: 0.75rem;
+}
+
+.kanban-column {
+  min-width: 250px;
+}
+
+.kanban-card {
+  padding: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
+/* 반응형 - 모바일 */
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 250px 1fr;
+  }
+  
+  .panel {
+    max-height: 40vh;
+  }
+  
+  .view-container {
+    max-height: 55vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .sidebar {
+    max-height: 35vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .main {
+    height: auto;
+  }
+  
+  .view-container {
+    max-height: auto;
+  }
+}
+
