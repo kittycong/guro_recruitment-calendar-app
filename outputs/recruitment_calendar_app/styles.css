@@ -1400,6 +1400,11 @@ button:focus-visible {
   padding: 10px;
 }
 
+.kanban-column.drop-target {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
 .kanban-column header {
   display: flex;
   align-items: center;
@@ -1432,6 +1437,14 @@ button:focus-visible {
   border-radius: 12px;
   background: var(--surface);
   padding: 9px;
+}
+
+.kanban-card[draggable="true"] {
+  cursor: grab;
+}
+
+.kanban-card.dragging {
+  opacity: 0.55;
 }
 
 .kanban-card strong,
@@ -1804,6 +1817,54 @@ button:focus-visible {
   color: var(--primary);
 }
 
+.event-dialog {
+  width: min(720px, calc(100vw - 32px));
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  padding: 0;
+}
+
+.event-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.event-dialog-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 22px;
+}
+
+.event-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.event-dialog-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.event-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.event-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .empty-state {
   border: 1px dashed var(--border-strong);
   border-radius: 12px;
@@ -1898,6 +1959,8 @@ hr {
   .interviewee-row,
   .recruitment-field-row,
   .document-actions,
+  .event-edit-grid,
+  .event-dialog-actions,
   .probation-form-grid,
   .reissue-grid,
   .timeline-row {

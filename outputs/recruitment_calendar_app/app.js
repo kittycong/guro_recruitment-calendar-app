@@ -367,6 +367,19 @@ const els = {
   sidePanes: document.querySelectorAll(".side-pane"),
   kanbanBoard: document.querySelector("#kanbanBoard"),
   timelineBoard: document.querySelector("#timelineBoard"),
+  calendarEventDialog: document.querySelector("#calendarEventDialog"),
+  calendarEventForm: document.querySelector("#calendarEventForm"),
+  calendarEventDialogTitle: document.querySelector("#calendarEventDialogTitle"),
+  calendarEventMeta: document.querySelector("#calendarEventMeta"),
+  calendarEventSummary: document.querySelector("#calendarEventSummary"),
+  eventNoticeStart: document.querySelector("#eventNoticeStartInput"),
+  eventDeadline: document.querySelector("#eventDeadlineInput"),
+  eventInterviewDate: document.querySelector("#eventInterviewDateInput"),
+  eventWorkStart: document.querySelector("#eventWorkStartInput"),
+  eventHireDate: document.querySelector("#eventHireDateInput"),
+  closeCalendarEventDialogButton: document.querySelector("#closeCalendarEventDialogButton"),
+  editCalendarEventFullButton: document.querySelector("#editCalendarEventFullButton"),
+  deleteCalendarEventButton: document.querySelector("#deleteCalendarEventButton"),
   totalCount: document.querySelector("#totalCount"),
   activeCount: document.querySelector("#activeCount"),
   hiredCount: document.querySelector("#hiredCount"),
@@ -530,6 +543,44 @@ function bindEvents() {
     if (!button) return;
     updateIntervieweeStatus(button.dataset.candidateId, button.dataset.personId, button.dataset.personStatus);
   });
+  els.kanbanBoard.addEventListener("dragstart", (event) => {
+    const card = event.target.closest(".kanban-card");
+    if (!card) return;
+    event.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({ candidateId: card.dataset.candidateId, personId: card.dataset.personId }),
+    );
+    event.dataTransfer.effectAllowed = "move";
+    card.classList.add("dragging");
+  });
+  els.kanbanBoard.addEventListener("dragend", (event) => {
+    event.target.closest(".kanban-card")?.classList.remove("dragging");
+    els.kanbanBoard.querySelectorAll(".kanban-column.drop-target").forEach((column) => column.classList.remove("drop-target"));
+  });
+  els.kanbanBoard.addEventListener("dragover", (event) => {
+    const column = event.target.closest(".kanban-column");
+    if (!column) return;
+    event.preventDefault();
+    column.classList.add("drop-target");
+  });
+  els.kanbanBoard.addEventListener("dragleave", (event) => {
+    const column = event.target.closest(".kanban-column");
+    if (column && !column.contains(event.relatedTarget)) column.classList.remove("drop-target");
+  });
+  els.kanbanBoard.addEventListener("drop", (event) => {
+    const column = event.target.closest(".kanban-column");
+    if (!column) return;
+    event.preventDefault();
+    column.classList.remove("drop-target");
+    updateIntervieweeStatusFromDrag(event.dataTransfer.getData("text/plain"), column.dataset.status);
+  });
+  els.calendarEventForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveCalendarEventDialog();
+  });
+  els.closeCalendarEventDialogButton?.addEventListener("click", closeCalendarEventDialog);
+  els.editCalendarEventFullButton?.addEventListener("click", editCalendarEventFromDialog);
+  els.deleteCalendarEventButton?.addEventListener("click", deleteCalendarEventFromDialog);
 
   [els.noticeType, els.noticeDate, els.employmentType, els.confirmedInterviewDate, els.hireDate, els.probationMonths].forEach((input) => {
     input.addEventListener("input", renderSchedulePreview);
@@ -548,6 +599,7 @@ async function saveCandidateFromForm() {
     source: els.source.value,
     noticeType: els.noticeType.value,
     noticeDate: els.noticeDate.value,
+    documentEndDate: previousCandidate?.documentEndDate || "",
     employmentType: els.employmentType.value,
     executionNo: getExecutionNoFromInput(),
     confirmedInterviewDate: els.confirmedInterviewDate.value,
@@ -904,7 +956,7 @@ function createMonthCalendar(month, events) {
     dayEvents.slice(0, 3).forEach((event) => {
       const chip = document.createElement("span");
       chip.className = `event-chip ${event.type} ${event.period || ""} ${event.date < todayKey ? "past-event" : ""} dept-${departmentKey(event.candidate.department)}`.trim();
-      chip.draggable = ["interview", "deadline", "workStart"].includes(event.type);
+      chip.draggable = ["notice", "interview", "deadline", "workStart", "hire"].includes(event.type);
       chip.title = chip.draggable ? "끌어서 다른 날짜로 이동" : calendarEventLabel(event);
       chip.addEventListener("click", (clickEvent) => {
         clickEvent.stopPropagation();
@@ -912,6 +964,7 @@ function createMonthCalendar(month, events) {
         state.currentMonth = startOfMonth(parseDate(event.date));
         state.rightTab = "day";
         render();
+        openCalendarEventDialog(event);
       });
       chip.addEventListener("dragstart", (dragEvent) => {
         dragEvent.dataTransfer.setData(
@@ -975,7 +1028,7 @@ function renderSelectedDay() {
       googleLink.textContent = "구글캘린더";
       item.querySelector(".event-actions")?.prepend(googleLink);
     }
-    item.querySelector('[data-action="edit-event"]').addEventListener("click", () => fillForm(event.candidate));
+    item.querySelector('[data-action="edit-event"]').addEventListener("click", () => openCalendarEventDialog(event));
     item.querySelector('[data-action="delete-event"]').addEventListener("click", () => deleteSelectedEvent(event));
     els.selectedEvents.append(item);
   });
@@ -1158,11 +1211,12 @@ function moveCalendarEvent(payload, targetDate) {
   const candidate = state.candidates.find((item) => item.id === data.candidateId);
   if (!candidate) return;
 
-  if (data.type === "interview") {
+  if (data.type === "notice") {
+    candidate.noticeDate = targetDate;
+  } else if (data.type === "interview") {
     candidate.confirmedInterviewDate = targetDate;
   } else if (data.type === "deadline") {
-    const offset = candidate.noticeType === "normal" ? 15 : 8;
-    candidate.noticeDate = toDateKey(addDays(parseDate(targetDate), -offset));
+    candidate.documentEndDate = targetDate;
   } else if (data.type === "workStart") {
     if (data.fieldId) {
       candidate.recruitmentFields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate).map((field) =>
@@ -1171,6 +1225,8 @@ function moveCalendarEvent(payload, targetDate) {
     } else {
       candidate.workStartDate = targetDate;
     }
+  } else if (data.type === "hire") {
+    candidate.hireDate = targetDate;
   } else {
     return;
   }
@@ -1998,7 +2054,7 @@ function renderKanban() {
   els.kanbanBoard.innerHTML = INTERVIEWEE_STATUSES.map((status) => {
     const statusCards = cards.filter(({ person }) => person.status === status);
     return `
-      <section class="kanban-column">
+      <section class="kanban-column" data-status="${escapeHtml(status)}">
         <header>
           <strong>${escapeHtml(status)}</strong>
           <span>${statusCards.length}명</span>
@@ -2020,7 +2076,7 @@ function renderKanbanCard(candidate, person) {
   const nextStatus = INTERVIEWEE_STATUSES[Math.min(currentIndex + 1, INTERVIEWEE_STATUSES.length - 1)];
   const prevStatus = INTERVIEWEE_STATUSES[Math.max(currentIndex - 1, 0)];
   return `
-    <article class="kanban-card dept-${departmentKey(candidate.department)}">
+    <article class="kanban-card dept-${departmentKey(candidate.department)}" draggable="true" data-candidate-id="${escapeHtml(candidate.id)}" data-person-id="${escapeHtml(person.id)}">
       <strong>${escapeHtml(person.name || "이름 미입력")}</strong>
       <span>${escapeHtml(stripNoticePrefix(candidate.name || ""))}</span>
       <em>${escapeHtml(person.phone || "연락처 미입력")}</em>
@@ -2081,6 +2137,125 @@ function updateIntervieweeStatus(candidateId, personId, status) {
   candidate.updatedAt = new Date().toISOString();
   persist();
   render();
+}
+
+function updateIntervieweeStatusFromDrag(payload, status) {
+  if (!payload || !INTERVIEWEE_STATUSES.includes(status)) return;
+  let data;
+  try {
+    data = JSON.parse(payload);
+  } catch {
+    return;
+  }
+  if (!data.candidateId || !data.personId) return;
+  updateIntervieweeStatus(data.candidateId, data.personId, status);
+}
+
+function openCalendarEventDialog(event) {
+  if (!els.calendarEventDialog || !event?.candidate) return;
+  const candidate = event.candidate;
+  const schedule = buildSchedule(candidate);
+  els.calendarEventDialog.dataset.candidateId = candidate.id || "";
+  els.calendarEventDialog.dataset.eventType = event.type || "";
+  els.calendarEventDialog.dataset.fieldId = event.field?.id || "";
+  els.calendarEventDialogTitle.textContent = `${eventLabels[event.type] || "일정"} · ${displayRecruitmentListTitle(candidate)}`;
+  els.calendarEventMeta.innerHTML = `
+    <span>${escapeHtml(displayExecutionNo(candidate))}</span>
+    <span>${escapeHtml(candidate.department || "부서 미입력")}</span>
+    <span>${escapeHtml(noticeTypeLabel(candidate))}</span>
+    <span>${escapeHtml(inferEmploymentType(candidate))}</span>
+  `;
+  els.calendarEventSummary.innerHTML = `
+    <p><strong>선택 일정:</strong> ${escapeHtml(formatShortDate(parseDate(event.date)))}</p>
+    <p><strong>접수기간:</strong> ${
+      schedule
+        ? `${escapeHtml(formatShortDate(schedule.documentStartDate))} ~ ${escapeHtml(formatShortDate(schedule.documentEndDate))}`
+        : "미정"
+    }</p>
+    <p><strong>면접대상자:</strong> ${escapeHtml(formatIntervieweeSummary(candidate))}</p>
+  `;
+  els.eventNoticeStart.value = candidate.noticeDate || "";
+  els.eventDeadline.value = candidate.documentEndDate || (schedule ? toDateKey(schedule.documentEndDate) : "");
+  els.eventInterviewDate.value = candidate.confirmedInterviewDate || "";
+  els.eventWorkStart.value = event.field?.workStartDate || candidate.workStartDate || "";
+  els.eventHireDate.value = candidate.hireDate || "";
+  els.calendarEventDialog.showModal();
+}
+
+function saveCalendarEventDialog() {
+  const candidate = getDialogCandidate();
+  if (!candidate) return;
+  const eventType = els.calendarEventDialog.dataset.eventType;
+  const fieldId = els.calendarEventDialog.dataset.fieldId;
+  candidate.noticeDate = els.eventNoticeStart.value || candidate.noticeDate || "";
+  candidate.documentEndDate = els.eventDeadline.value || "";
+  candidate.confirmedInterviewDate = els.eventInterviewDate.value || "";
+  if (fieldId) {
+    candidate.recruitmentFields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate).map((field) =>
+      field.id === fieldId ? { ...field, workStartDate: els.eventWorkStart.value || "" } : field,
+    );
+  } else {
+    candidate.workStartDate = els.eventWorkStart.value || "";
+  }
+  candidate.hireDate = els.eventHireDate.value || "";
+  candidate.updatedAt = new Date().toISOString();
+  persist();
+  closeCalendarEventDialog();
+  render();
+}
+
+function editCalendarEventFromDialog() {
+  const candidate = getDialogCandidate();
+  if (!candidate) return;
+  closeCalendarEventDialog();
+  fillForm(candidate);
+}
+
+function deleteCalendarEventFromDialog() {
+  const candidate = getDialogCandidate();
+  if (!candidate) return;
+  const event = buildDialogEvent(candidate);
+  if (!event) return;
+  closeCalendarEventDialog();
+  deleteSelectedEvent(event);
+}
+
+function closeCalendarEventDialog() {
+  if (els.calendarEventDialog?.open) els.calendarEventDialog.close();
+}
+
+function getDialogCandidate() {
+  const candidateId = els.calendarEventDialog?.dataset.candidateId;
+  return state.candidates.find((item) => item.id === candidateId);
+}
+
+function buildDialogEvent(candidate) {
+  const type = els.calendarEventDialog.dataset.eventType;
+  const fieldId = els.calendarEventDialog.dataset.fieldId;
+  const schedule = buildSchedule(candidate);
+  const field = fieldId ? normalizeRecruitmentFields(candidate.recruitmentFields, candidate).find((item) => item.id === fieldId) : null;
+  const date =
+    type === "notice"
+      ? candidate.noticeDate
+      : type === "deadline"
+        ? schedule && toDateKey(schedule.documentEndDate)
+        : type === "screening"
+          ? schedule && toDateKey(schedule.screeningDate)
+          : type === "interview"
+            ? getInterviewDate(candidate)
+            : type === "workStart"
+              ? field?.workStartDate || candidate.workStartDate
+              : type === "hire"
+                ? candidate.hireDate
+                : "";
+  if (!type || !date) return null;
+  return { type, date, candidate, field: field || undefined };
+}
+
+function formatIntervieweeSummary(candidate) {
+  const people = normalizeInterviewees(candidate.interviewees);
+  if (!people.length) return "등록된 면접대상자 없음";
+  return people.map((person) => `${person.name || "이름 미입력"}${person.phone ? `(${person.phone})` : ""}`).join(", ");
 }
 
 function getFilteredEvents() {
@@ -4099,7 +4274,12 @@ function buildSchedule(candidate) {
   const documentStartDate = new Date(noticeDate);
   const baseDocumentEndDate = addDays(noticeDate, documentEndOffset);
   const holidayAdjustmentDates = getReceptionHolidayAdjustments(documentStartDate, baseDocumentEndDate);
-  const documentEndDate = addDays(baseDocumentEndDate, holidayAdjustmentDates.length);
+  const calculatedDocumentEndDate = addDays(baseDocumentEndDate, holidayAdjustmentDates.length);
+  const manualDocumentEndDate = candidate.documentEndDate ? parseDate(candidate.documentEndDate) : null;
+  const documentEndDate =
+    manualDocumentEndDate && !Number.isNaN(manualDocumentEndDate.getTime()) && manualDocumentEndDate >= documentStartDate
+      ? manualDocumentEndDate
+      : calculatedDocumentEndDate;
   const screeningDate = addDays(documentEndDate, 1);
   const plannedInterviewDate = addDays(documentEndDate, 2);
   const interviewBaseDate = candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : plannedInterviewDate;
@@ -4332,61 +4512,9 @@ class StepFormManager {
   }
 }
 
-// ============================================
-// 칸반 보드 드래그드롭 개선
-// ============================================
-
-function initKanbanDragDrop() {
-  let draggedCard = null;
-
-  document.addEventListener('dragstart', (e) => {
-    if (e.target.closest('.kanban-card')) {
-      draggedCard = e.target.closest('.kanban-card');
-      e.target.closest('.kanban-card').style.opacity = '0.5';
-    }
-  });
-
-  document.addEventListener('dragend', (e) => {
-    if (draggedCard) {
-      draggedCard.style.opacity = '1';
-      draggedCard = null;
-    }
-  });
-
-  document.addEventListener('dragover', (e) => {
-    e.preventDefault();
-  });
-
-  document.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const column = e.target.closest('.kanban-column');
-    if (column && draggedCard) {
-      const cardsContainer = column.querySelector('.kanban-cards');
-      if (cardsContainer && draggedCard.parentElement !== cardsContainer) {
-        cardsContainer.appendChild(draggedCard);
-        draggedCard.style.opacity = '1';
-        
-        // 상태 저장
-        saveKanbanState();
-      }
-    }
-  });
-}
-
-function saveKanbanState() {
-  const kanbanState = {};
-  document.querySelectorAll('.kanban-column').forEach(col => {
-    const status = col.dataset.status || col.getAttribute('data-column');
-    const cardIds = Array.from(col.querySelectorAll('.kanban-card')).map(card => card.dataset.id);
-    kanbanState[status] = cardIds;
-  });
-  localStorage.setItem('kanban-state', JSON.stringify(kanbanState));
-}
-
 // 페이지 로드 후 초기화
 setTimeout(() => {
   window.stepFormManager = new StepFormManager();
-  initKanbanDragDrop();
 }, 100);
 
 // ============================================
