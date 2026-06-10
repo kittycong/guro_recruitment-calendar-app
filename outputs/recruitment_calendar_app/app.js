@@ -2,6 +2,9 @@ const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
 const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
 const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
+const DATA_BACKUP_KEY = "recruitment-calendar-data-backup-v1";
+const DATA_BACKUP_PREFIX = "recruitment-calendar-data-backup-";
+const DATA_BACKUP_LIMIT = 20;
 const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const MINUTES_BODY_PARA_PR_ID = "8";
@@ -286,6 +289,9 @@ const els = {
   nextMonthButton: document.querySelector("#nextMonthButton"),
   todayButton: document.querySelector("#todayButton"),
   exportButton: document.querySelector("#exportButton"),
+  backupDataButton: document.querySelector("#backupDataButton"),
+  restoreDataButton: document.querySelector("#restoreDataButton"),
+  restoreDataFile: document.querySelector("#restoreDataFileInput"),
   googleCalendarConnectButton: document.querySelector("#googleCalendarConnectButton"),
   googleCalendarId: document.querySelector("#googleCalendarIdInput"),
   googleCalendarStatus: document.querySelector("#googleCalendarStatus"),
@@ -391,6 +397,7 @@ bindEvents();
 renderIntervieweeRows([]);
 renderRecruitmentFieldRows([]);
 render();
+setTimeout(() => saveDataBackup("startup"), 0);
 updateGoogleCalendarStatus("Google 미연결");
 
 function bindEvents() {
@@ -447,6 +454,9 @@ function bindEvents() {
   });
 
   els.exportButton.addEventListener("click", exportCsv);
+  els.backupDataButton?.addEventListener("click", downloadDataBackup);
+  els.restoreDataButton?.addEventListener("click", () => els.restoreDataFile?.click());
+  els.restoreDataFile?.addEventListener("change", restoreDataFromFile);
   els.googleCalendarConnectButton.addEventListener("click", async () => {
     try {
       await authorizeGoogleCalendar({ prompt: "consent" });
@@ -3829,16 +3839,137 @@ function csvEscape(value) {
   return `"${String(value ?? "").replaceAll('"', '""')}"`;
 }
 
+function buildDataSnapshot(reason = "manual") {
+  return {
+    app: "guro-recruitment-calendar",
+    schema: 1,
+    reason,
+    savedAt: new Date().toISOString(),
+    keys: {
+      recruitments: STORAGE_KEY,
+      probations: PROBATION_STORAGE_KEY,
+      hiredDetails: HIRED_STORAGE_KEY,
+      googleCalendarId: GOOGLE_CALENDAR_ID_STORAGE_KEY,
+    },
+    recruitments: readJsonValue(STORAGE_KEY, state?.candidates || []),
+    probations: readJsonValue(PROBATION_STORAGE_KEY, state?.probations || []),
+    hiredDetails: readJsonValue(HIRED_STORAGE_KEY, state?.hiredDetails || {}),
+    googleCalendarId: localStorage.getItem(GOOGLE_CALENDAR_ID_STORAGE_KEY) || "",
+  };
+}
+
+function saveDataBackup(reason = "auto") {
+  try {
+    const snapshot = buildDataSnapshot(reason);
+    const payload = JSON.stringify(snapshot);
+    localStorage.setItem(DATA_BACKUP_KEY, payload);
+    localStorage.setItem(`${DATA_BACKUP_PREFIX}${snapshot.savedAt}`, payload);
+    trimDataBackups();
+  } catch (error) {
+    console.warn("데이터 백업 실패", error);
+  }
+}
+
+function trimDataBackups() {
+  const keys = Object.keys(localStorage)
+    .filter((key) => key.startsWith(DATA_BACKUP_PREFIX))
+    .sort()
+    .reverse();
+  keys.slice(DATA_BACKUP_LIMIT).forEach((key) => localStorage.removeItem(key));
+}
+
+function readJsonValue(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function restoreArrayFromBackup(key) {
+  const value = restoreValueFromBackup(key);
+  return Array.isArray(value) ? value : null;
+}
+
+function restoreObjectFromBackup(key) {
+  const value = restoreValueFromBackup(key);
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function restoreValueFromBackup(key) {
+  const snapshot = getLatestDataBackup();
+  if (!snapshot) return null;
+  if (key === STORAGE_KEY) return snapshot.recruitments || null;
+  if (key === PROBATION_STORAGE_KEY) return snapshot.probations || null;
+  if (key === HIRED_STORAGE_KEY) return snapshot.hiredDetails || null;
+  return null;
+}
+
+function getLatestDataBackup() {
+  const keys = [DATA_BACKUP_KEY, ...Object.keys(localStorage).filter((key) => key.startsWith(DATA_BACKUP_PREFIX)).sort().reverse()];
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const snapshot = JSON.parse(raw);
+      if (snapshot?.app === "guro-recruitment-calendar") return snapshot;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function downloadDataBackup() {
+  saveDataBackup("manual-download");
+  const snapshot = buildDataSnapshot("manual-download");
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
+  downloadBlob(blob, `구로센터_채용달력_원본백업_${formatFileDate(new Date())}.json`);
+}
+
+async function restoreDataFromFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const snapshot = JSON.parse(text);
+    if (snapshot?.app !== "guro-recruitment-calendar") {
+      alert("채용달력 백업 파일 형식이 아닙니다.");
+      return;
+    }
+    if (!confirm("현재 브라우저 데이터를 백업 파일 내용으로 복구할까요?\n복구 전 현재 데이터도 자동 백업됩니다.")) return;
+    saveDataBackup("before-manual-restore");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.isArray(snapshot.recruitments) ? snapshot.recruitments : []));
+    localStorage.setItem(PROBATION_STORAGE_KEY, JSON.stringify(Array.isArray(snapshot.probations) ? snapshot.probations : []));
+    localStorage.setItem(HIRED_STORAGE_KEY, JSON.stringify(snapshot.hiredDetails && typeof snapshot.hiredDetails === "object" ? snapshot.hiredDetails : {}));
+    if (snapshot.googleCalendarId) localStorage.setItem(GOOGLE_CALENDAR_ID_STORAGE_KEY, snapshot.googleCalendarId);
+    saveDataBackup("after-manual-restore");
+    location.reload();
+  } catch (error) {
+    console.error("백업 복구 실패", error);
+    alert("백업 파일을 불러오지 못했습니다. JSON 파일이 맞는지 확인해 주세요.");
+  }
+}
+
 function persist() {
+  saveDataBackup("before-recruitments-save");
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.candidates));
+  saveDataBackup("after-recruitments-save");
 }
 
 function persistProbations() {
+  saveDataBackup("before-probations-save");
   localStorage.setItem(PROBATION_STORAGE_KEY, JSON.stringify(state.probations));
+  saveDataBackup("after-probations-save");
 }
 
 function persistHiredDetails() {
+  saveDataBackup("before-hired-details-save");
   localStorage.setItem(HIRED_STORAGE_KEY, JSON.stringify(state.hiredDetails));
+  saveDataBackup("after-hired-details-save");
 }
 
 function loadCandidates() {
@@ -3847,9 +3978,12 @@ function loadCandidates() {
     try {
       return mergeRegisteredRecruitments(normalizeCandidates(JSON.parse(saved)));
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
+      const restored = restoreArrayFromBackup(STORAGE_KEY);
+      if (restored) return mergeRegisteredRecruitments(normalizeCandidates(restored));
     }
   }
+  const restored = restoreArrayFromBackup(STORAGE_KEY);
+  if (restored) return mergeRegisteredRecruitments(normalizeCandidates(restored));
   return mergeRegisteredRecruitments([
     {
       id: "sample-1",
@@ -3914,9 +4048,12 @@ function loadProbations() {
     try {
       return normalizeProbations(JSON.parse(saved));
     } catch {
-      localStorage.removeItem(PROBATION_STORAGE_KEY);
+      const restored = restoreArrayFromBackup(PROBATION_STORAGE_KEY);
+      if (restored) return normalizeProbations(restored);
     }
   }
+  const restored = restoreArrayFromBackup(PROBATION_STORAGE_KEY);
+  if (restored) return normalizeProbations(restored);
   return normalizeProbations([
     { id: "probation-park-subin", name: "박수빈", department: "복지사업팀", duty: "사업팀", position: "간사", hireDate: "2026-01-12", result: "leave", note: "수습종료(퇴사) 완료", scores: [6, 7, 6, 6, 6, 2, 3, 2, 5, 2, 6, 3, 6], totalScore: 60 },
     { id: "probation-shin-guncheol", name: "신건철", department: "사무국", duty: "사무국장", position: "사무국장", hireDate: "2026-01-19", result: "renew", note: "육아휴직대체", scores: [8, 8, 8, 7, 9, 4, 5, 5, 5, 3, 7, 4, 6], totalScore: 79 },
@@ -3929,12 +4066,11 @@ function loadProbations() {
 
 function loadHiredDetails() {
   const saved = localStorage.getItem(HIRED_STORAGE_KEY);
-  if (!saved) return {};
+  if (!saved) return restoreObjectFromBackup(HIRED_STORAGE_KEY) || {};
   try {
     return JSON.parse(saved) || {};
   } catch {
-    localStorage.removeItem(HIRED_STORAGE_KEY);
-    return {};
+    return restoreObjectFromBackup(HIRED_STORAGE_KEY) || {};
   }
 }
 
@@ -4516,90 +4652,3 @@ class StepFormManager {
 setTimeout(() => {
   window.stepFormManager = new StepFormManager();
 }, 100);
-
-// ============================================
-// 초기 샘플 데이터 (app.js 끝에 추가 - 안전함)
-// ============================================
-
-const SAMPLE_DATA = [
-  {
-    id: "sample-2026-001",
-    name: "활동지원팀 사회복지사 채용",
-    department: "활동지원팀",
-    hireCount: 2,
-    source: "워크넷",
-    noticeType: "normal",
-    noticeDate: "2026-05-15",
-    confirmedInterviewDate: "2026-06-10",
-    workStartDate: "2026-07-01",
-    hireDate: "2026-06-20",
-    probationMonths: 3,
-    status: "진행중",
-    memo: "장애인 활동지원 경험 필수",
-    interviewees: [
-      { id: "int-001", name: "김철수", phone: "010-1234-5678", status: "서류접수", notes: "자격증 보유" },
-      { id: "int-002", name: "이영희", phone: "010-2345-6789", status: "서류심사", notes: "경험 3년" }
-    ],
-    recruitmentFields: []
-  },
-  {
-    id: "sample-2026-002",
-    name: "사무행정팀 행정직 채용",
-    department: "사무행정팀",
-    hireCount: 1,
-    source: "사람인",
-    noticeType: "normal",
-    noticeDate: "2026-05-20",
-    confirmedInterviewDate: "2026-06-15",
-    workStartDate: "2026-07-15",
-    hireDate: "2026-06-28",
-    probationMonths: 3,
-    status: "진행중",
-    memo: "엑셀, 한글 숙련자",
-    interviewees: [
-      { id: "int-003", name: "박민준", phone: "010-3456-7890", status: "면접대기", notes: "경험 5년" }
-    ],
-    recruitmentFields: []
-  },
-  {
-    id: "sample-2026-003",
-    name: "복지사업팀 프로그램 담당자 채용",
-    department: "복지사업팀",
-    hireCount: 1,
-    source: "홈페이지",
-    noticeType: "urgent",
-    noticeDate: "2026-06-01",
-    confirmedInterviewDate: "2026-06-20",
-    workStartDate: "2026-07-10",
-    hireDate: "2026-06-30",
-    probationMonths: 3,
-    status: "진행중",
-    memo: "프로그램 경험",
-    interviewees: [
-      { id: "int-004", name: "정지은", phone: "010-4567-8901", status: "면접완료", notes: "전공" },
-      { id: "int-005", name: "최준호", phone: "010-5678-9012", status: "적격심사", notes: "경험" }
-    ],
-    recruitmentFields: []
-  }
-];
-
-// 안전한 초기화 (모든 함수 로드 후)
-function safeInitializeData() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved || saved === '[]' || JSON.parse(saved).length === 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_DATA));
-      console.log('✅ 샘플 데이터 초기화 완료');
-      setTimeout(() => location.reload(), 300);
-    }
-  } catch (e) {
-    console.error('⚠️ 초기화 오류:', e);
-  }
-}
-
-// 페이지 완전히 로드 후 실행
-if (document.readyState === 'complete') {
-  safeInitializeData();
-} else {
-  window.addEventListener('load', safeInitializeData);
-}
