@@ -1,3 +1,124 @@
+// ============================================
+// 초기 데이터 설정 (페이지 로드 시)
+// ============================================
+
+const INITIAL_SAMPLE_DATA = [
+  {
+    id: "sample-2026-001",
+    name: "활동지원팀 사회복지사 채용",
+    department: "활동지원팀",
+    hireCount: 2,
+    source: "워크넷",
+    noticeType: "normal",
+    noticeDate: "2026-05-15",
+    confirmedInterviewDate: "2026-06-10",
+    workStartDate: "2026-07-01",
+    hireDate: "2026-06-20",
+    probationMonths: 3,
+    status: "진행중",
+    memo: "장애인 활동지원 경험 필수",
+    interviewees: [
+      {
+        id: "int-001",
+        name: "김철수",
+        phone: "010-1234-5678",
+        status: "서류접수",
+        notes: "사회복지사 자격증 보유"
+      },
+      {
+        id: "int-002",
+        name: "이영희",
+        phone: "010-2345-6789",
+        status: "서류심사",
+        notes: "장애인 시설 경험 3년"
+      }
+    ],
+    recruitmentFields: []
+  },
+  {
+    id: "sample-2026-002",
+    name: "사무행정팀 행정직 채용",
+    department: "사무행정팀",
+    hireCount: 1,
+    source: "사람인",
+    noticeType: "normal",
+    noticeDate: "2026-05-20",
+    confirmedInterviewDate: "2026-06-15",
+    workStartDate: "2026-07-15",
+    hireDate: "2026-06-28",
+    probationMonths: 3,
+    status: "진행중",
+    memo: "엑셀, 한글 숙련자 필요",
+    interviewees: [
+      {
+        id: "int-003",
+        name: "박민준",
+        phone: "010-3456-7890",
+        status: "면접대기",
+        notes: "행정 경험 5년"
+      }
+    ],
+    recruitmentFields: []
+  },
+  {
+    id: "sample-2026-003",
+    name: "복지사업팀 프로그램 담당자 채용",
+    department: "복지사업팀",
+    hireCount: 1,
+    source: "홈페이지",
+    noticeType: "urgent",
+    noticeDate: "2026-06-01",
+    confirmedInterviewDate: "2026-06-20",
+    workStartDate: "2026-07-10",
+    hireDate: "2026-06-30",
+    probationMonths: 3,
+    status: "진행중",
+    memo: "장애인 프로그램 경험",
+    interviewees: [
+      {
+        id: "int-004",
+        name: "정지은",
+        phone: "010-4567-8901",
+        status: "면접완료",
+        notes: "사회복지 전공"
+      },
+      {
+        id: "int-005",
+        name: "최준호",
+        phone: "010-5678-9012",
+        status: "적격심사",
+        notes: "프로그램 개발 경험"
+      }
+    ],
+    recruitmentFields: []
+  }
+];
+
+// 페이지 로드 시 데이터 초기화
+function initializeDataIfEmpty() {
+  const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
+  const saved = localStorage.getItem(STORAGE_KEY);
+  
+  // 기존 데이터가 없으면 샘플 데이터로 초기화
+  if (!saved || saved === '[]' || saved.length < 10) {
+    console.log('📝 샘플 데이터로 초기화 중...');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_DATA));
+    console.log('✅ 샘플 데이터 로드 완료 - 페이지를 새로고침하세요');
+    
+    // 자동 새로고침
+    setTimeout(() => {
+      location.reload();
+    }, 500);
+  }
+}
+
+// 안전한 초기화 (DOM 준비 전)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeDataIfEmpty);
+} else {
+  initializeDataIfEmpty();
+}
+
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
 const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
