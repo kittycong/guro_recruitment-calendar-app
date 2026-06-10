@@ -596,3 +596,25 @@
     <script src="./app.js?v=20260609-2"></script>
   </body>
 </html>
+
+<script>
+// 페이지 로드 직후 샘플 데이터로 초기화
+(function() {
+  const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
+  const SAMPLE = [
+    {id:"s1",name:"활동지원팀 사회복지사 채용",department:"활동지원팀",hireCount:2,source:"워크넷",noticeType:"normal",noticeDate:"2026-05-15",confirmedInterviewDate:"2026-06-10",workStartDate:"2026-07-01",hireDate:"2026-06-20",probationMonths:3,status:"진행중",memo:"장애인 활동지원 경험 필수",interviewees:[{id:"i1",name:"김철수",phone:"010-1111-1111",status:"서류접수",notes:"자격증 보유"},{id:"i2",name:"이영희",phone:"010-2222-2222",status:"서류심사",notes:"경험 3년"}],recruitmentFields:[]},
+    {id:"s2",name:"사무행정팀 행정직 채용",department:"사무행정팀",hireCount:1,source:"사람인",noticeType:"normal",noticeDate:"2026-05-20",confirmedInterviewDate:"2026-06-15",workStartDate:"2026-07-15",hireDate:"2026-06-28",probationMonths:3,status:"진행중",memo:"엑셀, 한글 숙련자",interviewees:[{id:"i3",name:"박민준",phone:"010-3333-3333",status:"면접대기",notes:"경험 5년"}],recruitmentFields:[]},
+    {id:"s3",name:"복지사업팀 프로그램 담당자 채용",department:"복지사업팀",hireCount:1,source:"홈페이지",noticeType:"urgent",noticeDate:"2026-06-01",confirmedInterviewDate:"2026-06-20",workStartDate:"2026-07-10",hireDate:"2026-06-30",probationMonths:3,status:"진행중",memo:"프로그램 개발 경험",interviewees:[{id:"i4",name:"정지은",phone:"010-4444-4444",status:"면접완료",notes:"전공"},{id:"i5",name:"최준호",phone:"010-5555-5555",status:"적격심사",notes:"경험 있음"}],recruitmentFields:[]}
+  ];
+  
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved || saved === '[]' || saved === 'null') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE));
+      console.log('✅ 샘플 데이터 로드됨');
+    }
+  } catch (e) {
+    console.error('오류:', e);
+  }
+})();
+</script>
