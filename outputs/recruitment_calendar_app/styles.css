@@ -1,26 +1,28 @@
 :root {
   color-scheme: light;
-  --bg: #f7f4f5;
-  --surface: #fffdf9;
-  --surface-muted: #edf2f1;
-  --text: #2f292b;
-  --muted: #5f5559;
-  --border: #d6c9cd;
-  --border-strong: #8f7f86;
-  --primary: #D4C4B9;
-  --primary-dark: #56202a;
-  --primary-soft: #E8DCC8;
-  --notice: #60463e;
-  --document: #5f899b;
-  --screening: #866f7b;
-  --interview: #D4C4B9;
-  --eligibility: #658480;
-  --hire: #4f716b;
-  --probation: #8B7355;
-  --danger: #9d2637;
-  --warning-bg: #fff8a8;
-  --radius: 8px;
-  --shadow: 0 14px 34px rgba(96, 70, 62, 0.12);
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-muted: #f2f2f7;
+  --surface-strong: #fbfbfd;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #d2d2d7;
+  --border-strong: #b7b7bd;
+  --primary: #0071e3;
+  --primary-dark: #005bb5;
+  --primary-soft: #e8f2ff;
+  --notice: #2f6fbd;
+  --document: #5e8fa3;
+  --screening: #8c7a92;
+  --interview: #bf5a00;
+  --eligibility: #667e73;
+  --hire: #248a3d;
+  --probation: #a55db0;
+  --danger: #d70015;
+  --warning-bg: #fff4cf;
+  --radius: 14px;
+  --shadow: 0 12px 34px rgba(0, 0, 0, 0.07);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 24px rgba(0, 0, 0, 0.06);
   font-family:
     "Malgun Gothic", "Apple SD Gothic Neo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 16px;
@@ -33,9 +35,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    linear-gradient(120deg, rgba(255, 169, 214, 0.18), rgba(142, 173, 191, 0.16) 42%, rgba(241, 236, 149, 0.18)),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   line-height: 1.45;
 }
@@ -54,14 +54,16 @@ button {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(380px, 24vw) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 20vw) minmax(0, 1fr);
 }
 
 .sidebar {
-  background: linear-gradient(180deg, #D4C4B9 0%, #60463e 100%);
-  color: #fff8fb;
+  background: rgba(255, 255, 255, 0.72);
+  border-right: 1px solid rgba(210, 210, 215, 0.72);
+  color: var(--text);
   padding: 22px;
   overflow-y: auto;
+  backdrop-filter: blur(18px);
 }
 
 .brand {
@@ -77,13 +79,14 @@ button {
 }
 
 .brand h1 {
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.2;
+  font-weight: 900;
 }
 
 .brand p {
   margin: 8px 0 0;
-  color: #E8DCC8;
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -100,6 +103,7 @@ button {
 .sidebar .panel {
   color: var(--text);
   padding: 20px;
+  box-shadow: var(--shadow-soft);
 }
 
 .panel-heading,
@@ -140,12 +144,13 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #fffdf9;
+  border-radius: 10px;
+  background: var(--surface-strong);
   color: var(--text);
   padding: 10px 11px;
   min-height: 40px;
   line-height: 1.35;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
 .execution-input {
@@ -154,8 +159,8 @@ textarea {
   align-items: center;
   min-height: 40px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #fffdf9;
+  border-radius: 10px;
+  background: var(--surface-strong);
   overflow: hidden;
 }
 
@@ -164,7 +169,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   padding: 0 10px;
-  background: #edf2f1;
+  background: var(--surface-muted);
   color: var(--text);
   border-right: 1px solid var(--border);
   font-size: 13px;
@@ -185,7 +190,7 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus-visible {
-  outline: 3px solid rgba(215, 107, 157, 0.32);
+  outline: 3px solid rgba(0, 113, 227, 0.22);
   outline-offset: 2px;
 }
 
@@ -201,28 +206,31 @@ button:focus-visible {
 
 .schedule-preview {
   border: 1px solid var(--border);
-  border-radius: 7px;
-  background: #f8f2f5;
+  border-radius: 12px;
+  background: var(--surface-muted);
   padding: 12px;
 }
 
 .notice-generator {
-  border: 2px solid var(--primary);
-  background: #fffdf9;
-  box-shadow: 0 8px 20px rgba(110, 36, 50, 0.12);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .minutes-generator {
-  border: 2px solid #8cadb9;
-  background: #f7fbfb;
-  box-shadow: 0 8px 20px rgba(88, 129, 140, 0.12);
+  border: 1px solid var(--border);
+  border-top: 4px solid #8fb2c5;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .reissue-generator {
   grid-column: 1 / -1;
-  border: 2px solid #e7dc78;
-  background: #fffdf9;
-  box-shadow: 0 8px 20px rgba(167, 149, 58, 0.12);
+  border: 1px solid var(--border);
+  border-top: 4px solid #e7c958;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
 }
 
 .document-page {
@@ -236,7 +244,7 @@ button:focus-visible {
   display: grid;
   gap: 14px;
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 20px;
 }
 
 .document-panel-header {
@@ -257,7 +265,7 @@ button:focus-visible {
 .document-panel-header > span {
   flex: 0 0 auto;
   border-radius: 999px;
-  background: #edf2f1;
+  background: var(--surface-muted);
   color: var(--text);
   padding: 5px 9px;
   font-size: 13px;
@@ -284,13 +292,13 @@ button:focus-visible {
 .file-input {
   min-height: auto;
   padding: 9px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .form-section {
   border: 1px solid var(--border);
-  border-radius: 7px;
-  background: #f8f2f5;
+  border-radius: 12px;
+  background: var(--surface-muted);
   padding: 12px;
 }
 
@@ -318,9 +326,9 @@ button:focus-visible {
 
 .small-button {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 999px;
   min-height: 32px;
-  background: #fffdf9;
+  background: var(--surface);
   color: var(--text);
   padding: 0 10px;
   font-size: 13px;
@@ -376,8 +384,8 @@ button:focus-visible {
 .interviewee-row button,
 .recruitment-field-row button {
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: #fffdf9;
+  border-radius: 9px;
+  background: var(--surface);
   color: var(--muted);
   min-height: 34px;
   min-width: 44px;
@@ -429,12 +437,13 @@ button:focus-visible {
 .today-button,
 .icon-button {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 999px;
   min-height: 40px;
-  background: #fffdf9;
+  background: var(--surface);
   color: var(--text);
   font-weight: 700;
   line-height: 1.25;
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .primary-button {
@@ -446,6 +455,14 @@ button:focus-visible {
 
 .primary-button:hover {
   background: var(--primary-dark);
+}
+
+.secondary-button:hover,
+.today-button:hover,
+.icon-button:hover,
+.small-button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
 }
 
 .secondary-button,
@@ -466,12 +483,20 @@ button:focus-visible {
 }
 
 .main {
-  padding: 22px;
+  padding: 24px;
   overflow-x: hidden;
   overflow-y: auto;
 }
 
 .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border: 1px solid rgba(210, 210, 215, 0.72);
+  border-radius: 18px;
+  background: rgba(245, 245, 247, 0.82);
+  padding: 12px;
+  backdrop-filter: blur(18px);
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
@@ -493,7 +518,7 @@ button:focus-visible {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: #fffdf9;
+  background: var(--surface);
   color: var(--muted);
   padding: 0 10px;
   font-size: 13px;
@@ -501,14 +526,14 @@ button:focus-visible {
 }
 
 .calendar-sync-status[data-status="connected"] {
-  border-color: #b9cbc7;
-  background: #edf7f5;
+  border-color: #b7dfc2;
+  background: #ecf9ef;
   color: var(--hire);
 }
 
 .calendar-sync-status[data-status="error"] {
-  border-color: #efb6c3;
-  background: #fff2f5;
+  border-color: #ffc2c8;
+  background: #fff0f2;
   color: var(--danger);
 }
 
@@ -540,10 +565,12 @@ button:focus-visible {
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
+  gap: 10px;
+  overflow: visible;
   margin-bottom: 16px;
-  background: var(--border);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .deadline-banner {
@@ -551,15 +578,15 @@ button:focus-visible {
   align-items: center;
   gap: 12px;
   min-height: 48px;
-  border: 1px solid #f1ec95;
+  border: 1px solid #ead780;
   border-radius: var(--radius);
-  background: #fffbd0;
+  background: #fff8d8;
   padding: 10px 12px;
   margin-bottom: 12px;
 }
 
 .deadline-banner strong {
-  color: #D4C4B9;
+  color: #7a4b00;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -579,10 +606,10 @@ button:focus-visible {
 }
 
 .deadline-banner button {
-  border: 1px solid #e7dc78;
-  border-radius: 6px;
-  background: #fffdf9;
-  color: #D4C4B9;
+  border: 1px solid #e7d06a;
+  border-radius: 999px;
+  background: var(--surface);
+  color: #7a4b00;
   min-height: 30px;
   padding: 0 9px;
   font-size: 13px;
@@ -590,16 +617,24 @@ button:focus-visible {
 }
 
 .view-tabs {
-  margin-bottom: 12px;
+  position: sticky;
+  top: 82px;
+  z-index: 19;
+  border: 1px solid rgba(210, 210, 215, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 6px;
+  margin-bottom: 14px;
+  backdrop-filter: blur(18px);
 }
 
 .view-tab,
 .side-tab {
   flex: 1 1 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 999px;
   min-height: 38px;
-  background: #fffdf9;
+  background: transparent;
   color: var(--muted);
   padding: 0 8px;
   font-size: 13px;
@@ -610,8 +645,8 @@ button:focus-visible {
 .view-tab.active,
 .side-tab.active {
   background: var(--primary);
-  border-color: var(--primary);
   color: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 113, 227, 0.22);
 }
 
 .view-panel,
@@ -630,7 +665,10 @@ button:focus-visible {
 
 .metric {
   background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
 }
 
 .metric span {
@@ -652,14 +690,15 @@ button:focus-visible {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 390px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 16px;
   min-height: 0;
 }
 
 .calendar-panel {
-  padding: 14px;
+  padding: 16px;
   min-width: 0;
+  box-shadow: var(--shadow-soft);
 }
 
 .filter-row {
@@ -667,6 +706,10 @@ button:focus-visible {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  padding: 10px;
 }
 
 .filter-note {
@@ -679,9 +722,9 @@ button:focus-visible {
 .calendar-size-control {
   display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 999px;
   overflow: hidden;
-  background: #fffdf9;
+  background: var(--surface);
 }
 
 .calendar-legend {
@@ -691,9 +734,10 @@ button:focus-visible {
 }
 
 .calendar-legend span {
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   border-left: 4px solid currentColor;
-  border-radius: 5px;
-  padding: 4px 7px;
+  border-radius: 999px;
+  padding: 5px 8px;
   background: var(--surface-muted);
   font-size: 13px;
   font-weight: 800;
@@ -701,39 +745,39 @@ button:focus-visible {
 }
 
 .calendar-legend .legend-deadline {
-  color: var(--probation);
-  background: #fffbd0;
+  color: #d06d00;
+  background: #fff4df;
 }
 
 .calendar-legend .legend-notice {
-  color: var(--document);
-  background: #e8f1f3;
+  color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .calendar-legend .legend-screening {
-  color: var(--screening);
-  background: #f8f2f5;
+  color: #7a6a86;
+  background: #f4f0f7;
 }
 
 .calendar-legend .legend-morning {
   color: var(--interview);
-  background: #fff1d8;
+  background: #fff2e6;
 }
 
 .calendar-legend .legend-afternoon {
   color: var(--interview);
-  background: #ffe5c2;
+  background: #ffe8cf;
 }
 
 .calendar-legend .legend-work {
   color: var(--hire);
-  background: #edf2f1;
+  background: #edf8f0;
 }
 
 .size-button {
   border: 0;
   border-right: 1px solid var(--border);
-  background: #fffdf9;
+  background: transparent;
   color: var(--muted);
   min-height: 32px;
   padding: 0 10px;
@@ -796,11 +840,15 @@ button:focus-visible {
 
 .month-calendar {
   min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
 }
 
 .month-calendar-title {
   margin: 0;
-  padding: 0 0 8px;
+  padding: 12px 14px 8px;
   font-size: 16px;
   line-height: 1.2;
   font-weight: 900;
@@ -808,16 +856,16 @@ button:focus-visible {
 }
 
 .month-grid {
-  border-left: 1px solid var(--border);
+  border-left: 0;
   border-top: 1px solid var(--border);
 }
 
 .day-cell {
-  min-height: 84px;
-  background: #fffdf9;
+  min-height: 96px;
+  background: var(--surface);
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 6px;
+  padding: 7px;
   display: grid;
   align-content: start;
   gap: 4px;
@@ -825,7 +873,7 @@ button:focus-visible {
 }
 
 .calendar-panel.compact .day-cell {
-  min-height: 58px;
+  min-height: 68px;
 }
 
 .calendar-panel.compact .event-chip {
@@ -834,20 +882,21 @@ button:focus-visible {
 }
 
 .day-cell.other-month {
-  background: #f3eeee;
-  color: #b4a7ad;
+  background: #f8f8fa;
+  color: #a1a1a6;
 }
 
 .day-cell.today {
   box-shadow: inset 0 0 0 2px var(--primary);
+  background: #f7fbff;
 }
 
 .day-cell.selected {
-  background: #E8DCC8;
+  background: var(--primary-soft);
 }
 
 .day-cell.drop-target {
-  background: #d9e4e2;
+  background: #eaf3ff;
   box-shadow: inset 0 0 0 2px var(--primary);
 }
 
@@ -864,9 +913,9 @@ button:focus-visible {
   width: 100%;
   border: 0;
   border-left: 4px solid currentColor;
-  border-radius: 5px;
+  border-radius: 8px;
   background: var(--surface-muted);
-  padding: 3px 5px;
+  padding: 4px 6px;
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
@@ -896,35 +945,35 @@ button:focus-visible {
 }
 
 .event-chip.notice {
-  color: var(--document);
-  background: #e8f1f3;
+  color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .event-chip.screening {
-  color: var(--screening);
-  background: #f8f2f5;
+  color: #7a6a86;
+  background: #f4f0f7;
 }
 
 .event-chip.interview {
   color: var(--interview);
-  background: #fff1d8;
+  background: #fff2e6;
 }
 
 .event-chip.interview-morning {
-  background: #fff1d8;
+  background: #fff2e6;
 }
 
 .event-chip.interview-afternoon {
-  background: #ffe5c2;
+  background: #ffe8cf;
 }
 
 .event-chip.interview-unset {
-  background: #f3eeee;
+  background: #f4f4f6;
 }
 
 .event-chip.deadline {
-  color: var(--probation);
-  background: #fffbd0;
+  color: #d06d00;
+  background: #fff4df;
 }
 
 .event-chip.eligibility {
@@ -933,12 +982,12 @@ button:focus-visible {
 
 .event-chip.hire {
   color: var(--hire);
-  background: #d9e4e2;
+  background: #e7f7eb;
 }
 
 .event-chip.workStart {
   color: var(--hire);
-  background: #edf2f1;
+  background: #edf8f0;
 }
 
 .event-chip.probation {
@@ -948,17 +997,17 @@ button:focus-visible {
 
 .event-chip.probationStart {
   color: #3b5f82;
-  background: #e9f1fb;
+  background: #eaf3ff;
 }
 
 .event-chip.probationReview {
   color: #2f6f75;
-  background: #e9f6f4;
+  background: #e8f7f4;
 }
 
 .event-chip.probationEnd {
-  color: #ba1641;
-  background: #fff1f5;
+  color: var(--danger);
+  background: #fff0f2;
 }
 
 .event-chip.past-event {
@@ -976,8 +1025,9 @@ button:focus-visible {
   margin-top: 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #fffdf9;
+  background: var(--surface);
   padding: 14px;
+  box-shadow: var(--shadow-soft);
 }
 
 .today-task-header {
@@ -994,7 +1044,7 @@ button:focus-visible {
 
 .today-task-header span {
   border-radius: 999px;
-  background: #edf2f1;
+  background: var(--surface-muted);
   color: var(--muted);
   padding: 4px 9px;
   font-size: 13px;
@@ -1014,8 +1064,8 @@ button:focus-visible {
   align-items: center;
   border: 1px solid var(--border);
   border-left: 5px solid currentColor;
-  border-radius: 7px;
-  background: #fffdf9;
+  border-radius: 12px;
+  background: var(--surface);
   color: var(--text);
   padding: 10px;
   text-align: left;
@@ -1033,36 +1083,37 @@ button:focus-visible {
 }
 
 .today-task-item.notice {
-  color: var(--document);
-  background: #f6fbfc;
+  color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .today-task-item.deadline {
-  color: var(--probation);
-  background: #fffdf0;
+  color: #d06d00;
+  background: #fff4df;
 }
 
 .today-task-item.screening {
-  color: var(--screening);
-  background: #fbf7fa;
+  color: #7a6a86;
+  background: #f4f0f7;
 }
 
 .today-task-item.interview {
   color: var(--interview);
-  background: #fff8ee;
+  background: #fff2e6;
 }
 
 .today-task-item.workStart,
 .today-task-item.hire {
   color: var(--hire);
-  background: #f6faf9;
+  background: #edf8f0;
 }
 
 .day-panel {
-  padding: 14px;
+  padding: 16px;
   min-width: 0;
   max-height: calc(100vh - 152px);
   overflow-y: auto;
+  box-shadow: var(--shadow-soft);
 }
 
 .event-list,
@@ -1074,9 +1125,9 @@ button:focus-visible {
 .event-item,
 .candidate-item {
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 12px;
   padding: 12px;
-  background: #fffdf9;
+  background: var(--surface);
 }
 
 .event-item {
@@ -1088,8 +1139,8 @@ button:focus-visible {
   gap: 10px;
   border: 1px solid var(--border);
   border-left: 5px solid var(--interview);
-  border-radius: 7px;
-  background: #fffdf9;
+  border-radius: 12px;
+  background: var(--surface);
   padding: 12px;
 }
 
@@ -1111,7 +1162,7 @@ button:focus-visible {
   align-items: center;
   min-height: 24px;
   border-radius: 999px;
-  background: #edf2f1;
+  background: var(--surface-muted);
   color: var(--text);
   padding: 0 7px;
   font-size: 13px;
@@ -1249,20 +1300,20 @@ button:focus-visible {
   min-height: 24px;
   border-radius: 999px;
   padding: 0 8px;
-  background: #edf2f1;
-  color: #60463e;
+  background: var(--surface-muted);
+  color: var(--muted);
   font-size: 13px;
   font-weight: 800;
 }
 
 .status-badge.hired {
-  background: #d9e4e2;
-  color: #456c66;
+  background: #e7f7eb;
+  color: var(--hire);
 }
 
 .status-badge.rejected {
-  background: #E8DCC8;
-  color: #7d2433;
+  background: #fff0f2;
+  color: var(--danger);
 }
 
 .candidate-actions {
@@ -1276,8 +1327,8 @@ button:focus-visible {
 .full-candidate-actions button,
 .full-candidate-actions a {
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: #fffdf9;
+  border-radius: 999px;
+  background: var(--surface);
   min-height: 32px;
   padding: 6px 9px;
   font-size: 13px;
@@ -1322,7 +1373,7 @@ button:focus-visible {
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: #e7dcde;
+  background: var(--surface-muted);
   overflow: hidden;
 }
 
@@ -1377,8 +1428,8 @@ button:focus-visible {
   gap: 5px;
   border: 1px solid var(--border);
   border-left: 5px solid var(--border-strong);
-  border-radius: 7px;
-  background: #fffdf9;
+  border-radius: 12px;
+  background: var(--surface);
   padding: 9px;
 }
 
@@ -1403,8 +1454,8 @@ button:focus-visible {
 
 .kanban-card button {
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: #fffdf9;
+  border-radius: 999px;
+  background: var(--surface);
   padding: 4px 7px;
   color: var(--text);
   font-size: 13px;
@@ -1423,7 +1474,7 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 5px solid var(--border-strong);
   border-radius: var(--radius);
-  background: #fffdf9;
+  background: var(--surface);
   padding: 12px;
 }
 
@@ -1437,7 +1488,7 @@ button:focus-visible {
   position: relative;
   min-height: 34px;
   border-radius: 999px;
-  background: #edf2f1;
+  background: var(--surface-muted);
   overflow: hidden;
 }
 
@@ -1454,15 +1505,15 @@ button:focus-visible {
 }
 
 .notice-segment {
-  background: #a994a0;
+  background: var(--document);
 }
 
 .interview-segment {
-  background: #D4C4B9;
+  background: var(--interview);
 }
 
 .probation-segment {
-  background: #d76b9d;
+  background: var(--probation);
 }
 
 .timeline-dates {
@@ -1486,6 +1537,7 @@ button:focus-visible {
   border-radius: var(--radius);
   background: var(--surface);
   padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
 }
 
 .list-page-header h2 {
@@ -1518,6 +1570,7 @@ button:focus-visible {
   border-radius: var(--radius);
   background: var(--surface);
   padding: 13px;
+  box-shadow: var(--shadow-soft);
 }
 
 .hired-person-main,
@@ -1569,13 +1622,13 @@ button:focus-visible {
 }
 
 .probation-table th {
-  background: #91aebe;
-  color: #ffffff;
+  background: #eef3f7;
+  color: var(--text);
   font-weight: 900;
 }
 
 .probation-table td {
-  background: #fbfdfc;
+  background: var(--surface);
 }
 
 .probation-table .strong-date {
@@ -1597,8 +1650,8 @@ button:focus-visible {
 
 .table-actions button {
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: #fffdf9;
+  border-radius: 999px;
+  background: var(--surface);
   padding: 5px 8px;
   color: var(--text);
   font-size: 12px;
@@ -1619,8 +1672,9 @@ button:focus-visible {
   border: 1px solid var(--border);
   border-left: 5px solid var(--border-strong);
   border-radius: var(--radius);
-  background: #fffdf9;
+  background: var(--surface);
   padding: 12px;
+  box-shadow: var(--shadow-soft);
 }
 
 .full-candidate-main,
@@ -1676,6 +1730,7 @@ button:focus-visible {
   border-radius: var(--radius);
   background: var(--surface);
   padding: 14px;
+  box-shadow: var(--shadow-soft);
 }
 
 .interview-board-header {
@@ -1693,7 +1748,7 @@ button:focus-visible {
 
 .interview-board-header span {
   border-radius: 999px;
-  background: #edf2f1;
+  background: var(--surface-muted);
   color: var(--muted);
   padding: 4px 9px;
   font-size: 13px;
@@ -1710,9 +1765,10 @@ button:focus-visible {
   gap: 10px;
   border: 1px solid var(--border);
   border-left: 5px solid var(--interview);
-  border-radius: 7px;
-  background: #fffdf9;
+  border-radius: 12px;
+  background: var(--surface);
   padding: 12px;
+  box-shadow: var(--shadow-soft);
 }
 
 .interview-management-main {
@@ -1749,11 +1805,12 @@ button:focus-visible {
 
 .empty-state {
   border: 1px dashed var(--border-strong);
-  border-radius: 7px;
+  border-radius: 12px;
   padding: 18px;
   color: var(--muted);
   text-align: center;
   line-height: 1.5;
+  background: var(--surface);
 }
 
 hr {
@@ -1764,11 +1821,11 @@ hr {
 
 @media (max-width: 1500px) {
   #calendarView.content-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 400px;
   }
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1180px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
@@ -1778,7 +1835,7 @@ hr {
   }
 
   .content-grid {
-    grid-template-columns: minmax(0, 1fr) 390px;
+    grid-template-columns: minmax(0, 1fr) 380px;
   }
 
   .document-page {
@@ -1791,6 +1848,7 @@ hr {
 }
 
 @media (max-width: 900px) {
+  #calendarView.content-grid,
   .content-grid {
     grid-template-columns: 1fr;
   }
@@ -1817,12 +1875,22 @@ hr {
     flex-direction: column;
   }
 
-  .search-box {
+  .toolbar,
+  .view-tabs {
+    position: static;
+  }
+
+  .search-box,
+  .calendar-id-box {
     width: 100%;
   }
 
   .summary-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .view-tab {
+    flex-basis: calc(50% - 6px);
   }
 
   .date-grid,
@@ -1865,200 +1933,6 @@ hr {
 
   .event-chip {
     font-size: 12px;
-  }
-}
-
-/* ============================================
-   레이아웃 최적화 & 비율 개선
-   ============================================ */
-
-/* 사이드바 폼 영역 축소 */
-.panel {
-  max-height: 50vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-heading {
-  flex-shrink: 0;
-  padding: 0.75rem 0;
-  margin-bottom: 0.5rem;
-}
-
-.panel-heading h2 {
-  font-size: 1rem;
-  margin: 0.25rem 0;
-  line-height: 1.2;
-}
-
-.panel-heading p {
-  font-size: 0.8rem;
-  margin: 0.1rem 0;
-  opacity: 0.8;
-}
-
-/* 폼 요소 컴팩트화 */
-.candidate-form label {
-  font-size: 0.95rem;
-  margin-bottom: 0.5rem;
-}
-
-.candidate-form input,
-.candidate-form select,
-.candidate-form textarea {
-  font-size: 0.9rem;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.candidate-form textarea {
-  max-height: 60px;
-}
-
-/* Step 탭 컴팩트화 */
-.step-progress {
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-}
-
-.step-tabs {
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
-}
-
-.step-tab {
-  padding: 0.4rem 0.5rem;
-  font-size: 0.7rem;
-  line-height: 1.1;
-}
-
-/* 메뉴와 콘텐츠 사이 간격 최소화 */
-.view-tabs {
-  margin-bottom: 0.5rem;
-  gap: 0.25rem;
-}
-
-.view-tab {
-  padding: 0.6rem 1rem;
-  font-size: 0.95rem;
-}
-
-.summary-strip {
-  margin-bottom: 0.5rem;
-  gap: 0.5rem;
-}
-
-.metric {
-  padding: 0.5rem 0.75rem;
-}
-
-.metric span {
-  font-size: 0.75rem;
-}
-
-.metric strong {
-  font-size: 1.1rem;
-}
-
-/* 스크롤 영역 최적화 */
-.view-container {
-  max-height: 65vh;
-  overflow-y: auto;
-}
-
-/* 전체 레이아웃 비율 */
-.app-shell {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 0.5rem;
-  height: 100vh;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.toolbar {
-  flex-shrink: 0;
-  padding: 0.75rem 1rem;
-}
-
-.toolbar h2 {
-  font-size: 1.25rem;
-  margin: 0.25rem 0;
-}
-
-/* 테이블 가독성 */
-.data-table {
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.data-table th,
-.data-table td {
-  padding: 0.5rem 0.75rem;
-}
-
-/* 달력 최적화 */
-.calendar {
-  font-size: 0.95rem;
-}
-
-.calendar-day {
-  padding: 0.4rem;
-  min-height: auto;
-}
-
-/* 칸반 보드 */
-.kanban-board {
-  gap: 0.75rem;
-}
-
-.kanban-column {
-  min-width: 250px;
-}
-
-.kanban-card {
-  padding: 0.65rem;
-  margin-bottom: 0.5rem;
-}
-
-/* 반응형 - 모바일 */
-@media (max-width: 1024px) {
-  .app-shell {
-    grid-template-columns: 250px 1fr;
-  }
-  
-  .panel {
-    max-height: 40vh;
-  }
-  
-  .view-container {
-    max-height: 55vh;
-  }
-}
-
-@media (max-width: 768px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  
-  .sidebar {
-    max-height: 35vh;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  
-  .main {
-    height: auto;
-  }
-  
-  .view-container {
-    max-height: auto;
   }
 }
 
