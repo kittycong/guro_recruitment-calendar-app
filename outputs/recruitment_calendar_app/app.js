@@ -5,6 +5,8 @@ const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const DATA_BACKUP_KEY = "recruitment-calendar-data-backup-v1";
 const DATA_BACKUP_PREFIX = "recruitment-calendar-data-backup-";
 const DATA_BACKUP_LIMIT = 20;
+const FORM_DRAFT_STORAGE_KEY = "recruitment-calendar-form-draft-v1";
+let formDraftSaveTimer;
 const GOOGLE_CALENDAR_CLIENT_ID = "899496040839-rmms2huumqecaqqpmnvuek7ul7vv1ha7.apps.googleusercontent.com";
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const MINUTES_BODY_PARA_PR_ID = "8";
@@ -285,6 +287,7 @@ const els = {
   schedulePreview: document.querySelector("#schedulePreview"),
   deleteButton: document.querySelector("#deleteButton"),
   resetFormButton: document.querySelector("#resetFormButton"),
+  formDraftStatus: document.querySelector("#formDraftStatus"),
   prevMonthButton: document.querySelector("#prevMonthButton"),
   nextMonthButton: document.querySelector("#nextMonthButton"),
   todayButton: document.querySelector("#todayButton"),
@@ -396,6 +399,7 @@ const els = {
 bindEvents();
 renderIntervieweeRows([]);
 renderRecruitmentFieldRows([]);
+restoreFormDraft();
 render();
 setTimeout(() => saveDataBackup("startup"), 0);
 updateGoogleCalendarStatus("Google 미연결");
@@ -412,6 +416,8 @@ function bindEvents() {
     event.preventDefault();
     saveCandidateFromForm();
   });
+  els.form.addEventListener("input", scheduleFormDraftSave);
+  els.form.addEventListener("change", scheduleFormDraftSave);
 
   els.deleteButton.addEventListener("click", () => {
     const id = els.candidateId.value;
@@ -633,6 +639,7 @@ async function saveCandidateFromForm() {
   }
 
   persist();
+  clearFormDraft();
   const shouldOpenGoogleCalendar =
     candidate.confirmedInterviewDate &&
     candidate.confirmedInterviewDate !== previousCandidate?.confirmedInterviewDate;
@@ -1989,6 +1996,7 @@ function renderCandidateCollection(container, candidates, emptyMessage) {
 }
 
 function fillForm(candidate) {
+  clearFormDraft();
   els.candidateId.value = candidate.id;
   els.name.value = candidate.name;
   els.department.value = candidate.department || candidate.role || "";
@@ -2016,6 +2024,7 @@ function fillForm(candidate) {
 }
 
 function resetForm() {
+  clearFormDraft();
   els.form.reset();
   els.candidateId.value = "";
   els.noticeType.value = "urgent";
@@ -3519,6 +3528,78 @@ function getDraftRecruitment() {
     interviewees: getIntervieweesFromRows(),
     recruitmentFields: getRecruitmentFieldsFromRows(),
   };
+}
+
+function scheduleFormDraftSave() {
+  clearTimeout(formDraftSaveTimer);
+  formDraftSaveTimer = setTimeout(saveFormDraft, 800);
+}
+
+function saveFormDraft() {
+  const draft = getDraftRecruitment();
+  const hasInput = Boolean(
+    draft.name ||
+      draft.noticeDate ||
+      draft.memo ||
+      draft.interviewees.some((person) => person.name || person.phone || person.email) ||
+      draft.recruitmentFields.some((field) => field.fieldName || field.duty),
+  );
+  if (!hasInput) {
+    clearFormDraft();
+    return;
+  }
+  const payload = { ...draft, savedAt: new Date().toISOString() };
+  localStorage.setItem(FORM_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+  setFormDraftStatus(`입력 자동 저장됨 · ${new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(new Date())}`);
+}
+
+function restoreFormDraft() {
+  const raw = localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const draft = JSON.parse(raw);
+    if (!draft || typeof draft !== "object") return;
+    const existing = state.candidates.find((candidate) => candidate.id === draft.id);
+    els.candidateId.value = existing ? existing.id : "";
+    els.name.value = draft.name || "";
+    els.department.value = DEPARTMENTS.includes(draft.department) ? draft.department : DEPARTMENTS[0];
+    els.hireCount.value = draft.hireCount || 1;
+    els.source.value = draft.source || els.source.value;
+    els.noticeType.value = draft.noticeType || "urgent";
+    els.noticeDate.value = draft.noticeDate || "";
+    els.employmentType.value = EMPLOYMENT_TYPES.includes(draft.employmentType) ? draft.employmentType : "정규직";
+    els.executionNo.value = executionDigits(draft.executionNo || "");
+    els.confirmedInterviewDate.value = draft.confirmedInterviewDate || "";
+    els.workStartDate.value = draft.workStartDate || "";
+    els.hireDate.value = draft.hireDate || "";
+    els.probationMonths.value = draft.probationMonths || 3;
+    els.status.value = draft.status || "진행중";
+    els.memo.value = draft.memo || "";
+    renderIntervieweeRows(draft.interviewees || []);
+    renderRecruitmentFieldRows(draft.recruitmentFields || []);
+    els.deleteButton.disabled = !existing;
+    renderSchedulePreview();
+    setFormDraftStatus(`임시 입력 복원됨 · ${formatDraftSavedAt(draft.savedAt)}`);
+  } catch (error) {
+    console.warn("입력 임시저장 복원 실패", error);
+  }
+}
+
+function clearFormDraft() {
+  clearTimeout(formDraftSaveTimer);
+  localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+  setFormDraftStatus("입력 내용은 이 브라우저에 자동 저장됩니다.");
+}
+
+function setFormDraftStatus(message) {
+  if (els.formDraftStatus) els.formDraftStatus.textContent = message;
+}
+
+function formatDraftSavedAt(value) {
+  if (!value) return "방금";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "방금";
+  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 function buildNoticePayload(candidate) {
