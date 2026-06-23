@@ -3533,9 +3533,11 @@ function buildNoticePayload(candidate) {
   const year = noticeDate.getFullYear();
   const jobTitle = primaryField.fieldName.replace(new RegExp(`^${escapeRegExp(primaryField.department)}\\s*`), "") || departmentJobTitle(department);
   const fieldName = primaryField.fieldName;
-  const fieldNamesCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.fieldName}`).join("\n");
-  const fieldCountsCell = recruitmentFields.map((field, index) => `${index + 1}. ${field.count}명`).join("\n");
-  const dutyLinesCell = recruitmentFields.map((field, index) => `${index + 1}. ${fieldDutyLine(field, candidate.workStartDate)}`).join("\n");
+  // HWPX 표는 부서별 한 행으로 읽히게 하고, 번호/직위는 메모장용 텍스트에서만 사용한다.
+  const fieldNamesCell = recruitmentFields.map((field) => field.department).join("\n");
+  const fieldCountsCell = recruitmentFields.map((field) => `${field.count}명`).join("\n");
+  const dutyLinesCell = recruitmentFields.map(() => "장애인자립생활지원 및 복지사업 업무 담당").join("\n");
+  const dutyLinesWithBulletCell = recruitmentFields.map(() => "• 장애인자립생활지원 및 복지사업 업무 담당").join("\n");
   const departmentLine = recruitmentFields.map((field) => `– ${field.department} (${field.count}명)`).join("\n");
   const workStartLine = candidate.workStartDate ? formatNoticeDateWithWeekday(parseDate(candidate.workStartDate)) : "추후 협의";
   const serial = normalizeExecutionNo(candidate.executionNo, year);
@@ -3553,6 +3555,7 @@ function buildNoticePayload(candidate) {
     fieldNamesCell,
     fieldCountsCell,
     dutyLinesCell,
+    dutyLinesWithBulletCell,
     workStartDate: candidate.workStartDate,
     serial,
     fileTitle,
@@ -3600,10 +3603,10 @@ function applyNoticeTemplate(xml, notice) {
     [/복지사업팀 간사/g, notice.fieldNamesCell],
     [/사회복지사\(복지사업팀\)/g, `${notice.jobTitle}(${notice.department})`],
     [/복지사업팀\s*간사/g, notice.fieldNamesCell],
-    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
-    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
-    [/1명 \/ •[^<]*?업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
-    [/1명 \/ •[^<]*?업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesCell}`],
+    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
+    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
+    [/1명 \/ •[^<]*?업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
+    [/1명 \/ •[^<]*?업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
     [/<hp:t>복지사업팀 간사<\/hp:t>/g, `<hp:t>${escapeXmlText(notice.fieldNamesCell)}</hp:t>`],
     [/<hp:t>1명<\/hp:t>/g, `<hp:t>${escapeXmlText(notice.fieldCountsCell)}</hp:t>`],
     [/장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, notice.dutyLinesCell],
