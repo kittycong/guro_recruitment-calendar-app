@@ -24,18 +24,49 @@ const PUBLIC_HOLIDAYS = {
   "2026-02-16": "설날 연휴",
   "2026-02-17": "설날",
   "2026-02-18": "설날 연휴",
+  "2026-03-01": "삼일절",
   "2026-03-02": "삼일절 대체공휴일",
+  "2026-05-01": "근로자의 날",
   "2026-05-05": "어린이날",
+  "2026-05-24": "부처님오신날",
   "2026-05-25": "부처님오신날 대체공휴일",
   "2026-06-03": "전국동시지방선거일",
   "2026-06-06": "현충일",
+  "2026-07-17": "제헌절",
+  "2026-08-15": "광복절",
   "2026-08-17": "광복절 대체공휴일",
   "2026-09-24": "추석 연휴",
   "2026-09-25": "추석",
   "2026-09-26": "추석 연휴",
+  "2026-10-03": "개천절",
   "2026-10-05": "개천절 대체공휴일",
   "2026-10-09": "한글날",
   "2026-12-25": "성탄절",
+  "2027-01-01": "신정",
+  "2027-02-06": "설날 연휴",
+  "2027-02-07": "설날",
+  "2027-02-08": "설날 연휴",
+  "2027-02-09": "설날 대체공휴일",
+  "2027-03-01": "삼일절",
+  "2027-05-01": "근로자의 날",
+  "2027-05-03": "근로자의 날 대체공휴일",
+  "2027-05-05": "어린이날",
+  "2027-05-13": "부처님오신날",
+  "2027-06-06": "현충일",
+  "2027-06-07": "현충일 대체공휴일",
+  "2027-07-17": "제헌절",
+  "2027-07-19": "제헌절 대체공휴일",
+  "2027-08-15": "광복절",
+  "2027-08-16": "광복절 대체공휴일",
+  "2027-09-14": "추석 연휴",
+  "2027-09-15": "추석",
+  "2027-09-16": "추석 연휴",
+  "2027-10-03": "개천절",
+  "2027-10-04": "개천절 대체공휴일",
+  "2027-10-09": "한글날",
+  "2027-10-11": "한글날 대체공휴일",
+  "2027-12-25": "성탄절",
+  "2027-12-27": "성탄절 대체공휴일",
 };
 const REGISTERED_RECRUITMENTS = [
   {
@@ -933,18 +964,20 @@ function createMonthCalendar(month, events) {
   for (let index = 0; index < 42; index += 1) {
     const date = addDays(calendarStart, index);
     const dateKey = toDateKey(date);
+    const holidayName = getPublicHolidayName(dateKey);
     const dayEvents = events.filter((event) => event.date === dateKey);
     const button = document.createElement("button");
     button.type = "button";
     button.className = [
       "day-cell",
       date.getMonth() !== month.getMonth() ? "other-month" : "",
+      holidayName ? "public-holiday" : "",
       dateKey === toDateKey(new Date()) ? "today" : "",
       dateKey === state.selectedDate ? "selected" : "",
     ]
       .filter(Boolean)
       .join(" ");
-    button.setAttribute("aria-label", `${formatDateLong(date)} 일정 ${dayEvents.length}건`);
+    button.setAttribute("aria-label", `${formatDateLong(date)}${holidayName ? ` ${holidayName}` : ""} 일정 ${dayEvents.length}건`);
     button.dataset.date = dateKey;
     button.addEventListener("click", () => {
       state.selectedDate = dateKey;
@@ -966,7 +999,7 @@ function createMonthCalendar(month, events) {
 
     const number = document.createElement("div");
     number.className = "day-number";
-    number.innerHTML = `<span>${date.getDate()}</span>`;
+    number.innerHTML = `<span>${date.getDate()}</span>${holidayName ? `<em>${escapeHtml(holidayName)}</em>` : ""}`;
     button.append(number);
 
     const todayKey = toDateKey(new Date());
@@ -4537,6 +4570,10 @@ function getReceptionHolidayAdjustments(startDate, baseEndDate) {
 function isWeekdayPublicHoliday(date) {
   const day = date.getDay();
   return day !== 0 && day !== 6 && Boolean(PUBLIC_HOLIDAYS[toDateKey(date)]);
+}
+
+function getPublicHolidayName(dateKey) {
+  return PUBLIC_HOLIDAYS[dateKey] || "";
 }
 
 function eachDate(start, end) {
