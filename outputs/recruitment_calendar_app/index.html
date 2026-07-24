@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260707-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260724-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -361,6 +361,7 @@
               <div class="document-actions">
                 <button class="primary-button full-button" id="saveCareerInquiryButton" type="button">채용자 정보 저장</button>
                 <button class="secondary-button full-button" id="downloadCareerInquiryButton" type="button">전력조회 공문 생성 후 다운로드</button>
+                <button class="ghost-button full-button" id="previewCareerInquiryButton" type="button">미리보기</button>
               </div>
               <p class="helper-text" id="careerInquiryStatus">채용자 목록에서 선택하면 기본 정보가 불러와집니다.</p>
             </section>
@@ -438,6 +439,7 @@
               <div class="document-actions">
                 <button class="primary-button full-button" id="saveProbationButton" type="button">수습자 저장</button>
                 <button class="secondary-button full-button" id="downloadProbationHwpxButton" type="button">수습평가표 생성 후 다운로드</button>
+                <button class="ghost-button full-button" id="previewProbationButton" type="button">미리보기</button>
               </div>
               <p class="helper-text" id="probationStatus">수습자는 입사일 기준으로 수습끝과 평가작성일이 자동 계산됩니다.</p>
             </section>
@@ -516,6 +518,7 @@
               <div class="document-actions">
                 <button class="secondary-button full-button" id="downloadHwpxButton" type="button">한글 공고 다운로드</button>
                 <button class="secondary-button full-button" id="downloadTxtButton" type="button">메모장용 TXT 다운로드</button>
+                <button class="ghost-button full-button" id="previewNoticeButton" type="button">미리보기</button>
               </div>
             </section>
 
@@ -578,7 +581,10 @@
                 <input id="evaluationFilesInput" class="file-input" type="file" accept=".hwpx" multiple />
               </label>
               <p class="helper-text">예: 면접자가 3명이면 평가표 HWPX 3개를 함께 선택합니다. 평가표가 없는 면접대상자는 불참으로 반영됩니다.</p>
-              <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 생성 후 다운로드</button>
+              <div class="document-actions">
+                <button class="secondary-button full-button" id="downloadMinutesButton" type="button">인사회의록 생성 후 다운로드</button>
+                <button class="ghost-button full-button" id="previewMinutesButton" type="button">미리보기</button>
+              </div>
               <p class="helper-text" id="minutesDownloadStatus">생성할 항목을 설정한 뒤 다운로드하세요.</p>
             </section>
           </div>
@@ -636,9 +642,22 @@
       </form>
     </dialog>
 
+    <dialog class="doc-preview-dialog" id="docPreviewDialog" aria-labelledby="docPreviewTitle">
+      <div class="doc-preview-toolbar">
+        <span class="doc-preview-eyebrow">PDF 미리보기</span>
+        <button type="button" class="doc-preview-close" id="docPreviewClose" aria-label="닫기">✕</button>
+      </div>
+      <div class="doc-preview-page">
+        <div class="doc-preview-seal" id="docPreviewSeal"></div>
+        <div class="doc-preview-org">구로장애인자립생활센터</div>
+        <h3 class="doc-preview-title" id="docPreviewTitle"></h3>
+        <pre class="doc-preview-body" id="docPreviewBody"></pre>
+      </div>
+    </dialog>
+
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./jszip.min.js?v=20260707-1"></script>
     <script src="./template-data.js?v=20260707-1"></script>
-    <script src="./app.js?v=20260724-1"></script>
+    <script src="./app.js?v=20260724-2"></script>
   </body>
 </html>

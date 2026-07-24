@@ -330,6 +330,15 @@ const els = {
   googleCalendarId: document.querySelector("#googleCalendarIdInput"),
   googleCalendarStatus: document.querySelector("#googleCalendarStatus"),
   employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
+  docPreviewDialog: document.querySelector("#docPreviewDialog"),
+  docPreviewClose: document.querySelector("#docPreviewClose"),
+  docPreviewSeal: document.querySelector("#docPreviewSeal"),
+  docPreviewTitle: document.querySelector("#docPreviewTitle"),
+  docPreviewBody: document.querySelector("#docPreviewBody"),
+  previewNoticeButton: document.querySelector("#previewNoticeButton"),
+  previewMinutesButton: document.querySelector("#previewMinutesButton"),
+  previewProbationButton: document.querySelector("#previewProbationButton"),
+  previewCareerInquiryButton: document.querySelector("#previewCareerInquiryButton"),
   downloadHwpxButton: document.querySelector("#downloadHwpxButton"),
   downloadTxtButton: document.querySelector("#downloadTxtButton"),
   reissueSource: document.querySelector("#reissueSourceInput"),
@@ -506,17 +515,25 @@ function bindEvents() {
   });
   els.downloadHwpxButton.addEventListener("click", downloadHwpxNotice);
   els.downloadTxtButton.addEventListener("click", downloadTxtNotice);
+  els.previewNoticeButton?.addEventListener("click", previewNotice);
   els.noticeRecruitment.addEventListener("change", () => {
     const candidate = state.candidates.find((item) => item.id === els.noticeRecruitment.value);
     if (candidate) fillForm(candidate);
   });
   els.createReissueButton.addEventListener("click", createReissueRecruitment);
   els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
+  els.previewMinutesButton?.addEventListener("click", previewMinutes);
   els.addProbationButton?.addEventListener("click", resetProbationForm);
   els.saveProbationButton?.addEventListener("click", saveProbationFromForm);
   els.downloadProbationHwpxButton?.addEventListener("click", downloadProbationHwpx);
+  els.previewProbationButton?.addEventListener("click", previewProbation);
   els.saveCareerInquiryButton?.addEventListener("click", saveCareerInquiryDetails);
   els.downloadCareerInquiryButton?.addEventListener("click", downloadCareerInquiryDocument);
+  els.previewCareerInquiryButton?.addEventListener("click", previewCareerInquiry);
+  els.docPreviewClose?.addEventListener("click", () => els.docPreviewDialog.close());
+  els.docPreviewDialog?.addEventListener("click", (event) => {
+    if (event.target === els.docPreviewDialog) els.docPreviewDialog.close();
+  });
   els.careerExecutionNo?.addEventListener("input", () => {
     els.careerExecutionNo.value = els.careerExecutionNo.value.replace(/\D/g, "").slice(0, 3);
   });
@@ -2972,6 +2989,64 @@ function buildProbationPreviewText(payload) {
     "",
     payload.evaluationText,
   ].join("\n");
+}
+
+function openDocPreview({ title, body, seal }) {
+  if (!els.docPreviewDialog) return;
+  els.docPreviewSeal.textContent = seal || "";
+  els.docPreviewTitle.textContent = title || "";
+  els.docPreviewBody.textContent = body || "";
+  if (typeof els.docPreviewDialog.showModal === "function") {
+    els.docPreviewDialog.showModal();
+  } else {
+    els.docPreviewDialog.setAttribute("open", "");
+  }
+}
+
+function previewNotice() {
+  const draft = getDraftRecruitment();
+  if (!validateNoticeDraft(draft)) return;
+  const notice = buildNoticePayload(draft);
+  openDocPreview({ title: notice.mainTitle, body: buildNotepadNoticeText(notice), seal: "공고" });
+}
+
+async function previewMinutes() {
+  const draft = getMinutesCandidate();
+  if (!draft.name || !draft.department) {
+    alert("대상 공고를 선택하세요.");
+    return;
+  }
+  if (!draft.confirmedInterviewDate) {
+    alert("면접일정을 먼저 확정 입력하세요.");
+    return;
+  }
+  if (!normalizeInterviewees(draft.interviewees || []).length) {
+    alert("면접 대상자를 1명 이상 등록하세요.");
+    return;
+  }
+  const evaluationFiles = Array.from(els.evaluationFiles?.files || []);
+  const evaluationDocs = evaluationFiles.length ? await Promise.all(evaluationFiles.map(readEvaluationHwpx)) : [];
+  const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
+  openDocPreview({ title: minutes.fileTitle, body: minutes.previewText, seal: "회의" });
+}
+
+function previewProbation() {
+  const record = readProbationForm();
+  if (!record.name || !record.department || !record.hireDate) {
+    alert("수습평가 대상자의 이름, 부서, 입사일을 입력하세요.");
+    return;
+  }
+  const payload = buildProbationEvaluationPayload(record);
+  openDocPreview({ title: `수습직원 근무평가표 · ${payload.name}`, body: buildProbationPreviewText(payload), seal: "평가" });
+}
+
+function previewCareerInquiry() {
+  const detail = readCareerInquiryForm();
+  if (!detail.name || !detail.birth) {
+    alert("채용자 성명과 생년월일을 입력하세요.");
+    return;
+  }
+  openDocPreview({ title: `전력조회 요청 · ${detail.name}`, body: buildCareerInquiryPreviewText(detail), seal: "조회" });
 }
 
 async function downloadHwpxNotice() {
