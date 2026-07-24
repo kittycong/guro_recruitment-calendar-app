@@ -4,11 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260724-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260724-4" />
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="채용 일정 입력">
+      <main class="main">
         <div class="brand">
           <div>
             <h1>채용 달력 관리</h1>
@@ -16,12 +16,13 @@
           </div>
         </div>
 
-        <section class="panel">
-          <div class="panel-heading">
-            <h2>채용 공고 등록</h2>
-            <button class="icon-button" id="resetFormButton" type="button" aria-label="입력 초기화" title="입력 초기화">↺</button>
-          </div>
-          <form id="candidateForm" class="candidate-form">
+        <section class="view-panel" id="registerView" aria-label="채용 공고 등록">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>채용 공고 등록</h2>
+              <button class="icon-button" id="resetFormButton" type="button" aria-label="입력 초기화" title="입력 초기화">↺</button>
+            </div>
+            <form id="candidateForm" class="candidate-form">
             <input type="hidden" id="candidateId" />
             <label>
               채용건명
@@ -141,11 +142,10 @@
               <button class="secondary-button" id="deleteButton" type="button" disabled>삭제</button>
             </div>
             <p class="helper-text" id="formDraftStatus" aria-live="polite">입력 내용은 이 브라우저에 자동 저장됩니다.</p>
-          </form>
+            </form>
+          </section>
         </section>
-      </aside>
 
-      <main class="main">
         <header class="toolbar">
           <div class="month-controls">
             <button class="icon-button" id="prevMonthButton" type="button" aria-label="이전 달" title="이전 달">‹</button>
@@ -201,6 +201,7 @@
 
         <div class="view-shell">
         <nav class="view-tabs" aria-label="화면 전환">
+          <button type="button" class="view-tab" data-view="register">채용 공고 등록</button>
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
           <button type="button" class="view-tab" data-view="interviews">면접관리</button>
           <button type="button" class="view-tab" data-view="list">채용목록</button>
@@ -360,6 +361,7 @@
               <div class="probation-form-grid">
                 <label>전력조회 공문 양식<input id="careerTemplateFileInput" class="file-input" type="file" accept=".hwpx,.hwtx" /></label>
               </div>
+              <p class="helper-text template-cache-status" id="careerTemplateCacheStatus"></p>
               <div class="document-actions">
                 <button class="primary-button full-button" id="saveCareerInquiryButton" type="button">채용자 정보 저장</button>
                 <button class="secondary-button full-button" id="downloadCareerInquiryButton" type="button">전력조회 공문 생성 후 다운로드</button>
@@ -438,6 +440,7 @@
                 <label>수습평가표 양식 HWPX<input id="probationTemplateFileInput" class="file-input" type="file" accept=".hwpx" /></label>
                 <label>작성날짜<input id="probationWrittenDateInput" type="date" /></label>
               </div>
+              <p class="helper-text template-cache-status" id="probationTemplateCacheStatus"></p>
               <div class="document-actions">
                 <button class="primary-button full-button" id="saveProbationButton" type="button">수습자 저장</button>
                 <button class="secondary-button full-button" id="downloadProbationHwpxButton" type="button">수습평가표 생성 후 다운로드</button>
@@ -450,6 +453,18 @@
 
         <section class="view-panel" id="documentsView" aria-label="공고 및 한글 문서 생성">
           <div class="document-page">
+            <section class="document-panel generated-docs-panel" aria-label="생성 문서함">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Generated Documents</p>
+                  <h2>생성 문서함</h2>
+                </div>
+                <span id="generatedDocsCount">0건</span>
+              </div>
+              <p class="helper-text">공고/회의록/수습평가표/전력조회 공문을 다운로드할 때마다 이 목록에 자동으로 기록됩니다. 필요하면 다시 다운로드하거나 목록에서 지울 수 있습니다.</p>
+              <div id="generatedDocsList" class="generated-docs-list"></div>
+            </section>
+
             <section class="document-panel reissue-generator" aria-label="적격자 없음 재공고 등록">
               <div class="document-panel-header">
                 <div>
@@ -578,6 +593,7 @@
                 인사회의록 양식 HWPX
                 <input id="minutesTemplateFileInput" class="file-input" type="file" accept=".hwpx" />
               </label>
+              <p class="helper-text template-cache-status" id="minutesTemplateCacheStatus"></p>
               <label>
                 개인별 면접평가표 HWPX
                 <input id="evaluationFilesInput" class="file-input" type="file" accept=".hwpx" multiple />
@@ -662,6 +678,6 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./jszip.min.js?v=20260707-1"></script>
     <script src="./template-data.js?v=20260707-1"></script>
-    <script src="./app.js?v=20260724-2"></script>
+    <script src="./app.js?v=20260724-3"></script>
   </body>
 </html>

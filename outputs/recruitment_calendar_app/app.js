@@ -1,6 +1,9 @@
 const STORAGE_KEY = "recruitment-calendar-recruitments-v2";
 const PROBATION_STORAGE_KEY = "recruitment-calendar-probations-v1";
 const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
+const GENERATED_DOCS_STORAGE_KEY = "recruitment-calendar-generated-docs-v1";
+const GENERATED_DOCS_LIMIT = 30;
+const TEMPLATE_CACHE_KEY = "recruitment-calendar-template-cache-v1";
 const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const DATA_BACKUP_KEY = "recruitment-calendar-data-backup-v1";
 const DATA_BACKUP_PREFIX = "recruitment-calendar-data-backup-";
@@ -276,6 +279,8 @@ const state = {
   candidates: loadCandidates(),
   probations: loadProbations(),
   hiredDetails: loadHiredDetails(),
+  generatedDocuments: readJsonValue(GENERATED_DOCS_STORAGE_KEY, []),
+  templateCache: readJsonValue(TEMPLATE_CACHE_KEY, {}),
   filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire", "probationStart", "probationReview", "probationEnd"]),
   search: "",
   employmentTypeFilter: localStorage.getItem("recruitment-employment-type-filter") || "all",
@@ -330,6 +335,11 @@ const els = {
   googleCalendarId: document.querySelector("#googleCalendarIdInput"),
   googleCalendarStatus: document.querySelector("#googleCalendarStatus"),
   employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
+  generatedDocsList: document.querySelector("#generatedDocsList"),
+  generatedDocsCount: document.querySelector("#generatedDocsCount"),
+  minutesTemplateCacheStatus: document.querySelector("#minutesTemplateCacheStatus"),
+  probationTemplateCacheStatus: document.querySelector("#probationTemplateCacheStatus"),
+  careerTemplateCacheStatus: document.querySelector("#careerTemplateCacheStatus"),
   docPreviewDialog: document.querySelector("#docPreviewDialog"),
   docPreviewClose: document.querySelector("#docPreviewClose"),
   docPreviewSeal: document.querySelector("#docPreviewSeal"),
@@ -772,6 +782,8 @@ function render() {
   renderSearchResults();
   renderKanban();
   renderTimeline();
+  renderGeneratedDocuments();
+  renderTemplateCacheStatus();
 }
 
 function renderCalendarSize() {
@@ -1265,6 +1277,9 @@ function addInterviewForSelectedDate() {
   els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), -8));
   els.name.value = `${els.department.value} 직원 채용`;
   state.rightTab = "day";
+  state.activeView = "register";
+  localStorage.setItem("recruitment-active-view", state.activeView);
+  renderViewTabs();
   renderSchedulePreview();
   els.name.focus();
 }
@@ -1274,6 +1289,9 @@ function addDeadlineForSelectedDate() {
   els.noticeDate.value = toDateKey(addDays(parseDate(state.selectedDate), els.noticeType.value === "normal" ? -15 : -8));
   els.name.value = `${els.department.value} 직원 채용`;
   state.rightTab = "day";
+  state.activeView = "register";
+  localStorage.setItem("recruitment-active-view", state.activeView);
+  renderViewTabs();
   renderSchedulePreview();
   els.name.focus();
 }
@@ -1838,12 +1856,12 @@ async function downloadCareerInquiryDocument() {
       alert("채용자 성명과 생년월일을 입력하세요.");
       return;
     }
-    const templateFile = els.careerTemplateFile.files?.[0];
-    assertHwpxPackageUpload(templateFile, "전력조회 공문 양식");
     if (!window.JSZip) {
       alert("문서 생성 모듈을 불러오지 못했습니다.");
       return;
     }
+    const templateFile = await resolveTemplateFile("career", els.careerTemplateFile, "전력조회 공문 양식");
+    assertHwpxPackageUpload(templateFile, "전력조회 공문 양식");
     state.hiredDetails[detail.key] = detail;
     persistHiredDetails();
     const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
@@ -1860,6 +1878,7 @@ async function downloadCareerInquiryDocument() {
     const fileName = `${safeFileName(`${detail.executionNo || "GR2026-000"} 구로장애인자립생활센터 종사자 전력조회 요청(${detail.name})`)}.${ext}`;
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
     downloadBlob(blob, fileName);
+    recordGeneratedDocument({ type: "career", typeLabel: "전력조회 공문", title: `전력조회 요청 · ${detail.name}`, fileName, blob });
     renderHiredPeopleList();
     setCareerInquiryStatus(`${fileName} 다운로드를 시작했습니다.`);
   } catch (error) {
@@ -2020,7 +2039,7 @@ function renderSearchResults() {
 
 function addInterviewFromManagement() {
   resetForm();
-  state.activeView = "interviews";
+  state.activeView = "register";
   localStorage.setItem("recruitment-active-view", state.activeView);
   els.confirmedInterviewDate.value = state.selectedDate || toDateKey(new Date());
   els.name.value = `${els.department.value} 직원 채용`;
@@ -2031,7 +2050,7 @@ function addInterviewFromManagement() {
 
 function addRecruitmentFromList() {
   resetForm();
-  state.activeView = "list";
+  state.activeView = "register";
   localStorage.setItem("recruitment-active-view", state.activeView);
   render();
   els.name.focus();
@@ -2102,6 +2121,9 @@ function fillForm(candidate) {
   fillMinutesDefaults(candidate);
   els.deleteButton.disabled = false;
   renderSchedulePreview();
+  state.activeView = "register";
+  localStorage.setItem("recruitment-active-view", state.activeView);
+  renderViewTabs();
   els.name.focus();
 }
 
@@ -2843,12 +2865,12 @@ async function downloadProbationHwpx() {
       alert("수습평가 대상자의 이름, 부서, 입사일을 입력하세요.");
       return;
     }
-    const templateFile = els.probationTemplateFile.files?.[0];
-    assertHwpxUpload(templateFile, "수습평가표 양식");
     if (!window.JSZip) {
       alert("문서 생성 모듈을 불러오지 못했습니다.");
       return;
     }
+    const templateFile = await resolveTemplateFile("probation", els.probationTemplateFile, "수습평가표 양식");
+    assertHwpxUpload(templateFile, "수습평가표 양식");
     const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
     const sectionPath = findFirstSectionPath(zip);
     if (!sectionPath) {
@@ -2863,6 +2885,7 @@ async function downloadProbationHwpx() {
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
     const fileName = `${safeFileName(`수습직원 근무평가표_${payload.name}_${payload.resultLabel}`)}.hwpx`;
     downloadBlob(blob, fileName);
+    recordGeneratedDocument({ type: "probation", typeLabel: "수습평가표", title: `수습직원 근무평가표 · ${payload.name}`, fileName, blob });
     setProbationStatus(`${fileName} 다운로드를 시작했습니다.`);
   } catch (error) {
     console.error("수습평가표 생성 오류", error);
@@ -2991,6 +3014,127 @@ function buildProbationPreviewText(payload) {
   ].join("\n");
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function recordGeneratedDocument({ type, typeLabel, title, fileName, blob }) {
+  try {
+    const dataUrl = await blobToDataUrl(blob);
+    state.generatedDocuments = [
+      { id: crypto.randomUUID(), type, typeLabel, title, fileName, dataUrl, generatedAt: new Date().toISOString() },
+      ...(state.generatedDocuments || []),
+    ].slice(0, GENERATED_DOCS_LIMIT);
+    persistGeneratedDocuments();
+    renderGeneratedDocuments();
+  } catch (error) {
+    console.error("생성 문서함 기록 실패", error);
+  }
+}
+
+function persistGeneratedDocuments() {
+  localStorage.setItem(GENERATED_DOCS_STORAGE_KEY, JSON.stringify(state.generatedDocuments || []));
+}
+
+function downloadDataUrl(dataUrl, fileName) {
+  const link = document.createElement("a");
+  link.href = dataUrl;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+function formatDateTimeShort(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function renderGeneratedDocuments() {
+  if (!els.generatedDocsList) return;
+  const docs = state.generatedDocuments || [];
+  if (els.generatedDocsCount) els.generatedDocsCount.textContent = `${docs.length}건`;
+  if (!docs.length) {
+    els.generatedDocsList.innerHTML = `<div class="empty-state">아직 생성한 문서가 없습니다. 아래에서 공고/회의록/수습평가표/전력조회 공문을 생성하면 여기에 기록됩니다.</div>`;
+    return;
+  }
+  els.generatedDocsList.innerHTML = docs
+    .map(
+      (doc) => `
+    <article class="generated-doc-row" data-doc-id="${escapeHtml(doc.id)}">
+      <div class="generated-doc-info">
+        <span class="generated-doc-type">${escapeHtml(doc.typeLabel)}</span>
+        <div>
+          <strong>${escapeHtml(doc.title)}</strong>
+          <span class="generated-doc-meta">${escapeHtml(doc.fileName)} · ${escapeHtml(formatDateTimeShort(doc.generatedAt))}</span>
+        </div>
+      </div>
+      <div class="generated-doc-actions">
+        <button type="button" class="ghost-button" data-doc-action="download">다운로드</button>
+        <button type="button" class="ghost-button" data-doc-action="delete">삭제</button>
+      </div>
+    </article>`,
+    )
+    .join("");
+  els.generatedDocsList.querySelectorAll('[data-doc-action="download"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.closest("[data-doc-id]")?.dataset.docId;
+      const doc = (state.generatedDocuments || []).find((item) => item.id === id);
+      if (doc) downloadDataUrl(doc.dataUrl, doc.fileName);
+    });
+  });
+  els.generatedDocsList.querySelectorAll('[data-doc-action="delete"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.closest("[data-doc-id]")?.dataset.docId;
+      state.generatedDocuments = (state.generatedDocuments || []).filter((item) => item.id !== id);
+      persistGeneratedDocuments();
+      renderGeneratedDocuments();
+    });
+  });
+}
+
+function dataUrlToFile(dataUrl, fileName) {
+  const [meta, base64] = dataUrl.split(",");
+  const mime = /data:(.*?);base64/.exec(meta)?.[1] || "application/octet-stream";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new File([bytes], fileName, { type: mime });
+}
+
+async function resolveTemplateFile(type, inputEl, label) {
+  const picked = inputEl?.files?.[0];
+  if (picked) {
+    const dataUrl = await blobToDataUrl(picked);
+    state.templateCache[type] = { fileName: picked.name, dataUrl };
+    localStorage.setItem(TEMPLATE_CACHE_KEY, JSON.stringify(state.templateCache));
+    renderTemplateCacheStatus();
+    return picked;
+  }
+  const cached = state.templateCache[type];
+  if (cached) return dataUrlToFile(cached.dataUrl, cached.fileName);
+  throw new Error(`${label} 파일을 선택하세요.`);
+}
+
+function renderTemplateCacheStatus() {
+  const map = [
+    ["minutes", els.minutesTemplateCacheStatus],
+    ["probation", els.probationTemplateCacheStatus],
+    ["career", els.careerTemplateCacheStatus],
+  ];
+  map.forEach(([type, el]) => {
+    if (!el) return;
+    const cached = state.templateCache[type];
+    el.textContent = cached ? `최근 사용 양식: ${cached.fileName} (파일을 다시 선택하지 않으면 이 양식을 자동으로 사용합니다)` : "";
+  });
+}
+
 function openDocPreview({ title, body, seal }) {
   if (!els.docPreviewDialog) return;
   els.docPreviewSeal.textContent = seal || "";
@@ -3080,7 +3224,9 @@ async function downloadHwpxNotice() {
   }
 
   const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
-  downloadBlob(blob, `${safeFileName(notice.fileTitle)}.hwpx`);
+  const fileName = `${safeFileName(notice.fileTitle)}.hwpx`;
+  downloadBlob(blob, fileName);
+  recordGeneratedDocument({ type: "notice", typeLabel: "공고", title: notice.mainTitle, fileName, blob });
 }
 
 function downloadTxtNotice() {
@@ -3090,7 +3236,9 @@ function downloadTxtNotice() {
   }
   const notice = buildNoticePayload(draft);
   const blob = new Blob([buildNotepadNoticeText(notice)], { type: "text/plain;charset=utf-8" });
-  downloadBlob(blob, `${safeFileName(notice.fileTitle)}_메모장용.txt`);
+  const fileName = `${safeFileName(notice.fileTitle)}_메모장용.txt`;
+  downloadBlob(blob, fileName);
+  recordGeneratedDocument({ type: "notice", typeLabel: "공고(TXT)", title: notice.mainTitle, fileName, blob });
 }
 
 async function downloadPersonnelMinutes() {
@@ -3107,7 +3255,7 @@ async function downloadPersonnelMinutes() {
       return;
     }
 
-    const templateFile = els.minutesTemplateFile.files?.[0];
+    const templateFile = await resolveTemplateFile("minutes", els.minutesTemplateFile, "인사회의록 양식");
     const evaluationFiles = Array.from(els.evaluationFiles.files || []);
     assertHwpxUpload(templateFile, "인사회의록 양식");
     evaluationFiles.forEach((file) => assertHwpxUpload(file, "면접평가표"));
@@ -3132,6 +3280,7 @@ async function downloadPersonnelMinutes() {
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
     const fileName = `${safeFileName(minutes.fileTitle)}.hwpx`;
     downloadBlob(blob, fileName);
+    recordGeneratedDocument({ type: "minutes", typeLabel: "인사회의록", title: minutes.fileTitle, fileName, blob });
     setMinutesDownloadStatus(`${fileName} 다운로드를 시작했습니다.`);
   } catch (error) {
     console.error("인사회의록 생성 오류", error);
@@ -3159,7 +3308,7 @@ function validateMinutesDraft(draft) {
     alert("면접일정을 먼저 확정 입력하세요.");
     return false;
   }
-  if (!els.minutesTemplateFile.files?.length) {
+  if (!els.minutesTemplateFile.files?.length && !state.templateCache.minutes) {
     alert("인사회의록 양식 HWPX 파일을 선택하세요.");
     return false;
   }
