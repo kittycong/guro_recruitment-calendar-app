@@ -742,15 +742,28 @@ button:focus-visible {
   font-weight: 800;
 }
 
+.view-shell {
+  display: grid;
+  grid-template-columns: 172px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.view-panels {
+  min-width: 0;
+}
+
 .view-tabs {
   position: sticky;
   top: 82px;
   z-index: 19;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
   border: 1px solid rgba(210, 210, 215, 0.72);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.82);
-  padding: 6px;
-  margin-bottom: 14px;
+  padding: 8px;
   backdrop-filter: blur(18px);
 }
 
@@ -766,6 +779,12 @@ button:focus-visible {
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.view-tab {
+  flex: none;
+  text-align: left;
+  border-radius: 12px;
 }
 
 .view-tab.active,
@@ -2108,8 +2127,18 @@ hr {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .view-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .view-tabs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
   .view-tab {
-    flex-basis: calc(50% - 6px);
+    flex: none;
+    text-align: center;
   }
 
   .date-grid,

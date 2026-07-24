@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
-    <link rel="stylesheet" href="./styles.css?v=20260724-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260724-3" />
   </head>
   <body>
     <div class="app-shell">
@@ -199,6 +199,7 @@
 
         <section class="deadline-banner" id="deadlineBanner" aria-label="마감 알림"></section>
 
+        <div class="view-shell">
         <nav class="view-tabs" aria-label="화면 전환">
           <button type="button" class="view-tab active" data-view="calendar">달력</button>
           <button type="button" class="view-tab" data-view="interviews">면접관리</button>
@@ -210,6 +211,7 @@
           <button type="button" class="view-tab" data-view="timeline">타임라인</button>
         </nav>
 
+        <div class="view-panels">
         <section class="content-grid view-panel active" id="calendarView">
           <div class="calendar-panel">
             <div class="filter-row" aria-label="일정 필터">
@@ -597,6 +599,8 @@
         <section class="view-panel" id="timelineView" aria-label="채용건 타임라인">
           <div id="timelineBoard" class="timeline-board"></div>
         </section>
+        </div>
+        </div>
       </main>
     </div>
 
