@@ -647,6 +647,7 @@ async function saveCandidateFromForm() {
     noticeType: els.noticeType.value,
     noticeDate: els.noticeDate.value,
     documentEndDate: previousCandidate?.documentEndDate || "",
+    screeningDateOverride: previousCandidate?.screeningDateOverride || "",
     employmentType: els.employmentType.value,
     executionNo: getExecutionNoFromInput(),
     confirmedInterviewDate: els.confirmedInterviewDate.value,
@@ -1006,7 +1007,17 @@ function createMonthCalendar(month, events) {
     dayEvents.slice(0, 3).forEach((event) => {
       const chip = document.createElement("span");
       chip.className = `event-chip ${event.type} ${event.period || ""} ${event.date < todayKey ? "past-event" : ""} dept-${departmentKey(event.candidate.department)}`.trim();
-      chip.draggable = ["notice", "interview", "deadline", "workStart", "hire"].includes(event.type);
+      chip.draggable = [
+        "notice",
+        "interview",
+        "deadline",
+        "screening",
+        "workStart",
+        "hire",
+        "probationStart",
+        "probationReview",
+        "probationEnd",
+      ].includes(event.type);
       chip.title = chip.draggable ? "끌어서 다른 날짜로 이동" : calendarEventLabel(event);
       chip.addEventListener("click", (clickEvent) => {
         clickEvent.stopPropagation();
@@ -1258,6 +1269,25 @@ function moveCalendarEvent(payload, targetDate) {
   } catch {
     return;
   }
+
+  if (data.type === "probationStart" || data.type === "probationReview" || data.type === "probationEnd") {
+    const record = state.probations.find((item) => item.id === data.candidateId);
+    if (!record) return;
+    if (data.type === "probationStart") {
+      record.hireDate = targetDate;
+    } else if (data.type === "probationReview") {
+      record.reviewDateOverride = targetDate;
+    } else if (data.type === "probationEnd") {
+      record.endDateOverride = targetDate;
+    }
+    persistProbations();
+    state.selectedDate = targetDate;
+    state.currentMonth = startOfMonth(parseDate(targetDate));
+    state.rightTab = "day";
+    render();
+    return;
+  }
+
   const candidate = state.candidates.find((item) => item.id === data.candidateId);
   if (!candidate) return;
 
@@ -1267,6 +1297,8 @@ function moveCalendarEvent(payload, targetDate) {
     candidate.confirmedInterviewDate = targetDate;
   } else if (data.type === "deadline") {
     candidate.documentEndDate = targetDate;
+  } else if (data.type === "screening") {
+    candidate.screeningDateOverride = targetDate;
   } else if (data.type === "workStart") {
     if (data.fieldId) {
       candidate.recruitmentFields = normalizeRecruitmentFields(candidate.recruitmentFields, candidate).map((field) =>
@@ -2703,6 +2735,9 @@ function saveProbationFromForm() {
     return;
   }
   const index = state.probations.findIndex((item) => item.id === record.id);
+  const previousRecord = index >= 0 ? state.probations[index] : null;
+  record.reviewDateOverride = previousRecord?.reviewDateOverride || "";
+  record.endDateOverride = previousRecord?.endDateOverride || "";
   if (index >= 0) state.probations[index] = record;
   else state.probations.push(record);
   persistProbations();
@@ -2740,8 +2775,12 @@ function updateProbationComputedFields() {
 
 function buildProbationSummary(record) {
   const hireDate = record.hireDate ? parseDate(record.hireDate) : null;
-  const end = hireDate ? addDays(addMonths(hireDate, 3), -1) : null;
-  const review = end ? addDays(end, -31) : null;
+  const calculatedEnd = hireDate ? addDays(addMonths(hireDate, 3), -1) : null;
+  const manualEnd = record.endDateOverride ? parseDate(record.endDateOverride) : null;
+  const end = manualEnd && !Number.isNaN(manualEnd.getTime()) ? manualEnd : calculatedEnd;
+  const calculatedReview = end ? addDays(end, -31) : null;
+  const manualReview = record.reviewDateOverride ? parseDate(record.reviewDateOverride) : null;
+  const review = manualReview && !Number.isNaN(manualReview.getTime()) ? manualReview : calculatedReview;
   const renewal = end ? addDays(addYears(end, 1), -1) : null;
   return {
     year: hireDate ? hireDate.getFullYear() : "",
@@ -4205,6 +4244,8 @@ function normalizeProbations(items) {
     scores: normalizeProbationScores(item.scores || []),
     totalScore: item.totalScore === "" || item.totalScore === undefined ? "" : Number(item.totalScore),
     writtenDate: item.writtenDate || "",
+    reviewDateOverride: item.reviewDateOverride || "",
+    endDateOverride: item.endDateOverride || "",
   }));
 }
 
@@ -4534,7 +4575,10 @@ function buildSchedule(candidate) {
     manualDocumentEndDate && !Number.isNaN(manualDocumentEndDate.getTime()) && manualDocumentEndDate >= documentStartDate
       ? manualDocumentEndDate
       : calculatedDocumentEndDate;
-  const screeningDate = addDays(documentEndDate, 1);
+  const calculatedScreeningDate = addDays(documentEndDate, 1);
+  const manualScreeningDate = candidate.screeningDateOverride ? parseDate(candidate.screeningDateOverride) : null;
+  const screeningDate =
+    manualScreeningDate && !Number.isNaN(manualScreeningDate.getTime()) ? manualScreeningDate : calculatedScreeningDate;
   const plannedInterviewDate = addDays(documentEndDate, 2);
   const interviewBaseDate = candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : plannedInterviewDate;
   const eligibilityStartDate = nextBusinessDay(addDays(interviewBaseDate, 1));
