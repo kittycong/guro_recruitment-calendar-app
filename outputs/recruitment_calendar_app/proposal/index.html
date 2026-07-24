@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>화면 구성 개선안 · 채용 달력 관리</title>
+<style>
+  :root {
+    --paper: #F5F3EE;
+    --paper-raised: #FFFFFF;
+    --ink: #22262A;
+    --ink-soft: #55585A;
+    --muted: #8A8D87;
+    --line: rgba(34,38,42,0.12);
+    --accent: #1F5F5B;
+    --accent-ink: #12403D;
+    --accent-soft: #E3EDEA;
+    --seal: #B23A2E;
+    --seal-soft: #F5E4E1;
+    --success: #3F7A45;
+    --success-soft: #E4EEE1;
+    --warning: #B8842A;
+    --warning-soft: #F6EBD8;
+    --shadow: 0 1px 2px rgba(20,20,18,0.06), 0 6px 20px rgba(20,20,18,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1A1C1B;
+      --paper-raised: #222524;
+      --ink: #ECE9E2;
+      --ink-soft: #B9B6AD;
+      --muted: #83857F;
+      --line: rgba(236,233,226,0.14);
+      --accent: #5FB0A8;
+      --accent-ink: #A9DAD4;
+      --accent-soft: #1D3634;
+      --seal: #E07A6C;
+      --seal-soft: #3A211F;
+      --success: #82C087;
+      --success-soft: #223821;
+      --warning: #E3B15C;
+      --warning-soft: #3B2E17;
+      --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--paper); }
+  .wrap {
+    max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px;
+    font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink);
+  }
+  .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft);
+    text-decoration: none; margin-bottom: 18px; }
+  .back-link:hover { color: var(--accent-ink); }
+  .eyebrow {
+    font-family: "Courier New", ui-monospace, Consolas, monospace;
+    font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-ink); margin: 0 0 10px;
+  }
+  h1 { font-size: 27px; line-height: 1.35; margin: 0 0 12px; text-wrap: balance; letter-spacing: -0.01em; }
+  .lede { font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); max-width: 66ch; margin: 0 0 22px; }
+
+  .mode-switch { display: inline-flex; gap: 4px; padding: 4px; background: var(--paper-raised);
+    border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .mode-switch button {
+    font: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 7px;
+    border: none; background: transparent; color: var(--ink-soft); cursor: pointer;
+  }
+  .mode-switch button.active { background: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { .mode-switch button.active { color: #0E1615; } }
+
+  .stage { margin-top: 26px; }
+  .browser-chrome {
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; box-shadow: var(--shadow);
+  }
+  .browser-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-bottom: 1px solid var(--line); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .url-pill { font-family: "Courier New", ui-monospace, Consolas, monospace; font-size: 11.5px;
+    color: var(--muted); background: var(--paper); border: 1px solid var(--line);
+    border-radius: 100px; padding: 4px 12px; flex: 1; }
+
+  /* ---- KPI bar (persistent summary) ---- */
+  .kpi-bar { display: flex; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line);
+    background: var(--accent-soft); flex-wrap: wrap; }
+  .kpi-chip { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 9px;
+    padding: 7px 13px; display: flex; align-items: baseline; gap: 7px; }
+  .kpi-chip b { font-size: 16px; font-variant-numeric: tabular-nums; }
+  .kpi-chip span { font-size: 12px; color: var(--ink-soft); }
+
+  /* ================= AS-IS view ================= */
+  #asis-view .app-body { height: 540px; overflow-y: auto; padding: 4px 0; }
+  .len-flag { display: flex; align-items: center; gap: 8px; padding: 10px 18px;
+    font-size: 12.5px; color: var(--seal); background: var(--seal-soft); }
+  .len-flag b { font-weight: 700; }
+  .stacked-block { padding: 20px 22px; border-bottom: 1px solid var(--line); }
+  .stacked-block h3 { margin: 0 0 4px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .stacked-block h3 .glyph { width: 22px; height: 22px; border-radius: 6px; background: var(--accent-soft);
+    color: var(--accent-ink); font-size: 11px; font-weight: 700; display: inline-flex;
+    align-items: center; justify-content: center; }
+  .stacked-block p.desc { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
+  .mini-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mini-card { border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: 12.5px;
+    background: var(--paper-raised); flex: 1 1 220px; }
+  .mini-card .t { font-weight: 600; margin-bottom: 3px; }
+  .mini-card .m { color: var(--muted); font-size: 11.5px; }
+
+  /* ================= TO-BE view ================= */
+  #tobe-view .app-shell { display: grid; grid-template-columns: 168px 1fr; min-height: 540px; }
+  .rail { border-right: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 3px; }
+  .tab { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px;
+    border: none; background: transparent; font: inherit; font-size: 13px; color: var(--ink-soft);
+    cursor: pointer; text-align: left; }
+  .tab .glyph { width: 24px; height: 24px; border-radius: 7px; background: var(--paper);
+    color: var(--muted); font-size: 11px; font-weight: 700; display: inline-flex;
+    align-items: center; justify-content: center; flex: none; }
+  .tab.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+  .tab.active .glyph { background: var(--accent); color: #fff; }
+
+  .panel { padding: 22px; }
+  .panel h2 { font-size: 16px; margin: 0 0 4px; }
+  .panel .sub { font-size: 12.5px; color: var(--muted); margin: 0 0 18px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: var(--paper-raised); }
+  .card .t { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+  .card .m { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 100px; }
+  .pill.progress-pill { background: var(--warning-soft); color: var(--warning); }
+  .pill.done-pill { background: var(--success-soft); color: var(--success); }
+  .pill.reject-pill { background: var(--seal-soft); color: var(--seal); }
+  .bar { height: 5px; border-radius: 3px; background: var(--line); margin-top: 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+
+  /* doc generation — recent template memory */
+  .doc-card { border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: var(--paper-raised);
+    margin-bottom: 14px; }
+  .doc-card .t { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+  .doc-card .m { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .recent-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+    font-family: "Courier New", ui-monospace, Consolas, monospace; margin-bottom: 7px; }
+  .recent-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .recent-chip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+    background: var(--paper); border-radius: 8px; padding: 7px 11px; font-size: 12px; cursor: pointer; }
+  .recent-chip.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  .recent-chip .fdot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .recent-chip .age { color: var(--muted); }
+  .upload-new { font-size: 12px; color: var(--accent-ink); background: none; border: 1px dashed var(--line);
+    border-radius: 8px; padding: 7px 11px; cursor: pointer; font-family: inherit; }
+  .doc-actions { display: flex; gap: 8px; margin-top: 4px; align-items: center; }
+  .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 14px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
+
+  .kanban-board { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .kanban-col { flex: 0 0 150px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--paper); }
+  .kanban-col h4 { font-size: 11.5px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .kanban-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 7px;
+    padding: 7px 9px; font-size: 11.5px; margin-bottom: 6px; }
+
+  .timeline-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .timeline-row .name { width: 200px; font-weight: 600; flex: none; }
+  .timeline-track { flex: 1; height: 8px; background: var(--line); border-radius: 4px; position: relative; }
+  .timeline-track i { position: absolute; top: 0; height: 100%; background: var(--accent); border-radius: 4px; }
+
+  .changelog { margin-top: 22px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--paper-raised); padding: 18px 20px; box-shadow: var(--shadow); }
+  .changelog h3 { font-size: 13px; margin: 0 0 10px; }
+  .changelog ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
+  .changelog b { color: var(--ink); }
+
+  /* ---- calendar (real month grid + inline add) ---- */
+  .holiday-badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 9px;
+    border-radius: 100px; background: var(--accent-soft); color: var(--accent-ink); margin-left: 6px; }
+  .cal-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 12px; }
+  .cal-title { font-weight: 700; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  .day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .day-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 2px 0 6px; }
+  .day-cell { font: inherit; text-align: left; cursor: pointer; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--paper-raised); min-height: 78px; padding: 6px 6px 5px;
+    display: flex; flex-direction: column; gap: 3px; color: var(--ink); }
+  .day-cell:hover { border-color: var(--accent); }
+  .day-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; background: var(--accent-soft); }
+  .day-cell.other-month { opacity: .42; }
+  .day-num { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .day-cell.holiday .day-num { color: var(--seal); }
+  .day-holiday { font-size: 9.5px; color: var(--seal); font-weight: 600; }
+  .day-events { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+  .day-event { font-size: 9px; line-height: 1.35; background: var(--accent-soft); color: var(--accent-ink);
+    border-radius: 4px; padding: 2px 5px; }
+  .day-event.new { background: var(--success-soft); color: var(--success); }
+  .quickadd-bar { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    background: var(--accent-soft); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .quickadd-bar[hidden] { display: none; }
+  .qa-date { font-weight: 700; font-size: 12.5px; color: var(--accent-ink); margin-right: 2px; }
+  .quickadd-bar select, .quickadd-bar input { font: inherit; font-size: 12px; padding: 6px 9px;
+    border-radius: 7px; border: 1px solid var(--line); background: var(--paper-raised); color: var(--ink); }
+  .quickadd-bar input { flex: 1 1 140px; }
+
+  /* ---- document preview: full-page PDF-viewer style ---- */
+  .preview-toggle { margin-left: auto; }
+  .doc-preview { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+    background: var(--paper); }
+  .doc-preview.hidden { display: none; }
+  .preview-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 12px; }
+  .preview-toolbar .vt-label { font-family: "Courier New", ui-monospace, Consolas, monospace; font-size: 10.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .preview-toolbar .vt-right { display: flex; align-items: center; gap: 12px; }
+  .preview-toolbar .vt-page { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+    font-family: "Courier New", ui-monospace, Consolas, monospace; }
+  .preview-toolbar .vt-dl { font: inherit; font-size: 11.5px; font-weight: 700; color: var(--accent-ink);
+    background: var(--accent-soft); border: none; border-radius: 100px; padding: 5px 13px; cursor: pointer; }
+  .preview-page { background: #FDFCFA; color: #232323; border: 1px solid var(--line); border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(20,18,15,.1), 0 16px 36px rgba(20,18,15,.14);
+    max-width: 540px; min-height: 660px; margin: 0 auto; padding: 46px 52px 36px; position: relative; }
+  .preview-page .doc-org { font-size: 11px; font-weight: 700; letter-spacing: .02em; color: #3a3a38; margin-bottom: 22px; }
+  .preview-page .doc-title { text-align: center; font-weight: 700; font-size: 16.5px; margin: 4px 0 20px;
+    letter-spacing: -0.01em; color: #1c1c1a; }
+  .preview-page .doc-meta { font-family: "Courier New", ui-monospace, Consolas, monospace; font-size: 10.8px;
+    color: #6b675f; margin-bottom: 18px; display: flex; justify-content: space-between; border-top: 1px solid #e4e0d8;
+    border-bottom: 1px solid #e4e0d8; padding: 7px 0; }
+  .preview-page table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 11.5px; }
+  .preview-page th, .preview-page td { border: 1px solid #d9d4ca; padding: 6px 10px; text-align: left; }
+  .preview-page th { background: #f2efe8; font-weight: 700; }
+  .preview-page p { margin: 0 0 11px; font-size: 12.5px; line-height: 1.9; color: #2a2a28; }
+  .preview-page .doc-seal { position: absolute; top: 40px; right: 46px; width: 54px; height: 54px;
+    border: 2px solid var(--seal); border-radius: 50%; color: var(--seal); font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; opacity: .82; transform: rotate(-9deg); }
+  .preview-page .doc-foot { text-align: right; font-size: 12.5px; margin-top: 26px; font-weight: 700; color: #1c1c1a; }
+
+  @media (max-width: 720px) {
+    #tobe-view .app-shell { grid-template-columns: 1fr; }
+    .rail { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    .tab span.label { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back-link" href="../">‹ 채용 달력 관리로 돌아가기</a>
+  <header class="proposal-head">
+    <p class="eyebrow">GURO RECRUITMENT · SCREEN PROPOSAL</p>
+    <h1>화면 구성 개선안 — 정보구조 &amp; 문서 생성 흐름</h1>
+    <p class="lede">두 가지만 먼저 손봤습니다. ① 달력·면접관리·채용목록 등 8개 섹션을 한 페이지에 늘어놓던 구조를 <b>탭 전환</b>으로 바꿔 페이지 길이를 줄이고, ② 문서 생성마다 매번 새로 올리던 HWPX 양식 파일을 <b>최근 사용 양식</b>으로 재사용하도록 했습니다. 아래는 화면 시안이며, 실제 앱 코드는 반영하지 않았습니다.</p>
+    <div class="mode-switch" id="modeSwitch">
+      <button data-mode="asis" class="active">현재 구조 · 전체 나열</button>
+      <button data-mode="tobe">개선안 · 탭 전환</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <!-- ============ AS-IS ============ -->
+    <div id="asis-view">
+      <div class="browser-chrome">
+        <div class="browser-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url-pill">kittycong.github.io/guro_recruitment-calendar-app</span>
+        </div>
+        <div class="len-flag"><b>8개 섹션이 항상 동시 렌더링</b> — 스크롤로 계속 내려야 다음 업무를 볼 수 있습니다</div>
+        <div class="app-body" id="asisScroll">
+          <div class="stacked-block">
+            <h3><span class="glyph">달</span>달력</h3>
+            <p class="desc">2026년 7월 – 8월 월간 달력, 채용 요약, 마감 알림</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">면접 예정 4 · 채용 2</div><div class="m">수습중 2 · 종료임박 0</div></div>
+              <div class="mini-card"><div class="t">7/23(목) 선택일</div><div class="m">표시할 일정 없음</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">면</span>면접관리</h3>
+            <p class="desc">확정 면접 4건 · 예정 면접 3건</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">복지사업팀 사회복지사 채용</div><div class="m">5.29(금) 면접 · 대상자 2명</div></div>
+              <div class="mini-card"><div class="t">사무행정팀 사무원 채용</div><div class="m">5.22(금) 면접 · 대상자 2명</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">채</span>채용목록</h3>
+            <p class="desc">전체 채용 공고 7건</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">GR2026-A-042 복지사업팀</div><div class="m">진행중 · 진행률 33%</div></div>
+              <div class="mini-card"><div class="t">GR2026-A-048 복지사업팀(주택)</div><div class="m">진행중 · 진행률 20%</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">자</span>채용자 목록</h3>
+            <p class="desc">채용 확정자 및 전력조회 공문 상태</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">홍○서 · 복지사업팀(주택)</div><div class="m">입사 2026-06-01 · 전력조회 미작성</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">수</span>수습관리</h3>
+            <p class="desc">수습평가자 6명 추적 중</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">홍민서 · 복지사업팀(다형2)</div><div class="m">수습끝 2026-09-07</div></div>
+              <div class="mini-card"><div class="t">유완정 · 복지사업팀(다형1)</div><div class="m">수습끝 2026-09-14</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">문</span>문서 생성</h3>
+            <p class="desc">공고파일 · 인사회의록 · 전력조회 공문 · 수습평가표</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">양식 업로드 필요</div><div class="m">생성할 때마다 HWPX 파일을 새로 선택해야 함</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">칸</span>칸반</h3>
+            <p class="desc">서류접수 → 서류심사 → 면접대기 → 면접완료 → 적격심사 → 불합격</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">면접대기 7명</div><div class="m">홍길동, 김영희, 박민준 외 4명</div></div>
+            </div>
+          </div>
+          <div class="stacked-block">
+            <h3><span class="glyph">타</span>타임라인</h3>
+            <p class="desc">공고 → 면접 → 수습 전체 흐름 7건</p>
+            <div class="mini-row">
+              <div class="mini-card"><div class="t">GR2026-A-036</div><div class="m">공고 5.4 ~ 수습종료 8.26</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TO-BE ============ -->
+    <div id="tobe-view" style="display:none;">
+      <div class="browser-chrome">
+        <div class="browser-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="url-pill">kittycong.github.io/guro_recruitment-calendar-app</span>
+        </div>
+        <div class="kpi-bar">
+          <div class="kpi-chip"><b>4</b><span>면접 예정</span></div>
+          <div class="kpi-chip"><b>2</b><span>채용</span></div>
+          <div class="kpi-chip"><b>2</b><span>수습중</span></div>
+          <div class="kpi-chip"><b>0</b><span>마감 임박</span></div>
+        </div>
+        <div class="app-shell">
+          <nav class="rail" id="tabRail">
+            <button class="tab active" data-tab="cal"><span class="glyph">달</span><span class="label">달력</span></button>
+            <button class="tab" data-tab="int"><span class="glyph">면</span><span class="label">면접관리</span></button>
+            <button class="tab" data-tab="rec"><span class="glyph">채</span><span class="label">채용목록</span></button>
+            <button class="tab" data-tab="hire"><span class="glyph">자</span><span class="label">채용자 목록</span></button>
+            <button class="tab" data-tab="prob"><span class="glyph">수</span><span class="label">수습관리</span></button>
+            <button class="tab" data-tab="doc"><span class="glyph">문</span><span class="label">문서 생성</span></button>
+            <button class="tab" data-tab="kan"><span class="glyph">칸</span><span class="label">칸반</span></button>
+            <button class="tab" data-tab="time"><span class="glyph">타</span><span class="label">타임라인</span></button>
+          </nav>
+
+          <div class="panel-area">
+            <section class="panel active" id="panel-cal">
+              <h2>달력 <span class="holiday-badge">공휴일 자동 연동</span></h2>
+              <p class="sub">날짜를 클릭하면 그 자리에서 바로 일정을 추가할 수 있습니다</p>
+              <div class="cal-toolbar">
+                <button class="btn-ghost" type="button">‹ 이전 달</button>
+                <div class="cal-title">2026년 7월</div>
+                <button class="btn-ghost" type="button">다음 달 ›</button>
+              </div>
+              <div class="day-grid" id="dayGrid"></div>
+              <div class="quickadd-bar" id="quickAdd" hidden>
+                <span class="qa-date" id="qaDate"></span>
+                <select id="qaType">
+                  <option>서류마감</option>
+                  <option>면접(오전)</option>
+                  <option>면접(오후)</option>
+                  <option>공고시작</option>
+                  <option>채용시작</option>
+                  <option>수습평가</option>
+                </select>
+                <select id="qaRecruit">
+                  <option>GR2026-A-042 복지사업팀 사회복지사 채용</option>
+                  <option>GR2026-A-048 복지사업팀(주택) 사회복지사 채용</option>
+                  <option>GR2026-A-000 사무행정팀 사무원 채용</option>
+                </select>
+                <input id="qaMemo" type="text" placeholder="메모 (선택)" />
+                <button class="btn-primary" id="qaAdd" type="button">추가</button>
+                <button class="btn-ghost" id="qaCancel" type="button">취소</button>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-int">
+              <h2>면접관리</h2><p class="sub">확정 면접 4건 · 예정 면접 3건</p>
+              <div class="card-grid">
+                <div class="card"><div class="t">복지사업팀 사회복지사 채용</div><div class="m">2026.5.29(금) · 대상자 2명</div><span class="pill progress-pill">확정</span></div>
+                <div class="card"><div class="t">사무행정팀 사무원 채용</div><div class="m">2026.5.22(금) · 대상자 2명</div><span class="pill progress-pill">확정</span></div>
+                <div class="card"><div class="t">복지사업팀(주택) 사회복지사 채용</div><div class="m">2026.6.13(토) · 대상자 0명</div><span class="pill">예정</span></div>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-rec">
+              <h2>채용목록</h2><p class="sub">전체 채용 공고 7건</p>
+              <div class="card-grid">
+                <div class="card">
+                  <div class="t">GR2026-A-042 · 복지사업팀 사회복지사 채용</div>
+                  <div class="m">긴급 공고 · 정규직 · 1명</div>
+                  <span class="pill progress-pill">진행중 33%</span>
+                  <div class="bar"><i style="width:33%"></i></div>
+                </div>
+                <div class="card">
+                  <div class="t">GR2026-A-048 · 복지사업팀(주택) 사회복지사 채용</div>
+                  <div class="m">일반 공고 · 정규직 · 2명</div>
+                  <span class="pill progress-pill">진행중 20%</span>
+                  <div class="bar"><i style="width:20%"></i></div>
+                </div>
+                <div class="card">
+                  <div class="t">GR2026-A-035 · 복지사업팀 장애인복지사업 채용</div>
+                  <div class="m">긴급 공고 · 정규직 · 1명</div>
+                  <span class="pill reject-pill">불합격 100%</span>
+                  <div class="bar"><i style="width:100%"></i></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-hire">
+              <h2>채용자 목록</h2><p class="sub">전력조회 공문 진행 상태</p>
+              <div class="card-grid">
+                <div class="card"><div class="t">홍○서 · 복지사업팀(주택) 간사</div><div class="m">입사 2026-06-01</div><span class="pill">전력조회 미작성</span></div>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-prob">
+              <h2>수습관리</h2><p class="sub">수습평가자 6명</p>
+              <div class="card-grid">
+                <div class="card"><div class="t">홍민서 · 복지사업팀(다형2)</div><div class="m">입사 2026-06-08 · 수습끝 2026-09-07</div><span class="pill progress-pill">평가 예정</span></div>
+                <div class="card"><div class="t">유완정 · 복지사업팀(다형1)</div><div class="m">입사 2026-06-15 · 수습끝 2026-09-14</div><span class="pill progress-pill">평가 예정</span></div>
+                <div class="card"><div class="t">강지나 · 복지사업팀(다형2)</div><div class="m">입사 2026-03-03 · 재계약 완료</div><span class="pill done-pill">완료</span></div>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-doc">
+              <h2>문서 생성</h2><p class="sub">양식을 매번 올리지 않고 최근 사용한 파일에서 바로 선택합니다</p>
+
+              <div class="doc-card">
+                <div class="t">공고파일 생성 <span style="font-weight:400;color:var(--muted);font-size:11px;">HWPX / TXT</span></div>
+                <div class="m">대상 공고를 고르면 시행번호·접수일자·채용분야가 자동으로 채워집니다</div>
+                <div class="recent-label">최근 사용 양식</div>
+                <div class="recent-row">
+                  <div class="recent-chip selected"><span class="fdot"></span>공고문_기본양식.hwpx <span class="age">· 3일 전</span></div>
+                  <div class="recent-chip"><span class="fdot"></span>공고문_긴급채용용.hwpx <span class="age">· 2주 전</span></div>
+                  <button class="upload-new" type="button">+ 새 양식 업로드</button>
+                </div>
+                <div class="doc-actions">
+                  <button class="btn-primary" type="button">한글 공고 다운로드</button>
+                  <button class="btn-ghost" type="button">메모장용 TXT</button>
+                  <button class="btn-ghost preview-toggle" data-target="prev-notice" type="button">미리보기</button>
+                </div>
+                <div class="doc-preview hidden" id="prev-notice">
+                  <div class="preview-toolbar">
+                    <span class="vt-label">PDF 미리보기</span>
+                    <span class="vt-right"><span class="vt-page">1 / 1페이지</span><button class="vt-dl" type="button">다운로드</button></span>
+                  </div>
+                  <div class="preview-page">
+                    <div class="doc-seal">공고</div>
+                    <div class="doc-org">구로장애인복지관</div>
+                    <div class="doc-title">복지사업팀 사회복지사 채용 공고</div>
+                    <div class="doc-meta"><span>문서번호 GR2026-A-042</span><span>공고일 2026-05-19</span></div>
+                    <p>본 기관은 지역사회 장애인 복지 증진을 위해 다음과 같이 직원을 채용하고자 하오니 관심 있는 분들의 많은 지원 바랍니다.</p>
+                    <table>
+                      <tr><th>모집분야</th><th>인원</th><th>고용형태</th><th>근무예정일</th></tr>
+                      <tr><td>사회복지사</td><td>1명</td><td>정규직</td><td>2026-06-01</td></tr>
+                    </table>
+                    <p>접수기간: 2026-05-19(화) ~ 2026-05-28(목) 18:00까지<br>전형절차: 서류심사 → 면접심사 → 최종합격</p>
+                    <div class="doc-foot">구로장애인복지관장</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="doc-card">
+                <div class="t">인사회의록 생성 <span style="font-weight:400;color:var(--muted);font-size:11px;">HWPX</span></div>
+                <div class="m">회의록 양식과 면접자별 평가표를 함께 지정해 회의록 1건을 생성합니다</div>
+                <div class="recent-label">최근 사용 양식</div>
+                <div class="recent-row">
+                  <div class="recent-chip selected"><span class="fdot"></span>인사회의록_양식.hwpx <span class="age">· 5일 전</span></div>
+                  <button class="upload-new" type="button">+ 새 양식 업로드</button>
+                </div>
+                <div class="doc-actions">
+                  <button class="btn-primary" type="button">회의록 생성 후 다운로드</button>
+                  <button class="btn-ghost preview-toggle" data-target="prev-minutes" type="button">미리보기</button>
+                </div>
+                <div class="doc-preview hidden" id="prev-minutes">
+                  <div class="preview-toolbar">
+                    <span class="vt-label">PDF 미리보기</span>
+                    <span class="vt-right"><span class="vt-page">1 / 1페이지</span><button class="vt-dl" type="button">다운로드</button></span>
+                  </div>
+                  <div class="preview-page">
+                    <div class="doc-seal">회의</div>
+                    <div class="doc-org">구로장애인복지관</div>
+                    <div class="doc-title">인사위원회 회의록</div>
+                    <div class="doc-meta"><span>회의일 2026-05-29 14:00</span><span>장소 2층 회의실</span></div>
+                    <table>
+                      <tr><th>참석</th><td>관장, 사무국장, 복지사업팀장 외 2명</td></tr>
+                      <tr><th>안건</th><td>GR2026-A-042 복지사업팀 사회복지사 채용의 건</td></tr>
+                    </table>
+                    <p><b>회의내용</b><br>면접 대상자 2명(유완정, 김은정)에 대한 서류 및 면접 평가 결과를 검토함. 직무 이해도와 현장 경험을 종합적으로 고려하여 논의함.</p>
+                    <p><b>결정사항</b><br>유완정을 최종 합격자로 결정하며, 근무개시일은 2026-06-15로 함.</p>
+                    <div class="doc-foot">구로장애인복지관 인사위원회</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="doc-card">
+                <div class="t">수습평가표 생성 <span style="font-weight:400;color:var(--muted);font-size:11px;">HWPX</span></div>
+                <div class="m">입사일 기준으로 수습끝·평가작성일을 자동 계산합니다</div>
+                <div class="recent-label">최근 사용 양식</div>
+                <div class="recent-row">
+                  <div class="recent-chip"><span class="fdot"></span>수습평가표_2026.hwpx <span class="age">· 1개월 전</span></div>
+                  <button class="upload-new" type="button">+ 새 양식 업로드</button>
+                </div>
+                <div class="doc-actions">
+                  <button class="btn-primary" type="button">평가표 생성 후 다운로드</button>
+                  <button class="btn-ghost preview-toggle" data-target="prev-eval" type="button">미리보기</button>
+                </div>
+                <div class="doc-preview hidden" id="prev-eval">
+                  <div class="preview-toolbar">
+                    <span class="vt-label">PDF 미리보기</span>
+                    <span class="vt-right"><span class="vt-page">1 / 1페이지</span><button class="vt-dl" type="button">다운로드</button></span>
+                  </div>
+                  <div class="preview-page">
+                    <div class="doc-seal">평가</div>
+                    <div class="doc-org">구로장애인복지관</div>
+                    <div class="doc-title">수습평가표</div>
+                    <div class="doc-meta"><span>성명 홍민서</span><span>입사일 2026-06-08</span></div>
+                    <table>
+                      <tr><th>부서</th><td>복지사업팀(다형2)</td><th>직급</th><td>간사</td></tr>
+                      <tr><th>수습기간</th><td colspan="3">2026-06-08 ~ 2026-09-07</td></tr>
+                    </table>
+                    <table>
+                      <tr><th>평가항목</th><th>점수</th></tr>
+                      <tr><td>업무수행능력</td><td>8</td></tr>
+                      <tr><td>근무자세</td><td>8</td></tr>
+                      <tr><td>발전가능성</td><td>7</td></tr>
+                      <tr><th>합계</th><th>23</th></tr>
+                    </table>
+                    <p><b>종합의견</b><br>수습기간 동안 성실한 근무 태도를 보였으며, 업무 이해도와 협업 자세가 양호하여 정규직 전환을 권장함.</p>
+                    <div class="doc-foot">평가자: 복지사업팀장</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-kan">
+              <h2>칸반</h2><p class="sub">지원자 진행 상황</p>
+              <div class="kanban-board">
+                <div class="kanban-col"><h4>서류접수</h4></div>
+                <div class="kanban-col"><h4>서류심사</h4></div>
+                <div class="kanban-col"><h4>면접대기</h4>
+                  <div class="kanban-card">홍길동</div><div class="kanban-card">김영희</div>
+                  <div class="kanban-card">박민준</div><div class="kanban-card">이서연</div>
+                </div>
+                <div class="kanban-col"><h4>면접완료</h4></div>
+                <div class="kanban-col"><h4>적격심사</h4>
+                  <div class="kanban-card">홍○서</div>
+                </div>
+                <div class="kanban-col"><h4>불합격</h4>
+                  <div class="kanban-card">이○민</div><div class="kanban-card">연○석</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel" id="panel-time">
+              <h2>타임라인</h2><p class="sub">채용건 7건 흐름</p>
+              <div class="timeline-row"><div class="name">GR2026-A-036 복지사업팀(주택)</div>
+                <div class="timeline-track"><i style="left:10%;width:55%"></i></div></div>
+              <div class="timeline-row"><div class="name">GR2026-A-042 복지사업팀</div>
+                <div class="timeline-track"><i style="left:30%;width:20%"></i></div></div>
+              <div class="timeline-row"><div class="name">GR2026-A-048 복지사업팀(주택)</div>
+                <div class="timeline-track"><i style="left:45%;width:15%"></i></div></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="changelog">
+    <h3>무엇이 달라졌나</h3>
+    <ul>
+      <li><b>정보구조</b> — 8개 region이 항상 함께 렌더링되던 구조 → 탭당 1개 section만 표시. 스크린리더 탐색 부담과 초기 로딩 분량이 줄어듭니다. 면접예정·채용·수습중 요약 칩은 어떤 탭에서도 상단에 고정 노출됩니다.</li>
+      <li><b>문서 생성</b> — 생성할 때마다 HWPX 양식을 새로 올리던 방식 → 최근 사용한 양식이 칩으로 남아 클릭 한 번으로 재사용. 새 양식이 필요할 때만 "+ 새 양식 업로드"를 씁니다.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const modeBtns = document.querySelectorAll('#modeSwitch button');
+  const asisView = document.getElementById('asis-view');
+  const tobeView = document.getElementById('tobe-view');
+  modeBtns.forEach(btn => btn.addEventListener('click', () => {
+    modeBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const mode = btn.dataset.mode;
+    asisView.style.display = mode === 'asis' ? '' : 'none';
+    tobeView.style.display = mode === 'tobe' ? '' : 'none';
+  }));
+
+  const tabs = document.querySelectorAll('#tabRail .tab');
+  const panels = document.querySelectorAll('.panel-area .panel');
+  const panelMap = { cal:'panel-cal', int:'panel-int', rec:'panel-rec', hire:'panel-hire',
+    prob:'panel-prob', doc:'panel-doc', kan:'panel-kan', time:'panel-time' };
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    panels.forEach(p => p.classList.remove('active'));
+    document.getElementById(panelMap[tab.dataset.tab]).classList.add('active');
+  }));
+
+  document.querySelectorAll('.recent-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.parentElement.querySelectorAll('.recent-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+  });
+
+  document.querySelectorAll('.preview-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      target.classList.toggle('hidden');
+      btn.textContent = target.classList.contains('hidden') ? '미리보기' : '미리보기 닫기';
+    });
+  });
+
+  /* ---- calendar: real month grid, holiday sync, click-to-add ---- */
+  const DOWS = ['일','월','화','수','목','금','토'];
+  const HOLIDAYS = { '2026-07-17': '제헌절' };
+  const EVENTS = {
+    '2026-07-01': ['채용시작 · 복지사업팀(주택) · 1명'],
+    '2026-08-07': ['수습평가작성 · 복지사업팀(다형2) · 홍민서']
+  };
+  function fmt(d) {
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function buildCalendar() {
+    const grid = document.getElementById('dayGrid');
+    if (!grid) return;
+    let html = DOWS.map(h => `<div class="day-head">${h}</div>`).join('');
+    const start = new Date(2026, 5, 28); // 2026-06-28, aligned to Sun column like the live site
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const iso = fmt(d);
+      const isOther = d.getMonth() !== 6; // 6 = July
+      const holiday = HOLIDAYS[iso];
+      const evs = EVENTS[iso] || [];
+      html += `<button type="button" class="day-cell${isOther ? ' other-month' : ''}${holiday ? ' holiday' : ''}" data-date="${iso}">
+        <span class="day-num">${d.getDate()}</span>
+        ${holiday ? `<span class="day-holiday">${holiday}</span>` : ''}
+        <span class="day-events">${evs.map(e => `<span class="day-event">${e}</span>`).join('')}</span>
+      </button>`;
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll('.day-cell').forEach(cell => cell.addEventListener('click', () => {
+      grid.querySelectorAll('.day-cell').forEach(c => c.classList.remove('selected'));
+      cell.classList.add('selected');
+      const iso = cell.dataset.date;
+      const d = new Date(iso + 'T00:00:00');
+      const bar = document.getElementById('quickAdd');
+      document.getElementById('qaDate').textContent = `${iso} (${DOWS[d.getDay()]})`;
+      bar.dataset.targetDate = iso;
+      bar.hidden = false;
+    }));
+  }
+  const qaAdd = document.getElementById('qaAdd');
+  if (qaAdd) qaAdd.addEventListener('click', () => {
+    const bar = document.getElementById('quickAdd');
+    const iso = bar.dataset.targetDate;
+    const type = document.getElementById('qaType').value;
+    const recruit = document.getElementById('qaRecruit').value;
+    const memo = document.getElementById('qaMemo').value.trim();
+    const label = `${type} · ${recruit}${memo ? ' · ' + memo : ''}`;
+    const holder = document.querySelector(`.day-cell[data-date="${iso}"] .day-events`);
+    const span = document.createElement('span');
+    span.className = 'day-event new';
+    span.textContent = label;
+    holder.appendChild(span);
+    document.getElementById('qaMemo').value = '';
+    bar.hidden = true;
+  });
+  const qaCancel = document.getElementById('qaCancel');
+  if (qaCancel) qaCancel.addEventListener('click', () => { document.getElementById('quickAdd').hidden = true; });
+  buildCalendar();
+</script>
+</body>
+</html>
