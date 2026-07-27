@@ -4,6 +4,61 @@ const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
 const GENERATED_DOCS_STORAGE_KEY = "recruitment-calendar-generated-docs-v1";
 const GENERATED_DOCS_LIMIT = 30;
 const TEMPLATE_CACHE_KEY = "recruitment-calendar-template-cache-v1";
+const DESIGN_SETTINGS_KEY = "recruitment-calendar-design-settings-v1";
+const DESIGN_DEFAULTS = { primary: "#b4623f", fontSize: 18, radius: 14 };
+
+function hexToRgb(hex) {
+  const value = hex.replace("#", "");
+  return {
+    r: parseInt(value.substring(0, 2), 16),
+    g: parseInt(value.substring(2, 4), 16),
+    b: parseInt(value.substring(4, 6), 16),
+  };
+}
+
+function rgbToHex(r, g, b) {
+  const toHex = (channel) =>
+    Math.round(Math.min(255, Math.max(0, channel)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function mixHex(hex, towardHex, ratio) {
+  const a = hexToRgb(hex);
+  const b = hexToRgb(towardHex);
+  return rgbToHex(a.r + (b.r - a.r) * ratio, a.g + (b.g - a.g) * ratio, a.b + (b.b - a.b) * ratio);
+}
+
+function deriveColorTones(primaryHex) {
+  return {
+    primary: primaryHex,
+    primaryDark: mixHex(primaryHex, "#000000", 0.35),
+    primaryFocus: mixHex(primaryHex, "#ffffff", 0.12),
+    primarySoft: mixHex(primaryHex, "#ffffff", 0.85),
+  };
+}
+
+function loadDesignSettings() {
+  return { ...DESIGN_DEFAULTS, ...readJsonValue(DESIGN_SETTINGS_KEY, {}) };
+}
+
+function applyDesignSettings(settings) {
+  const tones = deriveColorTones(settings.primary);
+  const root = document.documentElement.style;
+  root.setProperty("--primary", tones.primary);
+  root.setProperty("--primary-dark", tones.primaryDark);
+  root.setProperty("--primary-focus", tones.primaryFocus);
+  root.setProperty("--primary-soft", tones.primarySoft);
+  root.setProperty("font-size", `${settings.fontSize}px`);
+  root.setProperty("--radius", `${settings.radius}px`);
+}
+
+function saveDesignSettings(settings) {
+  localStorage.setItem(DESIGN_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+applyDesignSettings(loadDesignSettings());
 const GOOGLE_CALENDAR_ID_STORAGE_KEY = "recruitment-google-calendar-id";
 const DATA_BACKUP_KEY = "recruitment-calendar-data-backup-v1";
 const DATA_BACKUP_PREFIX = "recruitment-calendar-data-backup-";
@@ -337,6 +392,13 @@ const els = {
   employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
   generatedDocsList: document.querySelector("#generatedDocsList"),
   generatedDocsCount: document.querySelector("#generatedDocsCount"),
+  colorPresetRow: document.querySelector("#colorPresetRow"),
+  customColorInput: document.querySelector("#customColorInput"),
+  fontSizeInput: document.querySelector("#fontSizeInput"),
+  fontSizeValue: document.querySelector("#fontSizeValue"),
+  radiusInput: document.querySelector("#radiusInput"),
+  radiusValue: document.querySelector("#radiusValue"),
+  resetDesignButton: document.querySelector("#resetDesignButton"),
   minutesTemplateCacheStatus: document.querySelector("#minutesTemplateCacheStatus"),
   probationTemplateCacheStatus: document.querySelector("#probationTemplateCacheStatus"),
   careerTemplateCacheStatus: document.querySelector("#careerTemplateCacheStatus"),
@@ -540,6 +602,17 @@ function bindEvents() {
   els.saveCareerInquiryButton?.addEventListener("click", saveCareerInquiryDetails);
   els.downloadCareerInquiryButton?.addEventListener("click", downloadCareerInquiryDocument);
   els.previewCareerInquiryButton?.addEventListener("click", previewCareerInquiry);
+  els.colorPresetRow?.querySelectorAll(".color-preset").forEach((button) => {
+    button.addEventListener("click", () => updateDesignSetting({ primary: button.dataset.color }));
+  });
+  els.customColorInput?.addEventListener("input", () => updateDesignSetting({ primary: els.customColorInput.value }));
+  els.fontSizeInput?.addEventListener("input", () => updateDesignSetting({ fontSize: Number(els.fontSizeInput.value) }));
+  els.radiusInput?.addEventListener("input", () => updateDesignSetting({ radius: Number(els.radiusInput.value) }));
+  els.resetDesignButton?.addEventListener("click", () => {
+    localStorage.removeItem(DESIGN_SETTINGS_KEY);
+    applyDesignSettings(DESIGN_DEFAULTS);
+    renderDesignSettingsControls();
+  });
   els.docPreviewClose?.addEventListener("click", () => els.docPreviewDialog.close());
   els.docPreviewDialog?.addEventListener("click", (event) => {
     if (event.target === els.docPreviewDialog) els.docPreviewDialog.close();
@@ -784,6 +857,27 @@ function render() {
   renderTimeline();
   renderGeneratedDocuments();
   renderTemplateCacheStatus();
+  renderDesignSettingsControls();
+}
+
+function renderDesignSettingsControls() {
+  if (!els.customColorInput) return;
+  const settings = loadDesignSettings();
+  els.customColorInput.value = settings.primary;
+  els.fontSizeInput.value = settings.fontSize;
+  els.fontSizeValue.textContent = `${settings.fontSize}px`;
+  els.radiusInput.value = settings.radius;
+  els.radiusValue.textContent = `${settings.radius}px`;
+  els.colorPresetRow.querySelectorAll(".color-preset").forEach((button) => {
+    button.classList.toggle("active", button.dataset.color.toLowerCase() === settings.primary.toLowerCase());
+  });
+}
+
+function updateDesignSetting(partial) {
+  const settings = { ...loadDesignSettings(), ...partial };
+  applyDesignSettings(settings);
+  saveDesignSettings(settings);
+  renderDesignSettingsControls();
 }
 
 function renderCalendarSize() {

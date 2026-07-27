@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
-    <link rel="stylesheet" href="./styles.css?v=20260724-5" />
+    <link rel="stylesheet" href="./styles.css?v=20260724-6" />
   </head>
   <body>
     <div class="app-shell">
@@ -211,6 +211,7 @@
           <button type="button" class="view-tab" data-view="documents">문서 생성</button>
           <button type="button" class="view-tab" data-view="kanban">칸반</button>
           <button type="button" class="view-tab" data-view="timeline">타임라인</button>
+          <button type="button" class="view-tab" data-view="design">디자인 설정</button>
         </nav>
 
         <div class="view-panels">
@@ -616,6 +617,62 @@
         <section class="view-panel" id="timelineView" aria-label="채용건 타임라인">
           <div id="timelineBoard" class="timeline-board"></div>
         </section>
+
+        <section class="view-panel" id="designView" aria-label="디자인 설정">
+          <section class="document-panel design-settings-panel">
+            <div class="document-panel-header">
+              <div>
+                <p class="eyebrow">Design Settings</p>
+                <h2>디자인 설정</h2>
+              </div>
+              <span>실시간 반영</span>
+            </div>
+            <p class="helper-text">주 색상 하나를 고르면 진한 톤·연한 톤이 자동으로 계산되어 버튼·탭·강조 표시 전체에 바로 적용됩니다. 이 브라우저에 저장되어 다음에 접속해도 유지됩니다.</p>
+
+            <div class="design-settings-grid">
+              <div class="design-settings-control">
+                <label>색상 프리셋</label>
+                <div class="color-preset-row" id="colorPresetRow">
+                  <button type="button" class="color-preset" data-color="#0066cc" style="--swatch:#0066cc" title="파랑"></button>
+                  <button type="button" class="color-preset" data-color="#1f5f5b" style="--swatch:#1f5f5b" title="틸"></button>
+                  <button type="button" class="color-preset" data-color="#3f6b4f" style="--swatch:#3f6b4f" title="산림그린"></button>
+                  <button type="button" class="color-preset" data-color="#6b4270" style="--swatch:#6b4270" title="머스타드 플럼"></button>
+                  <button type="button" class="color-preset" data-color="#b4623f" style="--swatch:#b4623f" title="테라코타"></button>
+                  <button type="button" class="color-preset" data-color="#2c4870" style="--swatch:#2c4870" title="네이비"></button>
+                </div>
+              </div>
+              <div class="design-settings-control">
+                <label for="customColorInput">직접 선택</label>
+                <input type="color" id="customColorInput" value="#b4623f" />
+              </div>
+              <div class="design-settings-control">
+                <label for="fontSizeInput">기본 글자 크기: <span id="fontSizeValue">18px</span></label>
+                <input type="range" id="fontSizeInput" min="15" max="20" step="1" value="18" />
+              </div>
+              <div class="design-settings-control">
+                <label for="radiusInput">모서리 둥글기: <span id="radiusValue">14px</span></label>
+                <input type="range" id="radiusInput" min="4" max="22" step="1" value="14" />
+              </div>
+            </div>
+
+            <div class="design-preview-card" id="designPreviewCard">
+              <p class="eyebrow">Preview</p>
+              <h2>미리보기 제목</h2>
+              <p class="helper-text">아래 버튼·탭·칩 색상이 실시간으로 바뀝니다.</p>
+              <div class="design-preview-row">
+                <button class="primary-button" type="button">기본 버튼</button>
+                <button class="secondary-button" type="button">보조 버튼</button>
+                <button class="ghost-button" type="button">고스트 버튼</button>
+                <span class="generated-doc-type">칩 예시</span>
+                <span class="view-tab active" style="display:inline-flex;width:auto;">탭 예시</span>
+              </div>
+            </div>
+
+            <div class="document-actions">
+              <button class="secondary-button" id="resetDesignButton" type="button">기본값으로 되돌리기</button>
+            </div>
+          </section>
+        </section>
         </div>
         </div>
       </main>
@@ -679,6 +736,6 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./jszip.min.js?v=20260707-1"></script>
     <script src="./template-data.js?v=20260707-1"></script>
-    <script src="./app.js?v=20260724-3"></script>
+    <script src="./app.js?v=20260724-4"></script>
   </body>
 </html>
