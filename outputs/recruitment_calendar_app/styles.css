@@ -8,10 +8,10 @@
   --muted: #6e6e73;
   --border: #d2d2d7;
   --border-strong: #b7b7bd;
-  --primary: #0066cc;
-  --primary-dark: #004f9f;
-  --primary-focus: #0071e3;
-  --primary-soft: #e8f2ff;
+  --primary: #b4623f;
+  --primary-dark: #7a3f28;
+  --primary-focus: #c1734c;
+  --primary-soft: #f5e6de;
   --notice: #2f6fbd;
   --document: #5e8fa3;
   --screening: #8c7a92;
@@ -25,8 +25,8 @@
   --shadow: none;
   --shadow-soft: none;
   font-family:
-    system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
-  font-size: 17px;
+    "Pretendard Variable", Pretendard, system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  font-size: 18px;
 }
 
 * {
@@ -69,9 +69,10 @@ button {
 }
 
 .brand h1 {
-  font-size: 26px;
+  font-size: 34px;
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .brand p {
@@ -117,7 +118,7 @@ button {
 }
 
 .panel-heading h2 {
-  font-size: 18px;
+  font-size: 21px;
 }
 
 .candidate-form {
@@ -129,7 +130,7 @@ label {
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -245,6 +246,83 @@ button:focus-visible {
   grid-column: 1 / -1;
 }
 
+.design-settings-panel {
+  max-width: 720px;
+}
+
+.design-settings-grid {
+  display: grid;
+  gap: 18px;
+  padding: 4px 0 6px;
+}
+
+.design-settings-control {
+  display: grid;
+  gap: 8px;
+}
+
+.design-settings-control > label {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.color-preset-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.color-preset {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--swatch);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.14s ease, border-color 0.14s ease;
+}
+
+.color-preset:hover {
+  transform: scale(1.08);
+}
+
+.color-preset.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--swatch);
+}
+
+#customColorInput {
+  width: 64px;
+  height: 40px;
+  padding: 2px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#fontSizeInput,
+#radiusInput {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
+.design-preview-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  background: var(--surface-strong);
+  margin: 8px 0 4px;
+}
+
+.design-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
 .generated-docs-list {
   display: grid;
   gap: 8px;
@@ -315,7 +393,7 @@ button:focus-visible {
 
 .document-panel-header h2 {
   margin: 0;
-  font-size: 21px;
+  font-size: 25px;
   line-height: 1.25;
 }
 
@@ -480,7 +558,7 @@ button:focus-visible {
 .helper-text {
   margin: 0 0 10px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -721,15 +799,16 @@ button:focus-visible {
 
 .eyebrow {
   margin: 0 0 2px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 400;
+  color: var(--primary-dark);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 #monthTitle {
   min-width: 180px;
-  font-size: 24px;
+  font-size: 28px;
 }
 
 .search-box {
@@ -800,9 +879,9 @@ button:focus-visible {
 
 .view-shell {
   display: grid;
-  grid-template-columns: 172px minmax(0, 1fr);
+  grid-template-columns: 196px minmax(0, 1fr);
   align-items: start;
-  gap: 18px;
+  gap: 20px;
 }
 
 .view-panels {
@@ -841,6 +920,8 @@ button:focus-visible {
   flex: none;
   text-align: left;
   border-radius: 12px;
+  font-size: 14.5px;
+  min-height: 42px;
 }
 
 .view-tab.active,
