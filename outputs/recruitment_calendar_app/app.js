@@ -420,6 +420,7 @@ const els = {
   createReissueButton: document.querySelector("#createReissueButton"),
   minutesDate: document.querySelector("#minutesDateInput"),
   minutesRecruitment: document.querySelector("#minutesRecruitmentInput"),
+  minutesRecruitment2: document.querySelector("#minutesRecruitment2Input"),
   minutesHireStart: document.querySelector("#minutesHireStartInput"),
   minutesHiredName: document.querySelector("#minutesHiredNameInput"),
   minutesCase: document.querySelector("#minutesCaseInput"),
@@ -1020,6 +1021,21 @@ function renderMinutesRecruitmentOptions() {
     ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
   ].join("");
   els.minutesRecruitment.value = state.candidates.some((candidate) => candidate.id === selectedValue) ? selectedValue : "";
+
+  if (!els.minutesRecruitment2) return;
+  const selectedValue2 = els.minutesRecruitment2.value || "";
+  els.minutesRecruitment2.innerHTML = [
+    `<option value="">선택 안함</option>`,
+    ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
+  ].join("");
+  els.minutesRecruitment2.value = state.candidates.some((candidate) => candidate.id === selectedValue2) ? selectedValue2 : "";
+}
+
+function getMinutesCandidates() {
+  const primary = getMinutesCandidate();
+  const secondId = els.minutesRecruitment2?.value || "";
+  const second = secondId && secondId !== primary.id ? state.candidates.find((candidate) => candidate.id === secondId) : null;
+  return second ? [primary, second] : [primary];
 }
 
 function renderCalendar() {
@@ -2235,6 +2251,7 @@ function resetForm() {
   if (els.noticeRecruitment) els.noticeRecruitment.value = "";
   if (els.reissueSource) els.reissueSource.value = "";
   if (els.minutesRecruitment) els.minutesRecruitment.value = "";
+  if (els.minutesRecruitment2) els.minutesRecruitment2.value = "";
   fillMinutesDefaults(getDraftRecruitment());
   els.deleteButton.disabled = true;
   renderSchedulePreview();
@@ -3264,7 +3281,7 @@ async function previewMinutes() {
   }
   const evaluationFiles = Array.from(els.evaluationFiles?.files || []);
   const evaluationDocs = evaluationFiles.length ? await Promise.all(evaluationFiles.map(readEvaluationHwpx)) : [];
-  const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
+  const minutes = buildPersonnelMinutesPayload(getMinutesCandidates(), evaluationDocs);
   openDocPreview({ title: minutes.fileTitle, body: minutes.previewText, seal: "회의" });
 }
 
@@ -3355,7 +3372,7 @@ async function downloadPersonnelMinutes() {
     evaluationFiles.forEach((file) => assertHwpxUpload(file, "면접평가표"));
     const templateBuffer = await templateFile.arrayBuffer();
     const evaluationDocs = await Promise.all(evaluationFiles.map(readEvaluationHwpx));
-    const minutes = buildPersonnelMinutesPayload(draft, evaluationDocs);
+    const minutes = buildPersonnelMinutesPayload(getMinutesCandidates(), evaluationDocs);
     const zip = await JSZip.loadAsync(templateBuffer);
     await configureMinutesBodyStyle(zip);
     const sectionPath = findFirstSectionPath(zip);
@@ -3479,7 +3496,7 @@ function inferEvaluationName(fileName, text) {
   return nameLabel || normalizedName.replace(/^.*?([가-힣]{2,5}).*$/, "$1");
 }
 
-function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
+function buildMinutesAgendaData(candidate, evaluationDocs, index, total) {
   const interviewees = normalizeInterviewees(candidate.interviewees || []);
   const evaluationDocsByPerson = new Map(interviewees.map((person) => [person.name, findEvaluationDocForPerson(person, evaluationDocs)]));
   const present = interviewees.filter((person) => evaluationDocsByPerson.get(person.name));
@@ -3487,21 +3504,21 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
   const caseKey = PERSONNEL_MINUTES_CASES[els.minutesCase?.value] ? els.minutesCase.value : "hire_standard";
   const minutesCase = PERSONNEL_MINUTES_CASES[caseKey];
   const allowsHire = ["hire_standard", "mixed"].includes(caseKey);
-  const hiredName = els.minutesResult.value === "hire" && allowsHire ? (els.minutesHiredName.value.trim() || present.find((person) => person.status === "채용")?.name || "") : "";
-  const cancelledName = caseKey === "hire_cancelled" ? (els.minutesHiredName.value.trim() || interviewees[0]?.name || "해당") : "";
+  // ponytail: 채용결과/최종채용자 입력란은 공고 1건 기준 UI라, 2번째 공고는 면접대상자 상태(채용/불합격)로만 판단. 각 공고별 입력란 필요하면 여기 확장.
+  const manualHiredName = index === 0 ? els.minutesHiredName.value.trim() : "";
+  const hiredName = els.minutesResult.value === "hire" && allowsHire ? (manualHiredName || present.find((person) => person.status === "채용")?.name || "") : "";
+  const cancelledName = caseKey === "hire_cancelled" ? (manualHiredName || interviewees[0]?.name || "해당") : "";
   const hiredPeople = hiredName ? present.filter((person) => person.name === hiredName) : [];
   const rejected = present.filter((person) => person.name !== hiredName);
-  const minutesDate = els.minutesDate.value || candidate.hireDate || candidate.confirmedInterviewDate;
-  const minutesTime = normalizeMinutesTime(els.minutesTime?.value || "14:00");
-  const hireStartDate = els.minutesHireStart.value || candidate.workStartDate || candidate.hireDate || "";
+  const hireStartDate = index === 0 ? els.minutesHireStart.value || candidate.workStartDate || candidate.hireDate || "" : candidate.workStartDate || candidate.hireDate || "";
   const primaryField = normalizeRecruitmentFields(candidate.recruitmentFields, candidate)[0] || defaultRecruitmentFields(candidate)[0];
-  const serial = normalizeExecutionNo(candidate.executionNo, parseDate(candidate.noticeDate || minutesDate).getFullYear());
+  const serial = normalizeExecutionNo(candidate.executionNo, parseDate(candidate.noticeDate || els.minutesDate.value || new Date()).getFullYear());
   const evaluationSummary = evaluationDocs.length
-    ? evaluationDocs.map((doc, index) => `${index + 1}. ${doc.name}: ${summarizeEvaluationText(doc.text)}`).join("\n")
+    ? evaluationDocs.map((doc, docIndex) => `${docIndex + 1}. ${doc.name}: ${summarizeEvaluationText(doc.text)}`).join("\n")
     : "첨부된 면접평가표 없음";
   const evaluationReasonByName = buildEvaluationReasonMap(evaluationDocsByPerson);
   const attendanceLines = buildMinutesAttendanceLines({ candidate, hiredPeople, rejected, absent, caseKey });
-  const contentLines = buildMinutesContentLines({
+  let contentLines = buildMinutesContentLines({
     candidate,
     serial,
     caseKey,
@@ -3514,20 +3531,38 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
     absent,
     cancelledName,
   });
-  const decisionLines = buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate, evaluationReasonByName });
+  let decisionLines = buildMinutesDecisionLines({ candidate, caseKey, hiredName, cancelledName, rejected, absent, hireStartDate, evaluationReasonByName });
+  if (total > 1) {
+    contentLines = [`[안건 ${index + 1}] ${candidate.name}`, ...contentLines];
+    decisionLines = [`[안건 ${index + 1}] ${candidate.name}`, ...decisionLines];
+  }
+  return { candidate, caseKey, minutesCase, primaryField, hiredName, cancelledName, hireStartDate, serial, contentLines, decisionLines, evaluationSummary };
+}
+
+function buildPersonnelMinutesPayload(candidates, evaluationDocs) {
+  const list = Array.isArray(candidates) ? candidates : [candidates];
+  const agendas = list.map((candidate, index) => buildMinutesAgendaData(candidate, evaluationDocs, index, list.length));
+  const primary = agendas[0];
+  const minutesDate = els.minutesDate.value || primary.candidate.hireDate || primary.candidate.confirmedInterviewDate;
+  const minutesTime = normalizeMinutesTime(els.minutesTime?.value || "14:00");
+  const contentLines = agendas.flatMap((agendaData, index) => (index === 0 ? agendaData.contentLines : ["", ...agendaData.contentLines]));
+  const decisionLines = agendas.flatMap((agendaData, index) => (index === 0 ? agendaData.decisionLines : ["", ...agendaData.decisionLines]));
+  const serial = agendas.map((agendaData) => agendaData.serial).join(" / ");
+  const hiredName = agendas.map((agendaData) => agendaData.hiredName).filter(Boolean).join(", ");
+  const hireCount = agendas.reduce((sum, agendaData) => sum + Number(agendaData.candidate.hireCount || agendaData.primaryField.count || 1), 0);
+  const agenda = primary.minutesCase.agenda;
+  const nameLabel = agendas.map((agendaData) => agendaData.candidate.name).join(" / ");
   const resultLine = decisionLines[0] || "";
   const resultDetailLines = decisionLines.slice(1);
-  const agenda = minutesCase.agenda;
   const previewLines = [
     "인사위원회 회의록",
     "",
     `회의일시: ${formatMinutesMeetingDateTime(minutesDate, minutesTime)}`,
-    `안건: ${agenda} (${candidate.name})`,
+    `안건: ${agenda} (${nameLabel})`,
     `시행번호: ${serial}`,
-    `채용부서: ${candidate.department}`,
-    `채용분야: ${primaryField.fieldName}`,
-    `채용인원: ${candidate.hireCount || primaryField.count || 1}명`,
-    `면접일자: ${formatNoticeDateWithWeekday(parseDate(candidate.confirmedInterviewDate))}`,
+    `채용부서: ${agendas.map((agendaData) => agendaData.candidate.department).join(" / ")}`,
+    `채용인원: ${hireCount}명`,
+    `면접일자: ${formatNoticeDateWithWeekday(parseDate(primary.candidate.confirmedInterviewDate))}`,
     "",
     "심의내용",
     ...contentLines,
@@ -3536,24 +3571,22 @@ function buildPersonnelMinutesPayload(candidate, evaluationDocs) {
     ...decisionLines,
   ];
   return {
-    candidate,
+    candidate: primary.candidate,
     serial,
-    caseKey,
+    caseKey: primary.caseKey,
     agenda,
     minutesDate,
     minutesTime,
-    hireStartDate,
+    hireStartDate: primary.hireStartDate,
     hiredName,
-    cancelledName,
+    cancelledName: primary.cancelledName,
     resultLine,
     resultDetailLines,
-    attendanceLines,
     contentLines,
     decisionLines,
-    evaluationSummary,
-    evaluationReasonByName,
+    evaluationSummary: agendas.map((agendaData) => agendaData.evaluationSummary).join("\n"),
     previewText: previewLines.join("\n"),
-    fileTitle: `인사위원회 회의록_${minutesCase.agenda}(${formatCompactDate(parseDate(minutesDate))})_${hiredName || cancelledName || minutesCase.fileSuffix}`,
+    fileTitle: `인사위원회 회의록_${agenda}(${formatCompactDate(parseDate(minutesDate))})_${hiredName || primary.cancelledName || primary.minutesCase.fileSuffix}${list.length > 1 ? `_외${list.length - 1}건` : ""}`,
   };
 }
 
