@@ -44,6 +44,16 @@
                 <input id="hireCountInput" type="number" min="1" max="99" value="1" />
               </label>
             </div>
+            <section class="form-section">
+              <div class="section-title-row">
+                <div>
+                  <strong>붙임1 채용분야</strong>
+                  <span>부서가 2개 이상이면 행을 추가하세요. 한글 공고 생성 시 그대로 반영됩니다.</span>
+                </div>
+                <button class="small-button" id="addRecruitmentFieldButton" type="button">분야 추가</button>
+              </div>
+              <div id="recruitmentFieldRows" class="recruitment-field-editor" aria-label="채용분야 설정"></div>
+            </section>
             <label>
               지원경로
               <select id="sourceInput">
@@ -513,21 +523,13 @@
                 </div>
                 <span>HWPX / TXT</span>
               </div>
-              <p class="helper-text">이미 등록된 공고를 선택하면 시행번호, 접수일자, 채용분야가 자동으로 불러와집니다.</p>
+              <p class="helper-text">이미 등록된 공고를 선택하면 시행번호, 접수일자, 채용분야가 자동으로 불러와집니다. 채용분야 수정은 "채용 공고 등록" 탭에서 합니다.</p>
               <label>
                 대상 공고
                 <select id="noticeRecruitmentInput">
                   <option value="">현재 입력 중인 공고</option>
                 </select>
               </label>
-              <div class="section-title-row field-title-row">
-                <div>
-                  <strong>붙임1 채용분야</strong>
-                  <span>한 공고에 모집분야가 여러 개면 행을 추가하세요.</span>
-                </div>
-                <button class="small-button" id="addRecruitmentFieldButton" type="button">분야 추가</button>
-              </div>
-              <div id="recruitmentFieldRows" class="recruitment-field-editor" aria-label="채용분야 설정"></div>
               <label>
                 공고 양식
                 <select id="noticeTemplateInput">
