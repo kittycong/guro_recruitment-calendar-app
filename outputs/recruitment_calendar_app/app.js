@@ -4926,11 +4926,11 @@ function buildSchedule(candidate) {
     manualDocumentEndDate && !Number.isNaN(manualDocumentEndDate.getTime()) && manualDocumentEndDate >= documentStartDate
       ? manualDocumentEndDate
       : calculatedDocumentEndDate;
-  const calculatedScreeningDate = addDays(documentEndDate, 1);
+  const calculatedScreeningDate = nextBusinessDay(addDays(documentEndDate, 1));
   const manualScreeningDate = candidate.screeningDateOverride ? parseDate(candidate.screeningDateOverride) : null;
   const screeningDate =
     manualScreeningDate && !Number.isNaN(manualScreeningDate.getTime()) ? manualScreeningDate : calculatedScreeningDate;
-  const plannedInterviewDate = addDays(documentEndDate, 2);
+  const plannedInterviewDate = nextBusinessDay(addDays(screeningDate, 1));
   const interviewBaseDate = candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : plannedInterviewDate;
   const eligibilityStartDate = nextBusinessDay(addDays(interviewBaseDate, 1));
   const eligibilityEndDate = nextBusinessDay(addDays(eligibilityStartDate, 1));
