@@ -3328,6 +3328,7 @@ async function downloadHwpxNotice() {
   const previewText = zip.file(previewPath) ? await zip.file(previewPath).async("string") : "";
   const notice = buildNoticePayload(draft);
 
+  sectionXml = applyNoticeFieldTable(sectionXml, notice.recruitmentFields);
   sectionXml = applyNoticeTemplate(sectionXml, notice);
   zip.file(sectionPath, sectionXml);
   if (previewText) {
@@ -4037,11 +4038,6 @@ function buildNoticePayload(candidate) {
   const year = noticeDate.getFullYear();
   const jobTitle = primaryField.fieldName.replace(new RegExp(`^${escapeRegExp(primaryField.department)}\\s*`), "") || departmentJobTitle(department);
   const fieldName = primaryField.fieldName;
-  // HWPX 표는 부서별 한 행으로 읽히게 하고, 번호/직위는 메모장용 텍스트에서만 사용한다.
-  const fieldNamesCell = recruitmentFields.map((field) => field.department).join("\n");
-  const fieldCountsCell = recruitmentFields.map((field) => `${field.count}명`).join("\n");
-  const dutyLinesCell = recruitmentFields.map(() => "장애인자립생활지원 및 복지사업 업무 담당").join("\n");
-  const dutyLinesWithBulletCell = recruitmentFields.map(() => "• 장애인자립생활지원 및 복지사업 업무 담당").join("\n");
   const departmentLine = recruitmentFields.map((field) => `– ${field.department} (${field.count}명)`).join("\n");
   const workStartLine = candidate.workStartDate ? formatNoticeDateWithWeekday(parseDate(candidate.workStartDate)) : "추후 협의";
   const serial = normalizeExecutionNo(candidate.executionNo, year);
@@ -4056,10 +4052,6 @@ function buildNoticePayload(candidate) {
     year,
     jobTitle,
     fieldName,
-    fieldNamesCell,
-    fieldCountsCell,
-    dutyLinesCell,
-    dutyLinesWithBulletCell,
     workStartDate: candidate.workStartDate,
     serial,
     fileTitle,
@@ -4086,6 +4078,33 @@ function fieldDutyLine(field, fallbackWorkStartDate = "") {
   return workDate ? `${duty} (근무예정일: ${formatNoticeDateWithWeekday(parseDate(workDate))})` : duty;
 }
 
+// ponytail: 표 로우 복제는 정규식 문자열 치환이라, sample_notice.hwpx 템플릿의 정확한 리터럴 텍스트("복지사업팀 간사" 등)에 의존함.
+// 템플릿 원본 문구가 바뀌면 applyNoticeFieldTable의 4개 replace 앵커도 같이 고쳐야 함.
+function applyNoticeFieldTable(xml, recruitmentFields) {
+  const tableMatch = xml.match(/<hp:tbl\b[^>]*colCnt="4"[^>]*>[\s\S]*?<\/hp:tbl>/);
+  if (!tableMatch) return xml;
+  const tableXml = tableMatch[0];
+  const rows = tableXml.match(/<hp:tr>[\s\S]*?<\/hp:tr>/g);
+  if (!rows || rows.length < 2) return xml;
+  const rowTemplate = rows[1];
+  const fields = recruitmentFields.length ? recruitmentFields : [{ department: "", fieldName: "", count: 1, duty: "" }];
+  const newRows = fields
+    .map((field, index) => {
+      let row = rowTemplate.replace(/rowAddr="1"/g, `rowAddr="${index + 1}"`);
+      row = row.replace("<hp:t>1</hp:t>", `<hp:t>${escapeXmlText(String(index + 1))}</hp:t>`);
+      row = row.replace("<hp:t>복지사업팀 간사</hp:t>", `<hp:t>${escapeXmlText(field.fieldName || field.department)}</hp:t>`);
+      row = row.replace("<hp:t>1명</hp:t>", `<hp:t>${escapeXmlText(`${field.count}명`)}</hp:t>`);
+      row = row.replace(
+        "<hp:t>• 장애인자립생활지원(복지사업) 사업 업무 담당 1명 </hp:t>",
+        `<hp:t>${escapeXmlText(`• ${field.duty} ${field.count}명 `)}</hp:t>`,
+      );
+      return row;
+    })
+    .join("");
+  const newTableXml = tableXml.replace(rowTemplate, newRows).replace(/rowCnt="2"/, `rowCnt="${fields.length + 1}"`);
+  return xml.replace(tableXml, newTableXml);
+}
+
 function applyNoticeTemplate(xml, notice) {
   const replacements = [
     [/긴급 직원 채용공고/g, `${notice.shortType} 직원 채용공고`],
@@ -4104,17 +4123,7 @@ function applyNoticeTemplate(xml, notice) {
     [/추후 협의/g, notice.workStartLine],
     [/\[(긴급|일반)\]\[공고\s*[^호\]]+호\]\s*2026년\s*사회복지사\(복지사업팀\)\s*채용\s*공고/g, notice.mainTitle],
     [/2026년\s*사회복지사\(복지사업팀\)\s*채용\s*공고/g, `${notice.year}년 ${notice.jobTitle}(${notice.department}) 채용 공고`],
-    [/복지사업팀 간사/g, notice.fieldNamesCell],
     [/사회복지사\(복지사업팀\)/g, `${notice.jobTitle}(${notice.department})`],
-    [/복지사업팀\s*간사/g, notice.fieldNamesCell],
-    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
-    [/1명 \/ • 장애인자립생활지원\(복지사업\) 사업 업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
-    [/1명 \/ •[^<]*?업무 담당\s*1명/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
-    [/1명 \/ •[^<]*?업무 담당/g, `${notice.fieldCountsCell} / ${notice.dutyLinesWithBulletCell}`],
-    [/<hp:t>복지사업팀 간사<\/hp:t>/g, `<hp:t>${escapeXmlText(notice.fieldNamesCell)}</hp:t>`],
-    [/<hp:t>1명<\/hp:t>/g, `<hp:t>${escapeXmlText(notice.fieldCountsCell)}</hp:t>`],
-    [/장애인자립생활지원\(복지사업\) 사업 업무 담당\s*1명/g, notice.dutyLinesCell],
-    [/장애인자립생활지원\(복지사업\) 사업 업무 담당/g, notice.dutyLinesCell],
     [/복지사업팀 \(1명\)/g, `${notice.department} (${notice.hireCount}명)`],
   ];
   return replacements.reduce((value, [pattern, replacement]) => {
