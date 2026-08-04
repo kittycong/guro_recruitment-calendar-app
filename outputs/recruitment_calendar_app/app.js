@@ -390,6 +390,17 @@ const els = {
   googleCalendarId: document.querySelector("#googleCalendarIdInput"),
   googleCalendarStatus: document.querySelector("#googleCalendarStatus"),
   employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
+  conveneRound: document.querySelector("#conveneRoundInput"),
+  conveneDate: document.querySelector("#conveneDateInput"),
+  conveneTime: document.querySelector("#conveneTimeInput"),
+  convenePlace: document.querySelector("#convenePlaceInput"),
+  conveneAgenda: document.querySelector("#conveneAgendaInput"),
+  conveneAttendees: document.querySelector("#conveneAttendeesInput"),
+  conveneExecutionNo: document.querySelector("#conveneExecutionNoInput"),
+  conveneRequestDate: document.querySelector("#conveneRequestDateInput"),
+  downloadConveneButton: document.querySelector("#downloadConveneButton"),
+  previewConveneButton: document.querySelector("#previewConveneButton"),
+  conveneStatus: document.querySelector("#conveneStatus"),
   generatedDocsList: document.querySelector("#generatedDocsList"),
   generatedDocsCount: document.querySelector("#generatedDocsCount"),
   colorPresetRow: document.querySelector("#colorPresetRow"),
@@ -596,6 +607,11 @@ function bindEvents() {
   els.createReissueButton.addEventListener("click", createReissueRecruitment);
   els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
   els.previewMinutesButton?.addEventListener("click", previewMinutes);
+  els.downloadConveneButton?.addEventListener("click", downloadConveneNotice);
+  els.previewConveneButton?.addEventListener("click", previewConvene);
+  els.conveneExecutionNo?.addEventListener("input", () => {
+    els.conveneExecutionNo.value = els.conveneExecutionNo.value.replace(/\D/g, "").slice(0, 3);
+  });
   els.addProbationButton?.addEventListener("click", resetProbationForm);
   els.saveProbationButton?.addEventListener("click", saveProbationFromForm);
   els.downloadProbationHwpxButton?.addEventListener("click", downloadProbationHwpx);
@@ -3895,6 +3911,128 @@ function buildHwpxTextParagraph(text) {
   return `<hp:p id="0" paraPrIDRef="${minutesBodyStyle.paraPrID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${minutesBodyStyle.charPrID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1100" textheight="1100" baseline="935" spacing="440" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
 }
 
+function readConveneForm() {
+  return {
+    round: els.conveneRound?.value.trim() || "",
+    meetingDate: els.conveneDate?.value || "",
+    meetingTime: els.conveneTime?.value || "16:00",
+    place: els.convenePlace?.value.trim() || "",
+    agenda: els.conveneAgenda?.value.trim() || "",
+    attendees: els.conveneAttendees?.value.trim() || "",
+    executionNo: els.conveneExecutionNo?.value.trim() || "",
+    requestDate: els.conveneRequestDate?.value || "",
+  };
+}
+
+// ponytail: 사용자가 올린 샘플 hwpx에 내부결재용 초안 페이지와 실제 발송용 페이지가 남아있어(값이 서로 다름),
+// 두 페이지 문구를 각각 앵커로 잡아 치환함. 샘플 문구가 바뀌면 이 함수의 리터럴 패턴도 같이 고쳐야 함.
+function buildConvenePayload(detail) {
+  const meetingDate = detail.meetingDate ? parseDate(detail.meetingDate) : new Date();
+  const meetingTime = normalizeMinutesTime(detail.meetingTime || "16:00");
+  const meetingDateText = `${formatNoticeDateWithWeekday(meetingDate)} ${meetingTime}`;
+  const requestDate = detail.requestDate ? parseDate(detail.requestDate) : new Date();
+  const requestDateText = formatNoticeDate(requestDate);
+  const roundLabel = detail.round ? `${detail.round}차` : "OO차";
+  const digits = detail.executionNo.replace(/\D/g, "") || "000";
+  const place = detail.place || "센터 8층 프로그램실";
+  const agenda = detail.agenda || "인사 안건";
+  const attendees = detail.attendees || "센터 인사위원 6명";
+  const year = meetingDate.getFullYear();
+  return {
+    year,
+    roundLabel,
+    meetingDateText,
+    place,
+    agenda,
+    attendees,
+    serialNumber: `GR2026-${digits}`,
+    serialLabel: `구로센터 GR2026-${digits}`,
+    requestDateText,
+    fileTitle: `${formatFileDate(meetingDate)} ${roundLabel} 인사위원회 소집공문`,
+  };
+}
+
+function buildConvenePreviewText(payload) {
+  return [
+    `${payload.year}년 ${payload.roundLabel} 인사위원회 소집`,
+    `일시: ${payload.meetingDateText}`,
+    `장소: ${payload.place}`,
+    `안건: ${payload.agenda}`,
+    `참석대상: ${payload.attendees}`,
+    `시행: ${payload.serialLabel}`,
+    `접수일: ${payload.requestDateText}`,
+  ].join("\n");
+}
+
+function applyConveneTemplate(xml, payload) {
+  const replacements = [
+    // 발송용 페이지(수신자: 인사위원 제위) — 겹치는 짧은 문구를 가진 초안 페이지보다 먼저 치환.
+    [/2026년 OO차/g, `${payload.year}년 ${payload.roundLabel}`],
+    [/우리 센터 8층 프로그램실/g, payload.place],
+    [/신 직원 채용 \(복지사입팀\/장애인자립주택\)/g, payload.agenda],
+    [/우리 센터 인사위원 6명\(이름 기명 가능\)/g, payload.attendees],
+    [/2026\. 7\. 13\.\(월\) 15:30/g, payload.meetingDateText],
+    [/구로센터 GR2026-037/g, payload.serialLabel],
+    [/2026\.07\.06\./g, payload.requestDateText],
+    // 내부결재 초안 페이지(수신자: 내부결재)
+    [/2026년 인사위원회 소집/g, `${payload.year}년 ${payload.roundLabel} 인사위원회 소집`],
+    [/2026\. 8\. 11\.\(화\) 16:00/g, payload.meetingDateText],
+    [/센터 8층 프로그램실/g, payload.place],
+    [/신규 직원 채용 \(복지사업팀\/사업업무\)/g, payload.agenda],
+    [/센터 인사위원 6명/g, payload.attendees],
+    [/GR2026-A-086/g, payload.serialNumber],
+    [/2026\. 7\. 31/g, payload.requestDateText],
+  ];
+  return replacements.reduce((value, [pattern, replacement]) => value.replace(pattern, escapeXmlText(replacement)), xml);
+}
+
+function previewConvene() {
+  const detail = readConveneForm();
+  const payload = buildConvenePayload(detail);
+  openDocPreview({ title: `${payload.year}년 ${payload.roundLabel} 인사위원회 소집`, body: buildConvenePreviewText(payload), seal: "소집" });
+}
+
+async function downloadConveneNotice() {
+  try {
+    if (!window.JSZip) {
+      alert("문서 생성 모듈을 불러오지 못했습니다.");
+      return;
+    }
+    const detail = readConveneForm();
+    const payload = buildConvenePayload(detail);
+    const templateBuffer = await loadHwpxTemplateBuffer("convene_notice");
+    if (!templateBuffer) {
+      alert("인사위원회 소집공문 샘플 양식을 찾지 못했습니다.");
+      return;
+    }
+    const zip = await JSZip.loadAsync(templateBuffer);
+    const sectionPath = findFirstSectionPath(zip);
+    if (!sectionPath) {
+      alert("소집공문 양식에서 본문 XML을 찾지 못했습니다.");
+      return;
+    }
+    let sectionXml = await zip.file(sectionPath).async("string");
+    sectionXml = applyConveneTemplate(sectionXml, payload);
+    zip.file(sectionPath, sectionXml);
+    if (zip.file("Preview/PrvText.txt")) {
+      zip.file("Preview/PrvText.txt", buildConvenePreviewText(payload));
+    }
+    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
+    const fileName = `${safeFileName(payload.fileTitle)}.hwpx`;
+    downloadBlob(blob, fileName);
+    recordGeneratedDocument({ type: "convene", typeLabel: "소집공문", title: `${payload.year}년 ${payload.roundLabel} 인사위원회 소집`, fileName, blob });
+    setConveneStatus(`${fileName} 다운로드를 시작했습니다.`);
+  } catch (error) {
+    console.error("소집공문 생성 오류", error);
+    setConveneStatus("소집공문 생성 오류가 발생했습니다.");
+    alert(`소집공문 생성 오류: ${error.message || "입력값을 확인하세요."}`);
+  }
+}
+
+function setConveneStatus(message) {
+  if (els.conveneStatus) els.conveneStatus.textContent = message;
+}
+
 function validateNoticeDraft(draft) {
   if (!draft.name || !draft.department || !draft.noticeDate) {
     alert("채용건명, 부서, 공고일을 먼저 입력하세요.");
@@ -3914,6 +4052,9 @@ function validateNoticeDraft(draft) {
 async function loadHwpxTemplateBuffer(templateName = "sample_notice") {
   if (templateName === "sample_notice" && window.HWPX_TEMPLATE_BASE64) {
     return base64ToArrayBuffer(window.HWPX_TEMPLATE_BASE64);
+  }
+  if (templateName === "convene_notice" && window.CONVENE_TEMPLATE_BASE64) {
+    return base64ToArrayBuffer(window.CONVENE_TEMPLATE_BASE64);
   }
   try {
     const response = await fetch(`./templates/${templateName}.hwpx`);

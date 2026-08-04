@@ -615,6 +615,42 @@
               </div>
               <p class="helper-text" id="minutesDownloadStatus">생성할 항목을 설정한 뒤 다운로드하세요.</p>
             </section>
+
+            <section class="document-panel convene-generator" aria-label="인사위원회 소집공문 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Convene Notice</p>
+                  <h2>인사위원회 소집공문 생성</h2>
+                </div>
+                <span>HWPX</span>
+              </div>
+              <p class="helper-text">회의 차수·일시·장소·안건을 입력하면 인사위원회 소집공문을 생성합니다. 양식은 기본 등록되어 있어 별도 업로드가 필요 없습니다.</p>
+              <div class="probation-form-grid">
+                <label>회의 차수<input id="conveneRoundInput" type="text" placeholder="예: 3" /></label>
+                <label>회의일<input id="conveneDateInput" type="date" /></label>
+                <label>회의시간<input id="conveneTimeInput" type="time" value="16:00" /></label>
+                <label>장소<input id="convenePlaceInput" type="text" placeholder="예: 센터 8층 프로그램실" /></label>
+              </div>
+              <label>
+                안건
+                <input id="conveneAgendaInput" type="text" placeholder="예: 신규 직원 채용 (복지사업팀)" />
+              </label>
+              <div class="probation-form-grid">
+                <label>참석대상<input id="conveneAttendeesInput" type="text" placeholder="예: 센터 인사위원 6명" /></label>
+                <label>시행번호
+                  <div class="execution-input">
+                    <span>GR2026-</span>
+                    <input id="conveneExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="037" />
+                  </div>
+                </label>
+                <label>접수일<input id="conveneRequestDateInput" type="date" /></label>
+              </div>
+              <div class="document-actions">
+                <button class="secondary-button full-button" id="downloadConveneButton" type="button">한글 소집공문 다운로드</button>
+                <button class="ghost-button full-button" id="previewConveneButton" type="button">미리보기</button>
+              </div>
+              <p class="helper-text" id="conveneStatus">회의 정보를 입력한 뒤 다운로드하세요.</p>
+            </section>
           </div>
         </section>
 
@@ -743,7 +779,7 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./jszip.min.js?v=20260707-1"></script>
-    <script src="./template-data.js?v=20260707-1"></script>
-    <script src="./app.js?v=20260731-1"></script>
+    <script src="./template-data.js?v=20260731-2"></script>
+    <script src="./app.js?v=20260731-2"></script>
   </body>
 </html>
