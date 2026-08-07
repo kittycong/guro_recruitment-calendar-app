@@ -214,6 +214,7 @@ button:focus-visible {
 }
 
 .minutes-generator {
+  grid-column: 1 / -1;
   border: 1px solid var(--border);
   border-top: 4px solid #8fb2c5;
   background: var(--surface);
