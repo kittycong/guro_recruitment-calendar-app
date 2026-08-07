@@ -341,46 +341,6 @@
               <span class="calendar-sync-status">전력조회 공문</span>
             </div>
             <div id="hiredPeopleList" class="hired-people-list"></div>
-            <section class="document-panel career-inquiry-editor" aria-label="전력조회 공문 생성">
-              <div class="document-panel-header">
-                <div>
-                  <p class="eyebrow">Career Inquiry</p>
-                  <h2>전력조회 공문 생성</h2>
-                </div>
-                <span>HWPX / HWTX</span>
-              </div>
-              <p class="helper-text">채용자 선택 후 경력증명서 기준 기관명, 생년월일, 시행번호를 입력하면 전력조회 요청 공문을 생성합니다.</p>
-              <div class="probation-form-grid">
-                <input id="careerInquiryKeyInput" type="hidden" />
-                <label>성명<input id="careerNameInput" type="text" placeholder="예: 강지나" /></label>
-                <label>생년월일<input id="careerBirthInput" type="text" placeholder="예: 97.09.09" /></label>
-                <label>채용부서<input id="careerDepartmentInput" type="text" placeholder="예: 복지사업팀(주택)" /></label>
-                <label>직위<input id="careerPositionInput" type="text" placeholder="예: 간사" /></label>
-                <label>수신처 이름<input id="careerOrgInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
-                <label>수신자<input id="careerRecipientInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
-                <label>시행번호
-                  <div class="execution-input">
-                    <span>GR2026-</span>
-                    <input id="careerExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="045" />
-                  </div>
-                </label>
-                <label>접수일<input id="careerRequestDateInput" type="date" /></label>
-              </div>
-              <label>
-                경력증명서 메모
-                <textarea id="careerMemoInput" rows="4" placeholder="앱 내부 참고용입니다. 공문 본문에는 넣지 않습니다."></textarea>
-              </label>
-              <div class="probation-form-grid">
-                <label>전력조회 공문 양식<input id="careerTemplateFileInput" class="file-input" type="file" accept=".hwpx,.hwtx" /></label>
-              </div>
-              <p class="helper-text template-cache-status" id="careerTemplateCacheStatus"></p>
-              <div class="document-actions">
-                <button class="primary-button full-button" id="saveCareerInquiryButton" type="button">채용자 정보 저장</button>
-                <button class="secondary-button full-button" id="downloadCareerInquiryButton" type="button">전력조회 공문 생성 후 다운로드</button>
-                <button class="ghost-button full-button" id="previewCareerInquiryButton" type="button">미리보기</button>
-              </div>
-              <p class="helper-text" id="careerInquiryStatus">채용자 목록에서 선택하면 기본 정보가 불러와집니다.</p>
-            </section>
           </div>
         </section>
 
@@ -577,6 +537,74 @@
                 <button class="ghost-button full-button" id="previewConveneButton" type="button">미리보기</button>
               </div>
               <p class="helper-text" id="conveneStatus">회의 정보를 입력한 뒤 다운로드하세요.</p>
+            </section>
+
+            <section class="document-panel career-inquiry-editor" aria-label="전력조회 발신공문 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Career Inquiry · Request</p>
+                  <h2>전력조회 발신공문 생성</h2>
+                </div>
+                <span>HWPX / HWTX</span>
+              </div>
+              <p class="helper-text">입사한 직원의 이전 근무기관에 전력조회를 요청하는 공문입니다. 양식은 기본 등록되어 있어 별도 업로드가 필요 없습니다.</p>
+              <div class="probation-form-grid">
+                <input id="careerInquiryKeyInput" type="hidden" />
+                <label>성명<input id="careerNameInput" type="text" placeholder="예: 강지나" /></label>
+                <label>생년월일<input id="careerBirthInput" type="text" placeholder="예: 97.09.09" /></label>
+                <label>채용부서<input id="careerDepartmentInput" type="text" placeholder="예: 복지사업팀(주택)" /></label>
+                <label>직위<input id="careerPositionInput" type="text" placeholder="예: 간사" /></label>
+                <label>수신처 이름<input id="careerOrgInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
+                <label>수신자<input id="careerRecipientInput" type="text" placeholder="예: (사)인천시광역시장애인부모회" /></label>
+                <label>시행번호
+                  <div class="execution-input">
+                    <span>GR2026-</span>
+                    <input id="careerExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="045" />
+                  </div>
+                </label>
+                <label>접수일<input id="careerRequestDateInput" type="date" /></label>
+              </div>
+              <label>
+                경력증명서 메모
+                <textarea id="careerMemoInput" rows="4" placeholder="앱 내부 참고용입니다. 공문 본문에는 넣지 않습니다."></textarea>
+              </label>
+              <div class="probation-form-grid">
+                <label>양식 직접 지정(선택)<input id="careerTemplateFileInput" class="file-input" type="file" accept=".hwpx,.hwtx" /></label>
+              </div>
+              <p class="helper-text template-cache-status" id="careerTemplateCacheStatus"></p>
+              <div class="document-actions">
+                <button class="primary-button full-button" id="saveCareerInquiryButton" type="button">채용자 정보 저장</button>
+                <button class="secondary-button full-button" id="downloadCareerInquiryButton" type="button">전력조회 공문 생성 후 다운로드</button>
+                <button class="ghost-button full-button" id="previewCareerInquiryButton" type="button">미리보기</button>
+              </div>
+              <p class="helper-text" id="careerInquiryStatus">채용자 목록에서 선택하면 기본 정보가 불러와집니다.</p>
+            </section>
+
+            <section class="document-panel reply-generator" aria-label="전력조회 회신공문 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Career Inquiry · Reply</p>
+                  <h2>전력조회 회신공문 생성</h2>
+                </div>
+                <span>HWPX</span>
+              </div>
+              <p class="helper-text">퇴사한 직원에 대해 다른 기관에서 전력조회를 요청받았을 때 회신하는 공문입니다. 양식은 기본 등록되어 있어 별도 업로드가 필요 없습니다.</p>
+              <div class="probation-form-grid">
+                <label>수신자(요청기관)<input id="replyRecipientInput" type="text" placeholder="예: 구로구가족센터" /></label>
+                <label>대상자명<input id="replyNameInput" type="text" placeholder="예: 최유나 또는 최*나" /></label>
+                <label>시행번호
+                  <div class="execution-input">
+                    <span>GR2026-</span>
+                    <input id="replyExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="138" />
+                  </div>
+                </label>
+                <label>접수일<input id="replyRequestDateInput" type="date" /></label>
+              </div>
+              <div class="document-actions">
+                <button class="secondary-button full-button" id="downloadReplyButton" type="button">한글 회신공문 다운로드</button>
+                <button class="ghost-button full-button" id="previewReplyButton" type="button">미리보기</button>
+              </div>
+              <p class="helper-text" id="replyStatus">요청기관과 대상자를 입력한 뒤 다운로드하세요.</p>
             </section>
 
             <section class="document-panel minutes-generator" aria-label="인사회의록 생성">
@@ -779,7 +807,7 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./jszip.min.js?v=20260707-1"></script>
-    <script src="./template-data.js?v=20260731-2"></script>
-    <script src="./app.js?v=20260731-2"></script>
+    <script src="./template-data.js?v=20260807-1"></script>
+    <script src="./app.js?v=20260807-1"></script>
   </body>
 </html>
