@@ -3,7 +3,12 @@ name: Sync Exec Calendar Busy Dates
 on:
   schedule:
     - cron: "0 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "tsdav 상세 디버그 로그 출력"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,6 +32,7 @@ jobs:
         env:
           GURO_CALDAV_USER: ${{ secrets.GURO_CALDAV_USER }}
           GURO_CALDAV_PASSWORD: ${{ secrets.GURO_CALDAV_PASSWORD }}
+          DEBUG: ${{ github.event.inputs.debug == 'true' && 'tsdav:*' || '' }}
         run: node sync.mjs
 
       - name: Commit updated busy dates if changed
