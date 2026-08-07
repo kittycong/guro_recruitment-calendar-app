@@ -342,6 +342,7 @@ const state = {
   calendarSize: ["compact", "normal"].includes(localStorage.getItem("recruitment-calendar-size")) ? localStorage.getItem("recruitment-calendar-size") : "normal",
   activeView: localStorage.getItem("recruitment-active-view") || "calendar",
   rightTab: "day",
+  execBusyDates: {},
 };
 const googleCalendarState = {
   tokenClient: null,
@@ -534,6 +535,20 @@ restoreFormDraft();
 render();
 setTimeout(() => saveDataBackup("startup"), 0);
 updateGoogleCalendarStatus("Google 미연결");
+loadExecBusyDates();
+
+async function loadExecBusyDates() {
+  try {
+    const response = await fetch(`./exec-busy.json?t=${Date.now()}`);
+    if (!response.ok) return;
+    const data = await response.json();
+    state.execBusyDates = data.busyDates || {};
+    render();
+    renderSchedulePreview();
+  } catch (error) {
+    console.warn("임원 일정 동기화 파일 로드 실패", error);
+  }
+}
 
 function bindEvents() {
   els.googleCalendarId.value = localStorage.getItem(GOOGLE_CALENDAR_ID_STORAGE_KEY) || "primary";
@@ -1011,11 +1026,23 @@ function renderSchedulePreview() {
   const holidayAdjustmentText = schedule.holidayAdjustmentDays
     ? `평일 공휴일 ${schedule.holidayAdjustmentDays}일 반영: ${schedule.holidayAdjustmentDates.map((item) => `${formatShortDate(item.date)} ${item.name}`).join(", ")}`
     : "없음";
+  const interviewDayForConflictCheck = draft.confirmedInterviewDate
+    ? parseDate(draft.confirmedInterviewDate)
+    : schedule.plannedInterviewDate;
+  const busyPeople = execBusyPeopleOn(interviewDayForConflictCheck);
+  const execConflictText = draft.confirmedInterviewDate
+    ? busyPeople.length
+      ? `⚠ ${busyPeople.join(", ")} 일정 있음 — 날짜 재확인 필요`
+      : "겹치는 임원 일정 없음"
+    : busyPeople.length
+      ? "겹치는 날짜라 자동으로 다음 평일로 회피됨"
+      : "겹치는 임원 일정 없음";
   els.schedulePreview.innerHTML = `
     <dt>1차 접수</dt><dd>${formatShortDate(schedule.documentStartDate)} ~ ${formatShortDate(schedule.documentEndDate)}</dd>
     <dt>공휴일 보정</dt><dd>${escapeHtml(holidayAdjustmentText)}</dd>
     <dt>서류심사</dt><dd>${formatShortDate(schedule.screeningDate)}</dd>
     <dt>2차 면접</dt><dd>${interviewText}</dd>
+    <dt>임원 일정</dt><dd>${escapeHtml(execConflictText)}</dd>
     <dt>적격여부</dt><dd>${formatShortDate(schedule.eligibilityStartDate)} ~ ${formatShortDate(schedule.eligibilityEndDate)}</dd>
     <dt>근무개시</dt><dd>${draft.workStartDate ? formatShortDate(parseDate(draft.workStartDate)) : "추후 협의"}</dd>
   `;
@@ -5192,7 +5219,7 @@ function buildSchedule(candidate) {
   const manualScreeningDate = candidate.screeningDateOverride ? parseDate(candidate.screeningDateOverride) : null;
   const screeningDate =
     manualScreeningDate && !Number.isNaN(manualScreeningDate.getTime()) ? manualScreeningDate : calculatedScreeningDate;
-  const plannedInterviewDate = nextBusinessDay(addDays(screeningDate, 1));
+  const plannedInterviewDate = nextAvailableInterviewDay(addDays(screeningDate, 1));
   const interviewBaseDate = candidate.confirmedInterviewDate ? parseDate(candidate.confirmedInterviewDate) : plannedInterviewDate;
   const eligibilityStartDate = nextBusinessDay(addDays(interviewBaseDate, 1));
   const eligibilityEndDate = nextBusinessDay(addDays(eligibilityStartDate, 1));
@@ -5247,6 +5274,21 @@ function nextBusinessDay(date) {
   let next = new Date(date);
   while (next.getDay() === 0 || next.getDay() === 6) {
     next = addDays(next, 1);
+  }
+  return next;
+}
+
+function execBusyPeopleOn(date) {
+  return state.execBusyDates?.[toDateKey(date)] || [];
+}
+
+// ponytail: 하루 단위로만 회피(시간대 구분 없음, 현재 UI가 날짜만 받음). 시간 슬롯 필요해지면 확장.
+function nextAvailableInterviewDay(date) {
+  let next = nextBusinessDay(date);
+  let guard = 0;
+  while (execBusyPeopleOn(next).length && guard < 60) {
+    next = nextBusinessDay(addDays(next, 1));
+    guard += 1;
   }
   return next;
 }
