@@ -1927,6 +1927,39 @@ button:focus-visible {
   gap: 14px;
 }
 
+.guide-page {
+  gap: 14px;
+}
+
+.guide-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  padding: 18px 20px;
+}
+
+.guide-card h3 {
+  margin: 0;
+}
+
+.guide-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.guide-card ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .probation-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
