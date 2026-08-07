@@ -1960,6 +1960,73 @@ button:focus-visible {
   line-height: 1.5;
 }
 
+.guide-flowchart-card {
+  gap: 10px;
+}
+
+.guide-flowchart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.flow-caption {
+  font-size: 13px;
+  fill: var(--muted);
+}
+
+.flow-title {
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.flow-title-sm {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.flow-sub {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.flow-arrow {
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+
+.flow-connector {
+  fill: none;
+  stroke: var(--document);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+
+.flow-node-muted {
+  fill: var(--surface-muted);
+  stroke: var(--border);
+}
+
+.flow-node {
+  cursor: pointer;
+}
+
+.flow-node rect {
+  transition: opacity 0.15s ease;
+}
+
+.flow-node:hover rect,
+.flow-node:focus-visible rect {
+  opacity: 0.75;
+}
+
+.flow-node:focus-visible {
+  outline: none;
+}
+
 .probation-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
