@@ -729,6 +729,18 @@ function bindEvents() {
       renderRightPanelTabs();
     });
   });
+  document.querySelector(".guide-flowchart")?.addEventListener("click", (event) => {
+    const node = event.target.closest(".flow-node");
+    if (!node) return;
+    document.querySelector(`.view-tab[data-view="${node.dataset.view}"]`)?.click();
+  });
+  document.querySelector(".guide-flowchart")?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const node = event.target.closest(".flow-node");
+    if (!node) return;
+    event.preventDefault();
+    document.querySelector(`.view-tab[data-view="${node.dataset.view}"]`)?.click();
+  });
   els.kanbanBoard.addEventListener("click", (event) => {
     const button = event.target.closest("[data-person-status]");
     if (!button) return;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>채용 달력 관리</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
-    <link rel="stylesheet" href="./styles.css?v=20260807-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260807-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -756,7 +756,79 @@
               </div>
               <span class="calendar-sync-status">전체 탭 사용법</span>
             </div>
-            <p class="helper-text">채용 달력 관리 웹앱의 각 탭 기능과 사용법을 정리했습니다. 왼쪽 탭을 눌러 해당 화면으로 바로 이동해서 사용하시면 됩니다.</p>
+            <p class="helper-text">채용 달력 관리 웹앱의 각 탭 기능과 사용법을 정리했습니다. 아래 흐름도의 박스를 클릭하면 해당 탭으로 바로 이동합니다.</p>
+
+            <div class="guide-card guide-flowchart-card">
+              <h3>채용 진행 흐름</h3>
+              <svg class="guide-flowchart" viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="채용 진행 흐름도">
+                <text x="20" y="18" class="flow-caption">진행 단계 (클릭해서 이동)</text>
+
+                <g class="flow-node" data-view="register" tabindex="0" role="button" aria-label="채용 공고 등록으로 이동">
+                  <rect x="20" y="30" width="170" height="70" rx="12" style="fill:color-mix(in srgb, var(--notice) 14%, var(--surface)); stroke:var(--notice)"/>
+                  <text x="105" y="60" text-anchor="middle" class="flow-title">공고 등록</text>
+                  <text x="105" y="80" text-anchor="middle" class="flow-sub">일정 자동계산</text>
+                </g>
+                <line x1="190" y1="65" x2="248" y2="65" class="flow-arrow" marker-end="url(#flowArrow)"/>
+
+                <g class="flow-node" data-view="interviews" tabindex="0" role="button" aria-label="면접관리로 이동">
+                  <rect x="250" y="30" width="170" height="70" rx="12" style="fill:color-mix(in srgb, var(--interview) 14%, var(--surface)); stroke:var(--interview)"/>
+                  <text x="335" y="60" text-anchor="middle" class="flow-title">서류심사 · 면접</text>
+                  <text x="335" y="80" text-anchor="middle" class="flow-sub">면접관리 탭</text>
+                </g>
+                <line x1="420" y1="65" x2="478" y2="65" class="flow-arrow" marker-end="url(#flowArrow)"/>
+
+                <g class="flow-node" data-view="hires" tabindex="0" role="button" aria-label="채용자 목록으로 이동">
+                  <rect x="480" y="30" width="170" height="70" rx="12" style="fill:color-mix(in srgb, var(--hire) 14%, var(--surface)); stroke:var(--hire)"/>
+                  <text x="565" y="60" text-anchor="middle" class="flow-title">채용 확정</text>
+                  <text x="565" y="80" text-anchor="middle" class="flow-sub">채용자 목록 탭</text>
+                </g>
+                <line x1="650" y1="65" x2="708" y2="65" class="flow-arrow" marker-end="url(#flowArrow)"/>
+
+                <g class="flow-node" data-view="probation" tabindex="0" role="button" aria-label="수습관리로 이동">
+                  <rect x="710" y="30" width="170" height="70" rx="12" style="fill:color-mix(in srgb, var(--probation) 14%, var(--surface)); stroke:var(--probation)"/>
+                  <text x="795" y="60" text-anchor="middle" class="flow-title">수습 관리</text>
+                  <text x="795" y="80" text-anchor="middle" class="flow-sub">평가 일정 관리</text>
+                </g>
+
+                <path d="M 105 100 C 105 160, 280 180, 300 220" class="flow-connector"/>
+                <path d="M 335 100 C 335 150, 355 180, 365 220" class="flow-connector"/>
+                <path d="M 565 100 C 565 150, 470 180, 435 220" class="flow-connector"/>
+                <g class="flow-node" data-view="documents" tabindex="0" role="button" aria-label="문서 생성으로 이동">
+                  <rect x="250" y="220" width="220" height="70" rx="12" style="fill:color-mix(in srgb, var(--document) 14%, var(--surface)); stroke:var(--document)"/>
+                  <text x="360" y="250" text-anchor="middle" class="flow-title">문서 생성</text>
+                  <text x="360" y="270" text-anchor="middle" class="flow-sub">공고문 · 소집공문 · 전력조회 · 회의록</text>
+                </g>
+
+                <text x="20" y="325" class="flow-caption">보조 도구</text>
+                <g class="flow-node" data-view="calendar" tabindex="0" role="button" aria-label="달력으로 이동">
+                  <rect x="20" y="335" width="150" height="55" rx="10" class="flow-node-muted"/>
+                  <text x="95" y="368" text-anchor="middle" class="flow-title-sm">달력</text>
+                </g>
+                <g class="flow-node" data-view="list" tabindex="0" role="button" aria-label="채용목록으로 이동">
+                  <rect x="190" y="335" width="150" height="55" rx="10" class="flow-node-muted"/>
+                  <text x="265" y="368" text-anchor="middle" class="flow-title-sm">채용목록</text>
+                </g>
+                <g class="flow-node" data-view="kanban" tabindex="0" role="button" aria-label="칸반으로 이동">
+                  <rect x="360" y="335" width="150" height="55" rx="10" class="flow-node-muted"/>
+                  <text x="435" y="368" text-anchor="middle" class="flow-title-sm">칸반</text>
+                </g>
+                <g class="flow-node" data-view="timeline" tabindex="0" role="button" aria-label="타임라인으로 이동">
+                  <rect x="530" y="335" width="150" height="55" rx="10" class="flow-node-muted"/>
+                  <text x="605" y="368" text-anchor="middle" class="flow-title-sm">타임라인</text>
+                </g>
+                <g class="flow-node" data-view="design" tabindex="0" role="button" aria-label="디자인 설정으로 이동">
+                  <rect x="700" y="335" width="150" height="55" rx="10" class="flow-node-muted"/>
+                  <text x="775" y="368" text-anchor="middle" class="flow-title-sm">디자인 설정</text>
+                </g>
+
+                <defs>
+                  <marker id="flowArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                    <path d="M0,0 L8,3 L0,6" style="fill:var(--muted)"/>
+                  </marker>
+                </defs>
+              </svg>
+              <p class="helper-text">임원 캘린더와 겹치는 날짜는 "서류심사 · 면접" 단계 자동계산에서 자동으로 피합니다. 자세한 내용은 아래 항목을 참고하세요.</p>
+            </div>
 
             <div class="guide-card">
               <p class="eyebrow">1</p>
@@ -908,6 +980,6 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./jszip.min.js?v=20260707-1"></script>
     <script src="./template-data.js?v=20260807-1"></script>
-    <script src="./app.js?v=20260807-2"></script>
+    <script src="./app.js?v=20260807-3"></script>
   </body>
 </html>
