@@ -1,0 +1,9 @@
+{
+  "name": "caldav-sync",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "node-ical": "^0.27.1",
+    "tsdav": "^2.3.1"
+  }
+}

@@ -1,0 +1,42 @@
+name: Sync Exec Calendar Busy Dates
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install sync script deps
+        working-directory: scripts/caldav-sync
+        run: npm ci
+
+      - name: Run CalDAV sync
+        working-directory: scripts/caldav-sync
+        env:
+          GURO_CALDAV_USER: ${{ secrets.GURO_CALDAV_USER }}
+          GURO_CALDAV_PASSWORD: ${{ secrets.GURO_CALDAV_PASSWORD }}
+        run: node sync.mjs
+
+      - name: Commit updated busy dates if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- outputs/recruitment_calendar_app/exec-busy.json; then
+            echo "No changes to exec-busy.json"
+          else
+            git add outputs/recruitment_calendar_app/exec-busy.json
+            git commit -m "chore: sync exec calendar busy dates"
+            git push
+          fi
