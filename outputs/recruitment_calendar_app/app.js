@@ -390,6 +390,13 @@ const els = {
   googleCalendarId: document.querySelector("#googleCalendarIdInput"),
   googleCalendarStatus: document.querySelector("#googleCalendarStatus"),
   employmentTypeFilter: document.querySelector("#employmentTypeFilterInput"),
+  replyRecipient: document.querySelector("#replyRecipientInput"),
+  replyName: document.querySelector("#replyNameInput"),
+  replyExecutionNo: document.querySelector("#replyExecutionNoInput"),
+  replyRequestDate: document.querySelector("#replyRequestDateInput"),
+  downloadReplyButton: document.querySelector("#downloadReplyButton"),
+  previewReplyButton: document.querySelector("#previewReplyButton"),
+  replyStatus: document.querySelector("#replyStatus"),
   conveneRound: document.querySelector("#conveneRoundInput"),
   conveneDate: document.querySelector("#conveneDateInput"),
   conveneTime: document.querySelector("#conveneTimeInput"),
@@ -609,6 +616,11 @@ function bindEvents() {
   els.previewMinutesButton?.addEventListener("click", previewMinutes);
   els.downloadConveneButton?.addEventListener("click", downloadConveneNotice);
   els.previewConveneButton?.addEventListener("click", previewConvene);
+  els.downloadReplyButton?.addEventListener("click", downloadReplyNotice);
+  els.previewReplyButton?.addEventListener("click", previewReply);
+  els.replyExecutionNo?.addEventListener("input", () => {
+    els.replyExecutionNo.value = els.replyExecutionNo.value.replace(/\D/g, "").slice(0, 3);
+  });
   els.conveneExecutionNo?.addEventListener("input", () => {
     els.conveneExecutionNo.value = els.conveneExecutionNo.value.replace(/\D/g, "").slice(0, 3);
   });
@@ -1986,11 +1998,20 @@ async function downloadCareerInquiryDocument() {
       alert("문서 생성 모듈을 불러오지 못했습니다.");
       return;
     }
-    const templateFile = await resolveTemplateFile("career", els.careerTemplateFile, "전력조회 공문 양식");
-    assertHwpxPackageUpload(templateFile, "전력조회 공문 양식");
+    let templateBuffer;
+    let templateExt = "hwpx";
+    try {
+      const templateFile = await resolveTemplateFile("career", els.careerTemplateFile, "전력조회 공문 양식");
+      assertHwpxPackageUpload(templateFile, "전력조회 공문 양식");
+      templateBuffer = await templateFile.arrayBuffer();
+      templateExt = /\.hwtx$/i.test(templateFile.name) ? "hwtx" : "hwpx";
+    } catch (resolveError) {
+      templateBuffer = await loadHwpxTemplateBuffer("career_request");
+      if (!templateBuffer) throw resolveError;
+    }
     state.hiredDetails[detail.key] = detail;
     persistHiredDetails();
-    const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
+    const zip = await JSZip.loadAsync(templateBuffer);
     const sectionPath = findFirstSectionPath(zip);
     if (!sectionPath) {
       alert("전력조회 공문 양식에서 본문 XML을 찾지 못했습니다.");
@@ -2000,8 +2021,7 @@ async function downloadCareerInquiryDocument() {
     sectionXml = applyCareerInquiryTemplate(sectionXml, detail);
     zip.file(sectionPath, sectionXml);
     if (zip.file("Preview/PrvText.txt")) zip.file("Preview/PrvText.txt", buildCareerInquiryPreviewText(detail));
-    const ext = /\.hwtx$/i.test(templateFile.name) ? "hwtx" : "hwpx";
-    const fileName = `${safeFileName(`${detail.executionNo || "GR2026-000"} 구로장애인자립생활센터 종사자 전력조회 요청(${detail.name})`)}.${ext}`;
+    const fileName = `${safeFileName(`${detail.executionNo || "GR2026-000"} 구로장애인자립생활센터 종사자 전력조회 요청(${detail.name})`)}.${templateExt}`;
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
     downloadBlob(blob, fileName);
     recordGeneratedDocument({ type: "career", typeLabel: "전력조회 공문", title: `전력조회 요청 · ${detail.name}`, fileName, blob });
@@ -2080,6 +2100,92 @@ function buildCareerInquiryPreviewText(detail) {
     `경력증명서 기관: ${detail.org || ""}`,
     detail.memo ? `메모: ${detail.memo}` : "",
   ].filter(Boolean).join("\n");
+}
+
+function readReplyForm() {
+  return {
+    recipient: els.replyRecipient?.value.trim() || "",
+    name: els.replyName?.value.trim() || "",
+    executionNo: els.replyExecutionNo?.value ? `GR2026-${executionDigits(els.replyExecutionNo.value)}` : "",
+    requestDate: els.replyRequestDate?.value || toDateKey(new Date()),
+  };
+}
+
+// 요청 공문(applyCareerInquiryTemplate)과 같은 방식: 리터럴 문구가 아니라 구조(라벨 뒤 텍스트, 이름(생년월일)
+// 형식, GR번호, 날짜 패턴)로 매칭해서 양식이 바뀌어도 잘 안 깨짐.
+function applyReplyTemplate(xml, detail) {
+  const requestDateText = formatNoticeDate(parseDate(detail.requestDate));
+  const executionNo = detail.executionNo || "GR2026-000";
+  const recipient = detail.recipient || "수신처 미입력";
+  let next = xml;
+  next = replaceNextTextAfterLabel(next, "수신자", recipient);
+  next = replaceHwpxTextNode(next, /전력조회 회보서 회신의 건\([^)]*\)/g, `전력조회 회보서 회신의 건(${detail.name})`);
+  next = replaceHwpxTextNode(next, /구로센터\s*GR\d{4}-\d{3}/g, `구로센터 ${executionNo}`);
+  next = replaceHwpxTextNode(next, /GR\d{4}-\d{3}/g, executionNo);
+  next = replaceHwpxTextNode(next, /\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\./g, requestDateText);
+  return next;
+}
+
+function buildReplyPreviewText(detail) {
+  return [
+    `전력조회 회보서 회신의 건(${detail.name})`,
+    `수신자: ${detail.recipient}`,
+    `시행: 구로센터 ${detail.executionNo}`,
+    `접수일: ${formatNoticeDate(parseDate(detail.requestDate))}`,
+  ].join("\n");
+}
+
+function previewReply() {
+  const detail = readReplyForm();
+  if (!detail.recipient || !detail.name) {
+    alert("수신자와 대상자명을 입력하세요.");
+    return;
+  }
+  openDocPreview({ title: `전력조회 회보서 회신의 건(${detail.name})`, body: buildReplyPreviewText(detail), seal: "회신" });
+}
+
+function setReplyStatus(message) {
+  if (els.replyStatus) els.replyStatus.textContent = message;
+}
+
+async function downloadReplyNotice() {
+  try {
+    const detail = readReplyForm();
+    if (!detail.recipient || !detail.name) {
+      alert("수신자와 대상자명을 입력하세요.");
+      return;
+    }
+    if (!window.JSZip) {
+      alert("문서 생성 모듈을 불러오지 못했습니다.");
+      return;
+    }
+    const templateBuffer = await loadHwpxTemplateBuffer("career_reply");
+    if (!templateBuffer) {
+      alert("전력조회 회신공문 샘플 양식을 찾지 못했습니다.");
+      return;
+    }
+    const zip = await JSZip.loadAsync(templateBuffer);
+    const sectionPath = findFirstSectionPath(zip);
+    if (!sectionPath) {
+      alert("회신공문 양식에서 본문 XML을 찾지 못했습니다.");
+      return;
+    }
+    let sectionXml = await zip.file(sectionPath).async("string");
+    sectionXml = applyReplyTemplate(sectionXml, detail);
+    zip.file(sectionPath, sectionXml);
+    if (zip.file("Preview/PrvText.txt")) {
+      zip.file("Preview/PrvText.txt", buildReplyPreviewText(detail));
+    }
+    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/hwpml-package" });
+    const fileName = `${safeFileName(`${detail.executionNo || "GR2026-000"} 구로장애인자립생활센터 종사자 전력조회 회신(${detail.name})`)}.hwpx`;
+    downloadBlob(blob, fileName);
+    recordGeneratedDocument({ type: "career-reply", typeLabel: "전력조회 회신", title: `전력조회 회보서 회신의 건(${detail.name})`, fileName, blob });
+    setReplyStatus(`${fileName} 다운로드를 시작했습니다.`);
+  } catch (error) {
+    console.error("전력조회 회신공문 생성 오류", error);
+    setReplyStatus("전력조회 회신공문 생성 오류가 발생했습니다.");
+    alert(`전력조회 회신공문 생성 오류: ${error.message || "입력값을 확인하세요."}`);
+  }
 }
 
 function renderInterviewManagement() {
@@ -4055,6 +4161,12 @@ async function loadHwpxTemplateBuffer(templateName = "sample_notice") {
   }
   if (templateName === "convene_notice" && window.CONVENE_TEMPLATE_BASE64) {
     return base64ToArrayBuffer(window.CONVENE_TEMPLATE_BASE64);
+  }
+  if (templateName === "career_request" && window.CAREER_REQUEST_TEMPLATE_BASE64) {
+    return base64ToArrayBuffer(window.CAREER_REQUEST_TEMPLATE_BASE64);
+  }
+  if (templateName === "career_reply" && window.CAREER_REPLY_TEMPLATE_BASE64) {
+    return base64ToArrayBuffer(window.CAREER_REPLY_TEMPLATE_BASE64);
   }
   try {
     const response = await fetch(`./templates/${templateName}.hwpx`);
