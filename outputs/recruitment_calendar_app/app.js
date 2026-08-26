@@ -259,6 +259,51 @@ const REGISTERED_RECRUITMENTS = [
       },
     ],
   },
+  {
+    id: "final-gr2026-a-085",
+    name: "복지사업팀 사회복지사 채용",
+    department: "복지사업팀",
+    hireCount: 2,
+    source: "워크넷",
+    noticeType: "normal",
+    noticeDate: "2026-08-03",
+    executionNo: "GR2026-A-085",
+    confirmedInterviewDate: "2026-08-24",
+    workStartDate: "",
+    hireDate: "",
+    probationMonths: 3,
+    status: "채용",
+    memo: "복지사업팀(주택1, 사업1) 0819 마감. 면접 8/24(월) 14:00 4명, 8/25(화) 10:00 3명. 최종합격: 손진(사업업무), 문서영(주택업무).",
+    interviewees: [
+      { id: "final-gr2026-a-085-1", name: "박수진", phone: "010-8566-8579", status: "불합격", note: "8/24(월) 14:00" },
+      { id: "final-gr2026-a-085-2", name: "서민아", phone: "010-6302-7670", status: "불합격", note: "8/24(월) 14:00" },
+      { id: "final-gr2026-a-085-3", name: "박성진", phone: "010-5256-8473", status: "불합격", note: "8/24(월) 14:00" },
+      { id: "final-gr2026-a-085-4", name: "이가영", phone: "010-8718-5301", status: "불합격", note: "8/24(월) 14:00" },
+      { id: "final-gr2026-a-085-5", name: "손진", phone: "010-5205-5724", status: "채용", note: "8/25(화) 10:00, 복지사업팀 사업업무담당" },
+      { id: "final-gr2026-a-085-6", name: "박승찬", phone: "010-6711-8393", status: "불참", note: "8/25(화) 10:00, 면접 불참" },
+      { id: "final-gr2026-a-085-7", name: "문서영", phone: "010-5809-0155", status: "채용", note: "8/25(화) 10:00, 복지사업팀 주택업무담당" },
+    ],
+    recruitmentFields: [
+      {
+        id: "field-gr2026-a-085-1",
+        preset: "welfare",
+        department: "복지사업팀",
+        fieldName: "복지사업팀 사회복지사",
+        count: 1,
+        duty: "장애인자립생활지원(사업업무) 담당",
+        workStartDate: "",
+      },
+      {
+        id: "field-gr2026-a-085-2",
+        preset: "housing",
+        department: "복지사업팀(주택)",
+        fieldName: "복지사업팀 사회복지사",
+        count: 1,
+        duty: "장애인자립생활주택 업무 담당",
+        workStartDate: "",
+      },
+    ],
+  },
 ];
 const RECRUITMENT_FIELD_PRESETS = {
   admin: {
@@ -448,6 +493,12 @@ const els = {
   evaluationFiles: document.querySelector("#evaluationFilesInput"),
   downloadMinutesButton: document.querySelector("#downloadMinutesButton"),
   minutesDownloadStatus: document.querySelector("#minutesDownloadStatus"),
+  announcementRecruitment: document.querySelector("#announcementRecruitmentInput"),
+  announcementPreviewArea: document.querySelector("#announcementPreviewArea"),
+  announcementPreviewText: document.querySelector("#announcementPreviewText"),
+  generateAnnouncementButton: document.querySelector("#generateAnnouncementButton"),
+  copyAnnouncementButton: document.querySelector("#copyAnnouncementButton"),
+  announcementStatus: document.querySelector("#announcementStatus"),
   minutesTime: document.querySelector("#minutesTimeInput"),
   probationRows: document.querySelector("#probationRows"),
   addProbationButton: document.querySelector("#addProbationButton"),
@@ -629,6 +680,8 @@ function bindEvents() {
   els.createReissueButton.addEventListener("click", createReissueRecruitment);
   els.downloadMinutesButton.addEventListener("click", downloadPersonnelMinutes);
   els.previewMinutesButton?.addEventListener("click", previewMinutes);
+  els.generateAnnouncementButton?.addEventListener("click", generateResultAnnouncement);
+  els.copyAnnouncementButton?.addEventListener("click", copyResultAnnouncement);
   els.downloadConveneButton?.addEventListener("click", downloadConveneNotice);
   els.previewConveneButton?.addEventListener("click", previewConvene);
   els.downloadReplyButton?.addEventListener("click", downloadReplyNotice);
@@ -897,6 +950,7 @@ function render() {
   renderReissueSourceOptions();
   renderNoticeRecruitmentOptions();
   renderMinutesRecruitmentOptions();
+  renderAnnouncementRecruitmentOptions();
   renderSummary();
   renderCalendarSize();
   renderCalendar();
@@ -1096,6 +1150,16 @@ function renderMinutesRecruitmentOptions() {
     ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
   ].join("");
   els.minutesRecruitment2.value = state.candidates.some((candidate) => candidate.id === selectedValue2) ? selectedValue2 : "";
+}
+
+function renderAnnouncementRecruitmentOptions() {
+  if (!els.announcementRecruitment) return;
+  const selectedValue = els.announcementRecruitment.value || "";
+  els.announcementRecruitment.innerHTML = [
+    `<option value="">공고를 선택하세요</option>`,
+    ...state.candidates.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(displayRecruitmentListTitle(candidate))}</option>`),
+  ].join("");
+  els.announcementRecruitment.value = state.candidates.some((candidate) => candidate.id === selectedValue) ? selectedValue : "";
 }
 
 function getMinutesCandidates() {
@@ -4069,6 +4133,107 @@ function readConveneForm() {
   };
 }
 
+// ──────────────────────────────────────
+// 최종 합격자 공고 생성
+// ──────────────────────────────────────
+
+function generateResultAnnouncement() {
+  const candidateId = els.announcementRecruitment?.value;
+  if (!candidateId) {
+    alert("공고를 선택하세요.");
+    return;
+  }
+  const candidate = state.candidates.find((c) => c.id === candidateId);
+  if (!candidate) {
+    alert("해당 공고를 찾을 수 없습니다.");
+    return;
+  }
+
+  const serial = candidate.executionNo || "";
+  const name = candidate.name || "";
+  const department = candidate.department || "";
+  const interviewees = candidate.interviewees || [];
+  const hiredList = interviewees.filter((i) => i.status === "채용");
+
+  // 채용분야 정보
+  const fields = candidate.recruitmentFields || [];
+
+  let text = "";
+
+  if (hiredList.length === 0) {
+    // 적격자 없음 버전
+    text += `[${serial}호] 2026년 ${name} 결과 안내\n\n\n`;
+    text += `구로장애인자립생활센터입니다.\n\n`;
+    text += `2차 채용에 응시해 주신 분들께 다시 한번 감사인사드립니다.\n\n`;
+    text += `합격자를 아래와 같이 공고합니다.\n\n \n`;
+    text += `<${department}>\n\n`;
+    text += `ㅇ 최종 합격자\n\n`;
+    text += ` -  적격자 없음\n`;
+  } else {
+    // 합격자 있음 버전
+    // 채용분야별로 합격자 분류
+    const fieldMap = new Map();
+    hiredList.forEach((hired) => {
+      const note = hired.note || "";
+      // note에서 부서/업무 정보 추출
+      let fieldLabel = department;
+      if (note.includes("주택")) {
+        fieldLabel = `${department} 장애인자립생활주택 업무`;
+      } else if (note.includes("사업")) {
+        fieldLabel = `${department} 장애인복지사업 업무`;
+      }
+      if (!fieldMap.has(fieldLabel)) fieldMap.set(fieldLabel, []);
+      fieldMap.get(fieldLabel).push(hired);
+    });
+
+    // 제목 생성
+    const dutyParts = [];
+    fieldMap.forEach((_, label) => dutyParts.push(label));
+    const titleDuty = dutyParts.length > 1 ? dutyParts.join(" / ") : (dutyParts[0] || department);
+
+    text += `[공고 ${serial}호] 2026년 사회복지사(${titleDuty} 담당) 최종 합격자 안내\n\n\n`;
+    text += `구로장애인자립생활센터입니다.\n\n`;
+    text += `2차 채용에 응시해 주신 분들께 다시 한번 감사인사드립니다.\n\n`;
+    text += `합격자를 아래와 같이 공고합니다.\n\n \n`;
+
+    fieldMap.forEach((hiredInField, fieldLabel) => {
+      text += `<${fieldLabel}>\n\n`;
+      text += `ㅇ 최종 합격자\n\n`;
+      hiredInField.forEach((hired) => {
+        const maskedName = hired.name.length >= 2 ? hired.name[0] + "*" + hired.name.slice(2) : hired.name;
+        const phoneLast4 = (hired.phone || "").replace(/\D/g, "").slice(-4);
+        text += ` - ${maskedName}(${phoneLast4})\n`;
+      });
+      text += `\n`;
+    });
+  }
+
+  els.announcementPreviewText.textContent = text;
+  els.announcementPreviewArea.style.display = "block";
+  els.copyAnnouncementButton.style.display = "";
+  els.announcementStatus.textContent = "공고문이 생성되었습니다. 복사 후 홈페이지에 게시하세요.";
+}
+
+function copyResultAnnouncement() {
+  const text = els.announcementPreviewText?.textContent || "";
+  if (!text) {
+    alert("먼저 공고문을 생성하세요.");
+    return;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    els.announcementStatus.textContent = "✅ 클립보드에 복사되었습니다!";
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    els.announcementStatus.textContent = "✅ 클립보드에 복사되었습니다!";
+  });
+}
+
 // ponytail: 사용자가 올린 샘플 hwpx에 내부결재용 초안 페이지와 실제 발송용 페이지가 남아있어(값이 서로 다름),
 // 두 페이지 문구를 각각 앵커로 잡아 치환함. 샘플 문구가 바뀌면 이 함수의 리터럴 패턴도 같이 고쳐야 함.
 function buildConvenePayload(detail) {
@@ -4090,8 +4255,8 @@ function buildConvenePayload(detail) {
     place,
     agenda,
     attendees,
-    serialNumber: `GR2026-${digits}`,
-    serialLabel: `구로센터 GR2026-${digits}`,
+    serialNumber: `GR2026-A-${digits}`,
+    serialLabel: `구로센터 GR2026-A-${digits}`,
     requestDateText,
     fileTitle: `${formatFileDate(meetingDate)} ${roundLabel} 인사위원회 소집공문`,
   };
@@ -4117,7 +4282,7 @@ function applyConveneTemplate(xml, payload) {
     [/신 직원 채용 \(복지사입팀\/장애인자립주택\)/g, payload.agenda],
     [/우리 센터 인사위원 6명\(이름 기명 가능\)/g, payload.attendees],
     [/2026\. 7\. 13\.\(월\) 15:30/g, payload.meetingDateText],
-    [/구로센터 GR2026-037/g, payload.serialLabel],
+    [/구로센터 GR2026-\d{3}/g, payload.serialLabel],
     [/2026\.07\.06\./g, payload.requestDateText],
     // 내부결재 초안 페이지(수신자: 내부결재)
     [/2026년 인사위원회 소집/g, `${payload.year}년 ${payload.roundLabel} 인사위원회 소집`],

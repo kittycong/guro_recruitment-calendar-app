@@ -527,8 +527,8 @@
                 <label>참석대상<input id="conveneAttendeesInput" type="text" placeholder="예: 센터 인사위원 6명" /></label>
                 <label>시행번호
                   <div class="execution-input">
-                    <span>GR2026-</span>
-                    <input id="conveneExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="037" />
+                    <span>GR2026-A</span>
+                    <input id="conveneExecutionNoInput" type="text" inputmode="numeric" maxlength="3" placeholder="079" />
                   </div>
                 </label>
                 <label>접수일<input id="conveneRequestDateInput" type="date" /></label>
@@ -679,6 +679,31 @@
                 <button class="ghost-button full-button" id="previewMinutesButton" type="button">미리보기</button>
               </div>
               <p class="helper-text" id="minutesDownloadStatus">생성할 항목을 설정한 뒤 다운로드하세요.</p>
+            </section>
+
+            <section class="document-panel result-announcement-generator" aria-label="최종 합격자 공고 생성">
+              <div class="document-panel-header">
+                <div>
+                  <p class="eyebrow">Result Announcement</p>
+                  <h2>최종 합격자 공고 생성</h2>
+                </div>
+                <span>홈페이지 게시용</span>
+              </div>
+              <p class="helper-text">채용 결과를 홈페이지에 게시할 공고문을 자동으로 생성합니다. 공고를 선택하면 합격자 정보가 자동으로 반영됩니다.</p>
+              <label>
+                대상 공고
+                <select id="announcementRecruitmentInput">
+                  <option value="">공고를 선택하세요</option>
+                </select>
+              </label>
+              <div id="announcementPreviewArea" class="interview-notice-preview" style="display:none;">
+                <pre id="announcementPreviewText" style="white-space:pre-wrap; font-family:inherit; margin:0; line-height:1.8;"></pre>
+              </div>
+              <div class="document-actions">
+                <button class="secondary-button full-button" id="generateAnnouncementButton" type="button">공고문 생성</button>
+                <button class="ghost-button full-button" id="copyAnnouncementButton" type="button" style="display:none;">클립보드 복사</button>
+              </div>
+              <p class="helper-text" id="announcementStatus">공고를 선택한 뒤 생성 버튼을 누르세요.</p>
             </section>
           </div>
         </section>
