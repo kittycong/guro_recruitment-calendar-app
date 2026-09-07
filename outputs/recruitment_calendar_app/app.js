@@ -3035,11 +3035,12 @@ function renderProbationList() {
           <td class="strong-date">${escapeHtml(summary.endDate)}</td>
           <td>${escapeHtml(summary.renewalDate)}</td>
           <td>${escapeHtml(summary.reviewDate)}</td>
-          <td>${escapeHtml(record.writtenDate || "")}</td>
+          <td>${escapeHtml(record.writtenDate || summary.writtenDateDefault)}</td>
           <td>${escapeHtml(probationResultLabel(record.result))}</td>
           <td class="danger-note">${escapeHtml(record.note || "")}</td>
           <td class="table-actions">
             <button type="button" data-probation-edit="${escapeHtml(record.id)}">수정</button>
+            <button type="button" data-probation-generate="${escapeHtml(record.id)}">평가표</button>
             <button type="button" data-probation-calendar="${escapeHtml(summary.reviewDate)}">달력</button>
             <button type="button" data-probation-delete="${escapeHtml(record.id)}">삭제</button>
           </td>
@@ -3049,6 +3050,14 @@ function renderProbationList() {
     .join("");
   els.probationRows.querySelectorAll("[data-probation-edit]").forEach((button) => {
     button.addEventListener("click", () => fillProbationForm(state.probations.find((record) => record.id === button.dataset.probationEdit)));
+  });
+  els.probationRows.querySelectorAll("[data-probation-generate]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const record = state.probations.find((item) => item.id === button.dataset.probationGenerate);
+      if (!record) return;
+      fillProbationForm(record);
+      downloadProbationHwpx();
+    });
   });
   els.probationRows.querySelectorAll("[data-probation-calendar]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -3099,7 +3108,7 @@ function fillProbationForm(record) {
   els.probationTotalScore.value = record.totalScore || "";
   els.probationNote.value = record.note || "";
   els.probationEvaluationText.value = record.evaluationText || defaultProbationEvaluationText(record);
-  els.probationWrittenDate.value = record.writtenDate || summary.reviewDate || "";
+  els.probationWrittenDate.value = record.writtenDate || summary.writtenDateDefault || "";
   setProbationStatus(`${record.name} 수습끝 ${summary.endDate}, 평가작성일 ${summary.reviewDate}`);
 }
 
@@ -3143,7 +3152,7 @@ function updateProbationComputedFields() {
   if (!els.probationHireDate?.value) return;
   const record = readProbationForm();
   const summary = buildProbationSummary(record);
-  if (!els.probationWrittenDate.value) els.probationWrittenDate.value = summary.reviewDate;
+  if (!els.probationWrittenDate.value) els.probationWrittenDate.value = summary.writtenDateDefault;
   if (!els.probationTotalScore.value && record.scores.length) els.probationTotalScore.value = record.totalScore;
   setProbationStatus(`수습끝 ${summary.endDate}, 평가작성일 ${summary.reviewDate}, 등급 ${probationGrade(record.totalScore || 0)}`);
 }
@@ -3157,11 +3166,13 @@ function buildProbationSummary(record) {
   const manualReview = record.reviewDateOverride ? parseDate(record.reviewDateOverride) : null;
   const review = manualReview && !Number.isNaN(manualReview.getTime()) ? manualReview : calculatedReview;
   const renewal = end ? addDays(addYears(end, 1), -1) : null;
+  const written = review ? nextBusinessDay(addDays(review, 1)) : null;
   return {
     year: hireDate ? hireDate.getFullYear() : "",
     endDate: end ? toDateKey(end) : "",
     reviewDate: review ? toDateKey(review) : "",
     renewalDate: renewal ? toDateKey(renewal) : "",
+    writtenDateDefault: written ? toDateKey(written) : "",
   };
 }
 
@@ -3241,7 +3252,7 @@ function buildProbationEvaluationPayload(record) {
     grade: probationGrade(totalScore),
     resultLabel: probationResultLabel(record.result),
     periodText: `${formatNoticeDate(parseDate(record.hireDate))}\n~ ${formatNoticeDate(parseDate(summary.endDate))}`,
-    writtenDateText: formatNoticeDate(parseDate(record.writtenDate || summary.reviewDate)),
+    writtenDateText: formatNoticeDate(parseDate(record.writtenDate || summary.writtenDateDefault || summary.reviewDate)),
     evaluationText: record.evaluationText || defaultProbationEvaluationText({ ...record, totalScore }),
     summary,
   };
@@ -3269,13 +3280,9 @@ function replaceProbationDateTexts(xml, payload) {
 
 function replaceKnownProbationTexts(xml, payload) {
   let next = xml;
-  ["000", "박수빈"].forEach((name) => {
-    next = replaceHwpxPlainText(next, new RegExp(escapeRegExp(name), "g"), payload.name);
-  });
-  ["복지사업팀"].forEach((department) => {
-    next = replaceHwpxPlainText(next, new RegExp(escapeRegExp(department), "g"), payload.department);
-  });
-  next = replaceHwpxPlainText(next, /간사/g, payload.position);
+  if (payload.name) next = replaceHwpxPlainText(next, /000|박수빈/g, payload.name);
+  if (payload.department) next = replaceHwpxPlainText(next, /복지사업팀/g, payload.department);
+  if (payload.position) next = replaceHwpxPlainText(next, /간사/g, payload.position);
   return next;
 }
 
@@ -3299,11 +3306,23 @@ function replaceLastNumericText(xml, value) {
 }
 
 function replaceProbationEvaluationParagraph(xml, evaluationText) {
-  const paragraphs = String(evaluationText || "")
-    .split(/\r?\n/)
-    .map((line) => buildHwpxTextParagraph(line))
-    .join("");
-  return xml.replace(/(<hp:p\b[\s\S]*?<hp:t>2\.\s*종합평가<\/hp:t>[\s\S]*?<\/hp:p>)[\s\S]*?(?=<hp:p\b[\s\S]*?<hp:t>3\.\s*최종평가<\/hp:t>)/, `$1${paragraphs}`);
+  let anchor = "";
+  const next = xml.replace(
+    // 뒤쪽 lookahead는 "3. 최종평가"를 한 문단 안에서만 찾는다.
+    // 문단을 넘나들게 두면 body가 빈 문자열로 잡혀 기존 평가내용이 남고 새 내용이 덧붙어 글이 겹친다.
+    /(<hp:p\b[\s\S]*?<hp:t>2\.\s*종합평가<\/hp:t>[\s\S]*?<\/hp:p>)([\s\S]*?)(?=<hp:p\b[^>]*>(?:(?!<\/hp:p>)[\s\S])*?<hp:t>3\.\s*최종평가<\/hp:t>)/,
+    (match, header, body) => {
+      const style = readHwpxParagraphStyle(body) || readHwpxParagraphStyle(header);
+      const paragraphs = String(evaluationText || "")
+        .split(/\r?\n/)
+        .map((line) => buildHwpxTextParagraph(line, style))
+        .join("");
+      anchor = header;
+      // 셀 닫는 태그 같은 표 구조는 남기고 기존 문단만 걷어낸다.
+      return `${header}${paragraphs}${body.replace(/<hp:p\b[\s\S]*?<\/hp:p>/g, "")}`;
+    },
+  );
+  return anchor ? centerCellOfParagraph(next, anchor) : next;
 }
 
 function replaceFinalEvaluationRow(xml, payload) {
@@ -3312,8 +3331,7 @@ function replaceFinalEvaluationRow(xml, payload) {
     if (/3\.\s*최종평가/.test(rowXml)) finalSectionStarted = true;
     if (!finalSectionStarted || !/평가등급|점\s*수|성\s*명|소\s*속|직\s*위/.test(rowXml)) return rowXml;
     let next = rowXml;
-    next = replaceHwpxPlainText(next, new RegExp(escapeRegExp(payload.department), "g"), payload.department);
-    next = replaceHwpxPlainText(next, /<hp:t>(?:000|박수빈)<\/hp:t>/g, payload.name);
+    if (payload.name) next = replaceHwpxPlainText(next, /000|박수빈/g, payload.name);
     next = replaceLastNumericText(next, payload.totalScore);
     next = next.replace(/<hp:t>[SABCD]<\/hp:t>/, `<hp:t>${payload.grade}</hp:t>`);
     return next;
@@ -3321,10 +3339,8 @@ function replaceFinalEvaluationRow(xml, payload) {
 }
 
 function replaceHwpxPlainText(xml, pattern, replacement) {
-  return xml.replace(pattern, (match) => {
-    if (String(match).startsWith("<hp:t>")) return `<hp:t>${escapeXmlText(replacement)}</hp:t>`;
-    return escapeXmlText(replacement);
-  });
+  if (!pattern || pattern.source === "(?:)") return xml;
+  return xml.replace(/<hp:t>([\s\S]*?)<\/hp:t>/g, (whole, text) => `<hp:t>${text.replace(pattern, () => escapeXmlText(replacement))}</hp:t>`);
 }
 
 function defaultProbationEvaluationText(record) {
@@ -4063,11 +4079,11 @@ function applyKnownPersonnelMinutesCells(xml, minutes) {
   }
   next = next.replace(
     /<hp:p[^>]*><hp:run[^>]*><hp:t>\s*&lt;[^<]+&gt;\s*<\/hp:t><\/hp:run>[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="4")/,
-    minutes.contentLines.map(buildHwpxTextParagraph).join(""),
+    minutes.contentLines.map((line) => buildHwpxTextParagraph(line)).join(""),
   );
   next = next.replace(
     /<hp:p[^>]*><hp:run[^>]*><hp:t>채용자:[\s\S]*?(?=<\/hp:subList><hp:cellAddr colAddr="2" rowAddr="5")/,
-    minutes.decisionLines.map(buildHwpxTextParagraph).join(""),
+    minutes.decisionLines.map((line) => buildHwpxTextParagraph(line)).join(""),
   );
   return next;
 }
@@ -4077,7 +4093,7 @@ function replaceHwpxCellByAddress(xml, rowAddr, colAddr, lines) {
   return xml.replace(cellPattern, (cellXml) => {
     const addressPattern = new RegExp(`<hp:cellAddr\\s+colAddr="${colAddr}"\\s+rowAddr="${rowAddr}"\\s*/>`);
     if (!addressPattern.test(cellXml)) return cellXml;
-    const paragraphs = lines.length ? lines.map(buildHwpxTextParagraph).join("") : buildHwpxTextParagraph("");
+    const paragraphs = lines.length ? lines.map((line) => buildHwpxTextParagraph(line)).join("") : buildHwpxTextParagraph("");
     return cellXml.replace(/(<hp:subList\b[^>]*>)[\s\S]*?(<\/hp:subList>)/, `$1${paragraphs}$2`);
   });
 }
@@ -4116,8 +4132,36 @@ function appendMinutesText(xml, text) {
   return `${xml}${paragraphs}`;
 }
 
-function buildHwpxTextParagraph(text) {
-  return `<hp:p id="0" paraPrIDRef="${minutesBodyStyle.paraPrID}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${minutesBodyStyle.charPrID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run><hp:linesegarray><hp:lineseg textpos="0" vertpos="0" vertsize="1100" textheight="1100" baseline="935" spacing="440" horzpos="0" horzsize="48188" flags="393216"/></hp:linesegarray></hp:p>`;
+// ponytail: linesegarray는 한글이 파일을 열 때 다시 계산하는 레이아웃 캐시.
+// 고정값을 박아 넣으면 모든 문단이 vertpos="0", horzsize=본문폭으로 잡혀 표 안에서 글이 겹치고 칸이 틀어진다.
+// 스타일(paraPr/charPr)만 원본 문단에서 복제하고 캐시는 비워 둔다.
+function buildHwpxTextParagraph(text, style) {
+  const paraPrID = style?.paraPrID ?? minutesBodyStyle.paraPrID;
+  const styleID = style?.styleID ?? "0";
+  const charPrID = style?.charPrID ?? minutesBodyStyle.charPrID;
+  return `<hp:p id="0" paraPrIDRef="${paraPrID}" styleIDRef="${styleID}" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${charPrID}"><hp:t>${escapeXmlText(text)}</hp:t></hp:run></hp:p>`;
+}
+
+function readHwpxParagraphStyle(xml) {
+  const para = String(xml).match(/<hp:p\b[^>]*paraPrIDRef="(\d+)"[^>]*styleIDRef="(\d+)"/);
+  if (!para) return null;
+  const run = String(xml).match(/<hp:run\b[^>]*charPrIDRef="(\d+)"/);
+  return { paraPrID: para[1], styleID: para[2], charPrID: run ? run[1] : "0" };
+}
+
+// 해당 문단을 담고 있는 셀(hp:subList)의 세로 정렬을 가운데로 맞춘다.
+function centerCellOfParagraph(xml, anchor) {
+  const at = xml.indexOf(anchor);
+  if (at < 0) return xml;
+  const open = xml.lastIndexOf("<hp:subList", at);
+  if (open < 0) return xml;
+  const close = xml.indexOf(">", open);
+  if (close < 0) return xml;
+  const tag = xml.slice(open, close + 1);
+  const centered = /vertAlign="/.test(tag)
+    ? tag.replace(/vertAlign="[^"]*"/, 'vertAlign="CENTER"')
+    : tag.replace("<hp:subList", '<hp:subList vertAlign="CENTER"');
+  return xml.slice(0, open) + centered + xml.slice(close + 1);
 }
 
 function readConveneForm() {
@@ -5449,7 +5493,7 @@ function eachDate(start, end) {
 
 function nextBusinessDay(date) {
   let next = new Date(date);
-  while (next.getDay() === 0 || next.getDay() === 6) {
+  while (next.getDay() === 0 || next.getDay() === 6 || getPublicHolidayName(toDateKey(next))) {
     next = addDays(next, 1);
   }
   return next;
