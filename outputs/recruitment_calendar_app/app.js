@@ -74,7 +74,7 @@ let minutesBodyStyle = {
   paraPrID: MINUTES_BODY_PARA_PR_ID,
   charPrID: MINUTES_BODY_CHAR_PR_ID,
 };
-const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)"];
+const DEPARTMENTS = ["사무행정팀", "활동지원팀", "복지사업팀", "복지사업팀(주택)", "사무국"];
 const INTERVIEWEE_STATUSES = ["서류접수", "서류심사", "면접대기", "면접완료", "적격심사", "채용", "불합격"];
 const EMPLOYMENT_TYPES = ["정규직", "계약직", "기간제", "기타"];
 const CHECKLIST_ITEMS = ["공고 작성", "공고 게시", "홈페이지 등록", "서류심사", "면접 배정", "적격심사", "채용 통보"];
