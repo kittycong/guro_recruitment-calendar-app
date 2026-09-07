@@ -4,6 +4,7 @@ const HIRED_STORAGE_KEY = "recruitment-calendar-hired-details-v1";
 const GENERATED_DOCS_STORAGE_KEY = "recruitment-calendar-generated-docs-v1";
 const GENERATED_DOCS_LIMIT = 30;
 const TEMPLATE_CACHE_KEY = "recruitment-calendar-template-cache-v1";
+const PROBATION_EVALUATOR_KEY = "recruitment-calendar-probation-evaluator-v1";
 const DESIGN_SETTINGS_KEY = "recruitment-calendar-design-settings-v1";
 const DESIGN_DEFAULTS = { primary: "#b4623f", fontSize: 18, radius: 14 };
 
@@ -381,6 +382,7 @@ const state = {
   hiredDetails: loadHiredDetails(),
   generatedDocuments: readJsonValue(GENERATED_DOCS_STORAGE_KEY, []),
   templateCache: readJsonValue(TEMPLATE_CACHE_KEY, {}),
+  probationEvaluator: readJsonValue(PROBATION_EVALUATOR_KEY, { department: "사무국", position: "사무국장", name: "" }),
   filters: new Set(["notice", "deadline", "screening", "interview", "workStart", "hire", "probationStart", "probationReview", "probationEnd"]),
   search: "",
   employmentTypeFilter: localStorage.getItem("recruitment-employment-type-filter") || "all",
@@ -515,6 +517,9 @@ const els = {
   probationEvaluationText: document.querySelector("#probationEvaluationTextInput"),
   probationTemplateFile: document.querySelector("#probationTemplateFileInput"),
   probationWrittenDate: document.querySelector("#probationWrittenDateInput"),
+  probationEvaluatorDepartment: document.querySelector("#probationEvaluatorDepartmentInput"),
+  probationEvaluatorPosition: document.querySelector("#probationEvaluatorPositionInput"),
+  probationEvaluatorName: document.querySelector("#probationEvaluatorNameInput"),
   saveProbationButton: document.querySelector("#saveProbationButton"),
   downloadProbationHwpxButton: document.querySelector("#downloadProbationHwpxButton"),
   probationStatus: document.querySelector("#probationStatus"),
@@ -3077,8 +3082,27 @@ function renderProbationList() {
   });
 }
 
+function readProbationEvaluator() {
+  const evaluator = {
+    department: els.probationEvaluatorDepartment?.value.trim() || "",
+    position: els.probationEvaluatorPosition?.value.trim() || "",
+    name: els.probationEvaluatorName?.value.trim() || "",
+  };
+  state.probationEvaluator = evaluator;
+  localStorage.setItem(PROBATION_EVALUATOR_KEY, JSON.stringify(evaluator));
+  return evaluator;
+}
+
+function fillProbationEvaluatorForm() {
+  const evaluator = state.probationEvaluator || {};
+  if (els.probationEvaluatorDepartment) els.probationEvaluatorDepartment.value = evaluator.department || "";
+  if (els.probationEvaluatorPosition) els.probationEvaluatorPosition.value = evaluator.position || "";
+  if (els.probationEvaluatorName) els.probationEvaluatorName.value = evaluator.name || "";
+}
+
 function resetProbationForm() {
   if (!els.probationId) return;
+  fillProbationEvaluatorForm();
   els.probationId.value = "";
   els.probationName.value = "";
   els.probationDepartment.value = "";
@@ -3096,6 +3120,7 @@ function resetProbationForm() {
 
 function fillProbationForm(record) {
   if (!record || !els.probationId) return;
+  fillProbationEvaluatorForm();
   const summary = buildProbationSummary(record);
   els.probationId.value = record.id;
   els.probationName.value = record.name || "";
@@ -3113,6 +3138,7 @@ function fillProbationForm(record) {
 }
 
 function saveProbationFromForm() {
+  readProbationEvaluator();
   const record = readProbationForm();
   if (!record.name || !record.hireDate) {
     alert("이름과 입사일을 입력하세요.");
@@ -3207,6 +3233,7 @@ function setProbationStatus(message) {
 
 async function downloadProbationHwpx() {
   try {
+    readProbationEvaluator();
     const record = readProbationForm();
     if (!record.name || !record.department || !record.hireDate) {
       alert("수습평가 대상자의 이름, 부서, 입사일을 입력하세요.");
@@ -3250,6 +3277,7 @@ function buildProbationEvaluationPayload(record) {
     scores,
     totalScore,
     grade: probationGrade(totalScore),
+    evaluator: state.probationEvaluator || {},
     resultLabel: probationResultLabel(record.result),
     periodText: `${formatNoticeDate(parseDate(record.hireDate))}\n~ ${formatNoticeDate(parseDate(summary.endDate))}`,
     writtenDateText: formatNoticeDate(parseDate(record.writtenDate || summary.writtenDateDefault || summary.reviewDate)),
@@ -3271,19 +3299,61 @@ function applyProbationEvaluationTemplate(xml, payload) {
 function replaceProbationDateTexts(xml, payload) {
   const dates = [payload.writtenDateText, formatNoticeDate(parseDate(payload.hireDate)), formatNoticeDate(parseDate(payload.summary.endDate))];
   let index = 0;
-  return xml.replace(/<hp:t>(\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.)<\/hp:t>/g, (match) => {
+  return xml.replace(/<hp:t>(\s*~?\s*)\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.\s*<\/hp:t>/g, (match, prefix) => {
     const replacement = dates[index] || dates.at(-1);
     index += 1;
-    return `<hp:t>${escapeXmlText(replacement)}</hp:t>`;
+    return `<hp:t>${escapeXmlText(prefix)}${escapeXmlText(replacement)}</hp:t>`;
   });
 }
 
 function replaceKnownProbationTexts(xml, payload) {
   let next = xml;
-  if (payload.name) next = replaceHwpxPlainText(next, /000|박수빈/g, payload.name);
-  if (payload.department) next = replaceHwpxPlainText(next, /복지사업팀/g, payload.department);
-  if (payload.position) next = replaceHwpxPlainText(next, /간사/g, payload.position);
+  // 양식마다 들어 있는 사람 이름이 달라서, 이름을 찾지 말고 "성 명" 같은 라벨 다음 칸을 채운다.
+  const evaluator = payload.evaluator || {};
+  next = fillLabeledCell(next, /평\s*가\s*자/, /소\s*속/, evaluator.department);
+  next = fillLabeledCell(next, /평\s*가\s*자/, /직\s*위/, evaluator.position);
+  next = fillLabeledCell(next, /평\s*가\s*자/, /성\s*명/, evaluator.name);
+  next = fillLabeledCell(next, /피평가자/, /소\s*속/, payload.department);
+  next = fillLabeledCell(next, /피평가자/, /직\s*위/, payload.position);
+  next = fillLabeledCell(next, /피평가자/, /성\s*명/, payload.name);
   return next;
+}
+
+// sectionRe(예: 피평가자) 이후에 나오는 labelRe(예: 성 명) 라벨 바로 다음 칸을 value로 바꾼다.
+function fillLabeledCell(xml, sectionRe, labelRe, value) {
+  if (!value) return xml;
+  const section = xml.search(new RegExp(`<hp:t>\s*${sectionRe.source}\s*</hp:t>`));
+  if (section < 0) return xml;
+  const label = new RegExp(`<hp:t>\s*${labelRe.source}\s*</hp:t>`, "g");
+  label.lastIndex = section;
+  if (!label.exec(xml)) return xml;
+
+  // 표 양식이면 다음 셀 전체를, 아니면 다음 텍스트 조각을 바꾼다.
+  const cell = /<hp:tc\b[\s\S]*?<\/hp:tc>/g;
+  cell.lastIndex = label.lastIndex;
+  const cellHit = cell.exec(xml);
+  if (cellHit && cellHit.index - label.lastIndex < 400) {
+    return xml.slice(0, cellHit.index) + setCellText(cellHit[0], value) + xml.slice(cellHit.index + cellHit[0].length);
+  }
+  const text = /<hp:t>[\s\S]*?<\/hp:t>/g;
+  text.lastIndex = label.lastIndex;
+  const textHit = text.exec(xml);
+  if (!textHit) return xml;
+  return `${xml.slice(0, textHit.index)}<hp:t>${escapeXmlText(value)}</hp:t>${xml.slice(textHit.index + textHit[0].length)}`;
+}
+
+// 셀 안에 빈 조각이 앞에 오는 양식이 있어, 내용이 있는 첫 조각만 바꾼다.
+// (인) 같은 뒤따르는 조각은 그대로 둔다.
+function setCellText(cellXml, value) {
+  const hits = [...cellXml.matchAll(/<hp:t>([\s\S]*?)<\/hp:t>/g)];
+  if (!hits.length) return cellXml;
+  const targetIndex = Math.max(hits.findIndex((hit) => hit[1].trim()), 0);
+  let index = -1;
+  const next = cellXml.replace(/<hp:t>[\s\S]*?<\/hp:t>/g, (match) => {
+    index += 1;
+    return index === targetIndex ? `<hp:t>${escapeXmlText(value)}</hp:t>` : match;
+  });
+  return next.replace(/<hp:linesegarray>[\s\S]*?<\/hp:linesegarray>/g, "");
 }
 
 function replaceProbationScoreRows(xml, scores, totalScore) {
@@ -3306,35 +3376,154 @@ function replaceLastNumericText(xml, value) {
 }
 
 function replaceProbationEvaluationParagraph(xml, evaluationText) {
+  // "2. 종합평가" 문단과 "3. 최종평가" 문단 사이의 텍스트 문단만 손댄다.
+  // 표는 문단 안에 들어 있으므로 문단을 통째로 지우면 표가 사라진다.
+  const pattern = /(<hp:p\b[\s\S]*?<hp:t>\s*2\.\s*종합평가\s*<\/hp:t>[\s\S]*?<\/hp:p>)([\s\S]*?)(?=<hp:p\b[^>]*>(?:(?!<\/hp:p>)[\s\S])*?<hp:t>\s*3\.\s*최종평가\s*<\/hp:t>)/;
   let anchor = "";
-  const next = xml.replace(
-    // 뒤쪽 lookahead는 "3. 최종평가"를 한 문단 안에서만 찾는다.
-    // 문단을 넘나들게 두면 body가 빈 문자열로 잡혀 기존 평가내용이 남고 새 내용이 덧붙어 글이 겹친다.
-    /(<hp:p\b[\s\S]*?<hp:t>2\.\s*종합평가<\/hp:t>[\s\S]*?<\/hp:p>)([\s\S]*?)(?=<hp:p\b[^>]*>(?:(?!<\/hp:p>)[\s\S])*?<hp:t>3\.\s*최종평가<\/hp:t>)/,
-    (match, header, body) => {
-      const style = readHwpxParagraphStyle(body) || readHwpxParagraphStyle(header);
-      const paragraphs = String(evaluationText || "")
-        .split(/\r?\n/)
-        .map((line) => buildHwpxTextParagraph(line, style))
-        .join("");
-      anchor = header;
-      // 셀 닫는 태그 같은 표 구조는 남기고 기존 문단만 걷어낸다.
-      return `${header}${paragraphs}${body.replace(/<hp:p\b[\s\S]*?<\/hp:p>/g, "")}`;
-    },
-  );
-  return anchor ? centerCellOfParagraph(next, anchor) : next;
+  let centered = false;
+  const next = xml.replace(pattern, (match, header, body) => {
+    const filled = fillEvaluationParagraphs(body, evaluationText);
+    anchor = header;
+    centered = filled.centered;
+    return `${header}${filled.xml}`;
+  });
+  if (!anchor) return next;
+  return centered ? next : centerCellOfParagraph(next, anchor);
 }
 
+function fillEvaluationParagraphs(bodyXml, evaluationText) {
+  const lines = String(evaluationText || "").split(/\r?\n/);
+  const slots = findTopLevelParagraphs(bodyXml).filter((slot) => {
+    const chunk = bodyXml.slice(slot.start, slot.end);
+    return chunk.includes("<hp:t>") && !chunk.includes("<hp:tbl");
+  });
+
+  // 평가내용이 표 한 칸 안에 들어 있는 양식이면 셀 본문으로 한 단계 내려간다.
+  if (!slots.length) {
+    const cell = findFirstSubList(bodyXml);
+    if (!cell) return { xml: bodyXml, centered: false };
+    const inner = fillEvaluationParagraphs(bodyXml.slice(cell.innerStart, cell.innerEnd), evaluationText);
+    const openTag = bodyXml.slice(cell.start, cell.innerStart);
+    const centeredTag = /vertAlign="/.test(openTag)
+      ? openTag.replace(/vertAlign="[^"]*"/, 'vertAlign="CENTER"')
+      : openTag.replace("<hp:subList", '<hp:subList vertAlign="CENTER"');
+    return { xml: bodyXml.slice(0, cell.start) + centeredTag + inner.xml + bodyXml.slice(cell.innerEnd), centered: true };
+  }
+
+  let out = "";
+  let cursor = 0;
+  slots.forEach((slot, index) => {
+    out += bodyXml.slice(cursor, slot.start);
+    const chunk = bodyXml.slice(slot.start, slot.end);
+    const isLast = index === slots.length - 1;
+    // 남는 줄은 마지막 문단을 복제해서 붙인다. 문단 스타일이 그대로 유지된다.
+    const texts = isLast ? lines.slice(index) : [lines[index] ?? ""];
+    out += (texts.length ? texts : [""]).map((line) => setParagraphText(chunk, line)).join("");
+    cursor = slot.end;
+  });
+  return { xml: out + bodyXml.slice(cursor), centered: false };
+}
+
+// 첫 셀 본문(hp:subList)의 범위. 중첩된 subList를 세어 짝을 맞춘다.
+function findFirstSubList(xml) {
+  const start = xml.search(/<hp:subList\b/);
+  if (start < 0) return null;
+  const innerStart = xml.indexOf(">", start) + 1;
+  if (innerStart <= 0) return null;
+  const token = /<hp:subList\b|<\/hp:subList>/g;
+  token.lastIndex = innerStart;
+  let depth = 1;
+  let match;
+  while ((match = token.exec(xml))) {
+    depth += match[0] === "</hp:subList>" ? -1 : 1;
+    if (depth === 0) return { start, innerStart, innerEnd: match.index };
+  }
+  return null;
+}
+
+// 중첩(표 안의 문단)을 건너뛰고 바깥쪽 문단 범위만 찾는다.
+function findTopLevelParagraphs(xml) {
+  const ranges = [];
+  const token = /<hp:p\b|<\/hp:p>/g;
+  let depth = 0;
+  let start = -1;
+  let match;
+  while ((match = token.exec(xml))) {
+    if (match[0] === "</hp:p>") {
+      depth -= 1;
+      if (depth === 0 && start >= 0) {
+        ranges.push({ start, end: token.lastIndex });
+        start = -1;
+      }
+      if (depth < 0) depth = 0;
+    } else {
+      if (depth === 0) start = match.index;
+      depth += 1;
+    }
+  }
+  return ranges;
+}
+
+// 문단의 첫 텍스트만 남겨 새 문장으로 바꾼다.
+// linesegarray는 글자 수가 달라지면 어긋나므로 지운다. 한글이 열 때 다시 계산한다.
+function setParagraphText(paragraphXml, text) {
+  let replaced = false;
+  const next = paragraphXml.replace(/<hp:t>[\s\S]*?<\/hp:t>/g, () => {
+    if (replaced) return "<hp:t></hp:t>";
+    replaced = true;
+    return `<hp:t>${escapeXmlText(text)}</hp:t>`;
+  });
+  if (!replaced) return paragraphXml;
+  return next.replace(/<hp:linesegarray>[\s\S]*?<\/hp:linesegarray>/g, "");
+}
+
+// 3. 최종평가 표는 머리글 행(소속/직위/성명/점수/평가등급) 다음 행을 열 순서대로 채운다.
 function replaceFinalEvaluationRow(xml, payload) {
-  let finalSectionStarted = false;
-  return xml.replace(/<hp:tr\b[\s\S]*?<\/hp:tr>/g, (rowXml) => {
-    if (/3\.\s*최종평가/.test(rowXml)) finalSectionStarted = true;
-    if (!finalSectionStarted || !/평가등급|점\s*수|성\s*명|소\s*속|직\s*위/.test(rowXml)) return rowXml;
-    let next = rowXml;
-    if (payload.name) next = replaceHwpxPlainText(next, /000|박수빈/g, payload.name);
-    next = replaceLastNumericText(next, payload.totalScore);
-    next = next.replace(/<hp:t>[SABCD]<\/hp:t>/, `<hp:t>${payload.grade}</hp:t>`);
-    return next;
+  const from = xml.search(/<hp:t>\s*3\.\s*최종평가\s*<\/hp:t>/);
+  if (from < 0) return xml;
+  const rowRe = /<hp:tr\b[\s\S]*?<\/hp:tr>/g;
+  rowRe.lastIndex = from;
+  let header = null;
+  let match;
+  while ((match = rowRe.exec(xml))) {
+    const labels = cellTexts(match[0]);
+    if (labels.some((label) => /평가등급/.test(label)) && labels.some((label) => /성\s*명/.test(label))) {
+      header = { labels, end: rowRe.lastIndex };
+      break;
+    }
+  }
+  if (!header) return xml;
+  rowRe.lastIndex = header.end;
+  const valueRow = rowRe.exec(xml);
+  if (!valueRow) return xml;
+
+  const byLabel = (label) => {
+    if (/소\s*속/.test(label)) return payload.department;
+    if (/직\s*위/.test(label)) return payload.position;
+    if (/성\s*명/.test(label)) return payload.name;
+    if (/점\s*수/.test(label)) return String(payload.totalScore ?? "");
+    if (/평가등급/.test(label)) return payload.grade;
+    return null;
+  };
+
+  let cellIndex = 0;
+  const filled = valueRow[0].replace(/<hp:tc\b[\s\S]*?<\/hp:tc>/g, (cellXml) => {
+    const value = byLabel(header.labels[cellIndex] || "");
+    cellIndex += 1;
+    if (!value) return cellXml;
+    let done = false;
+    return cellXml.replace(/<hp:t>[\s\S]*?<\/hp:t>/, () => {
+      done = true;
+      return `<hp:t>${escapeXmlText(value)}</hp:t>`;
+    }) || cellXml;
+  });
+  return xml.slice(0, valueRow.index) + filled + xml.slice(valueRow.index + valueRow[0].length);
+}
+
+function cellTexts(rowXml) {
+  return (rowXml.match(/<hp:tc\b[\s\S]*?<\/hp:tc>/g) || []).map((cell) => {
+    const texts = [...cell.matchAll(/<hp:t>([\s\S]*?)<\/hp:t>/g)].map((m) => m[1]).filter((text) => text.trim());
+    return texts[0] || "";
   });
 }
 
@@ -3460,6 +3649,11 @@ function dataUrlToFile(dataUrl, fileName) {
   return new File([bytes], fileName, { type: mime });
 }
 
+// templates/ 폴더에 넣어 두면 업로드 없이 바로 쓰이는 기본 양식
+const BUNDLED_TEMPLATE_NAMES = {
+  probation: "probation_evaluation",
+};
+
 async function resolveTemplateFile(type, inputEl, label) {
   const picked = inputEl?.files?.[0];
   if (picked) {
@@ -3471,7 +3665,16 @@ async function resolveTemplateFile(type, inputEl, label) {
   }
   const cached = state.templateCache[type];
   if (cached) return dataUrlToFile(cached.dataUrl, cached.fileName);
-  throw new Error(`${label} 파일을 선택하세요.`);
+  const bundledName = BUNDLED_TEMPLATE_NAMES[type];
+  if (bundledName) {
+    const buffer = await loadHwpxTemplateBuffer(bundledName);
+    if (buffer) return new File([buffer], `${bundledName}.hwpx`, { type: "application/hwpml-package" });
+  }
+  if (inputEl) {
+    inputEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    inputEl.focus();
+  }
+  throw new Error(`${label} HWPX 파일을 먼저 선택하세요. 한 번 선택하면 이 브라우저에 저장돼 다음부터는 목록에서 바로 생성됩니다.`);
 }
 
 function renderTemplateCacheStatus() {
