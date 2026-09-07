@@ -331,6 +331,31 @@ const RECRUITMENT_FIELD_PRESETS = {
     fieldName: "복지사업팀(주택) 사회복지사",
     duty: "장애인자립생활주택 업무 담당",
   },
+  director: {
+    label: "사무국장",
+    department: "사무국",
+    fieldName: "사무국장",
+    duty: "장애인자립생활센터 운영 관리",
+    dutyDetails: [
+      "- 장애인자립생활센터 사업 운영 전반",
+      "- 행정·회계 및 인사·노무 총괄",
+      "- 사업 행정 및 성과 관리",
+      "- 사무국 운영총괄",
+      "- 센터 사업 운영",
+      "- 예산 편성 및 운용",
+    ],
+    qualifications: [
+      "가. 자격요건",
+      "1)「사회복지사 또는 장애인재활상담사」자격 소지자로서 장애인복지 또는 사회복지 분야 5년 이상 종사 경력자",
+      "2) 활동지원사업 또는 장애인복지 관련 분야 실무 경력자",
+      "3) 행정 및 회계 관리 및 예·결산 업무 수행 가능자",
+      "나. 기본사항",
+      "- 장애인자립생활센터의 이념과 철학을 이해하고 적극 참여할 수 있는 자",
+      "- 사회복지사업법 제11조 2항에 결격사유가 없고 다른 법령에 의하여 자격이 정지되지 아니한 자",
+      "- 1종 보통 면허소지자로서 그랜드 스타렉스, 그랜드 카니발 등(실제 운전 가능자)",
+      "- 컴퓨터활용능력(한글, 엑셀, PPT 등) 가능한 자",
+    ],
+  },
 };
 const PERSONNEL_MINUTES_CASES = {
   hire_standard: {
@@ -3376,23 +3401,36 @@ function replaceLastNumericText(xml, value) {
 }
 
 function replaceProbationEvaluationParagraph(xml, evaluationText) {
-  // "2. 종합평가" 문단과 "3. 최종평가" 문단 사이의 텍스트 문단만 손댄다.
-  // 표는 문단 안에 들어 있으므로 문단을 통째로 지우면 표가 사라진다.
-  const pattern = /(<hp:p\b[\s\S]*?<hp:t>\s*2\.\s*종합평가\s*<\/hp:t>[\s\S]*?<\/hp:p>)([\s\S]*?)(?=<hp:p\b[^>]*>(?:(?!<\/hp:p>)[\s\S])*?<hp:t>\s*3\.\s*최종평가\s*<\/hp:t>)/;
+  return replaceLabeledParagraphs(xml, "2\\.\\s*종합평가", "3\\.\\s*최종평가", String(evaluationText || "").split(/\r?\n/), { center: true });
+}
+
+// startLabel 문단과 endLabel 문단 사이의 텍스트 문단만 lines로 갈아 끼운다.
+// 표는 문단 안에 들어 있어서 문단을 통째로 지우면 표까지 사라진다. 기존 문단을 재사용한다.
+function replaceLabeledParagraphs(xml, startLabel, endLabel, lines, { center = false } = {}) {
+  const pattern = new RegExp(
+    `(<hp:p\\b[\\s\\S]*?<hp:t>\\s*${startLabel}\\s*</hp:t>[\\s\\S]*?</hp:p>)([\\s\\S]*?)(?=<hp:p\\b[^>]*>(?:(?!</hp:p>)[\\s\\S])*?<hp:t>\\s*${endLabel}\\s*</hp:t>)`,
+  );
   let anchor = "";
   let centered = false;
   const next = xml.replace(pattern, (match, header, body) => {
-    const filled = fillEvaluationParagraphs(body, evaluationText);
+    const filled = fillEvaluationParagraphs(body, lines);
     anchor = header;
     centered = filled.centered;
     return `${header}${filled.xml}`;
   });
-  if (!anchor) return next;
-  return centered ? next : centerCellOfParagraph(next, anchor);
+  if (!anchor || !center || centered) return next;
+  return centerCellOfParagraph(next, anchor);
 }
 
-function fillEvaluationParagraphs(bodyXml, evaluationText) {
-  const lines = String(evaluationText || "").split(/\r?\n/);
+// needle이 들어 있는 문단을 lines 개수만큼 복제해 채운다. 표 한 칸에 여러 줄을 넣을 때 쓴다.
+function expandParagraphContaining(xml, needle, lines) {
+  const slot = findTopLevelParagraphs(xml).find((range) => xml.slice(range.start, range.end).includes(needle));
+  if (!slot) return xml;
+  const chunk = xml.slice(slot.start, slot.end);
+  return xml.slice(0, slot.start) + lines.map((line) => setParagraphText(chunk, line)).join("") + xml.slice(slot.end);
+}
+
+function fillEvaluationParagraphs(bodyXml, lines) {
   const slots = findTopLevelParagraphs(bodyXml).filter((slot) => {
     const chunk = bodyXml.slice(slot.start, slot.end);
     return chunk.includes("<hp:t>") && !chunk.includes("<hp:tbl");
@@ -3402,7 +3440,7 @@ function fillEvaluationParagraphs(bodyXml, evaluationText) {
   if (!slots.length) {
     const cell = findFirstSubList(bodyXml);
     if (!cell) return { xml: bodyXml, centered: false };
-    const inner = fillEvaluationParagraphs(bodyXml.slice(cell.innerStart, cell.innerEnd), evaluationText);
+    const inner = fillEvaluationParagraphs(bodyXml.slice(cell.innerStart, cell.innerEnd), lines);
     const openTag = bodyXml.slice(cell.start, cell.innerStart);
     const centeredTag = /vertAlign="/.test(openTag)
       ? openTag.replace(/vertAlign="[^"]*"/, 'vertAlign="CENTER"')
@@ -4740,7 +4778,8 @@ function buildNoticePayload(candidate) {
   const hireCount = recruitmentFields.reduce((sum, field) => sum + Number(field.count || 0), 0) || Number(candidate.hireCount || 1);
   const noticeDate = candidate.noticeDate ? parseDate(candidate.noticeDate) : new Date();
   const year = noticeDate.getFullYear();
-  const jobTitle = primaryField.fieldName.replace(new RegExp(`^${escapeRegExp(primaryField.department)}\\s*`), "") || departmentJobTitle(department);
+  // 분야명 앞의 부서명만 떼어낸다. "사무국장"처럼 부서명이 단어 일부로 붙은 경우는 그대로 둔다.
+  const jobTitle = primaryField.fieldName.replace(new RegExp(`^${escapeRegExp(primaryField.department)}\\s+`), "") || departmentJobTitle(department);
   const fieldName = primaryField.fieldName;
   const departmentLine = recruitmentFields.map((field) => `– ${field.department} (${field.count}명)`).join("\n");
   const workStartLine = candidate.workStartDate ? formatNoticeDateWithWeekday(parseDate(candidate.workStartDate)) : "추후 협의";
@@ -4776,6 +4815,25 @@ function buildNoticePayload(candidate) {
   };
 }
 
+// 분야에 붙은 프리셋을 찾는다. 저장된 preset 키가 없으면 부서/분야명으로 되짚는다.
+function presetForField(field) {
+  if (!field) return null;
+  if (field.preset && RECRUITMENT_FIELD_PRESETS[field.preset]) return RECRUITMENT_FIELD_PRESETS[field.preset];
+  return (
+    Object.values(RECRUITMENT_FIELD_PRESETS).find(
+      (preset) => preset.department === field.department && preset.fieldName === field.fieldName,
+    ) || null
+  );
+}
+
+function fieldDutyDetails(field) {
+  return presetForField(field)?.dutyDetails || [];
+}
+
+function noticeQualificationLines(notice) {
+  return presetForField(notice.primaryField)?.qualifications || null;
+}
+
 function fieldDutyLine(field, fallbackWorkStartDate = "") {
   const duty = `${field.department}/${field.duty}`;
   const workDate = field.workStartDate || fallbackWorkStartDate || "";
@@ -4798,10 +4856,13 @@ function applyNoticeFieldTable(xml, recruitmentFields) {
       row = row.replace("<hp:t>1</hp:t>", `<hp:t>${escapeXmlText(String(index + 1))}</hp:t>`);
       row = row.replace("<hp:t>복지사업팀 간사</hp:t>", `<hp:t>${escapeXmlText(field.fieldName || field.department)}</hp:t>`);
       row = row.replace("<hp:t>1명</hp:t>", `<hp:t>${escapeXmlText(`${field.count}명`)}</hp:t>`);
+      const dutyLine = `• ${field.duty} ${field.count}명 `;
       row = row.replace(
         "<hp:t>• 장애인자립생활지원(복지사업) 사업 업무 담당 1명 </hp:t>",
-        `<hp:t>${escapeXmlText(`• ${field.duty} ${field.count}명 `)}</hp:t>`,
+        `<hp:t>${escapeXmlText(dutyLine)}</hp:t>`,
       );
+      const details = fieldDutyDetails(field);
+      if (details.length) row = expandParagraphContaining(row, escapeXmlText(dutyLine), [dutyLine, "", ...details]);
       return row;
     })
     .join("");
@@ -4830,10 +4891,12 @@ function applyNoticeTemplate(xml, notice) {
     [/사회복지사\(복지사업팀\)/g, `${notice.jobTitle}(${notice.department})`],
     [/복지사업팀 \(1명\)/g, `${notice.department} (${notice.hireCount}명)`],
   ];
-  return replacements.reduce((value, [pattern, replacement]) => {
+  const replaced = replacements.reduce((value, [pattern, replacement]) => {
     const text = typeof replacement === "string" && replacement.startsWith("<hp:t>") ? replacement : escapeXmlText(replacement);
     return value.replace(pattern, text);
   }, xml);
+  const qualifications = noticeQualificationLines(notice);
+  return qualifications ? replaceLabeledParagraphs(replaced, "3\\.\\s*응시자격", "4\\.\\s*근무조건", qualifications) : replaced;
 }
 
 function buildPlainNoticeText(notice) {
@@ -4857,6 +4920,7 @@ function buildNotepadNoticeText(notice) {
     `- 채용분야: ${field.fieldName}`,
     `- 채용인원: ${field.count}명`,
     `- 담당업무: ${field.duty}`,
+    ...fieldDutyDetails(field).map((line) => `  ${line}`),
   ]);
   const schedule = scheduleTextParts(notice);
   const lines = [
@@ -4877,11 +4941,13 @@ function buildNotepadNoticeText(notice) {
     "",
     "3. 응시자격",
     "",
-    "- 사회복지사 자격증 소지자",
-    "- 경력자의 경우 4호봉 이하 지원 가능",
-    "- 운전 가능자 우대",
-    "- 보훈 관련 법령에 따른 취업지원대상자 우대",
-    "- 만 60세 미만",
+    ...(noticeQualificationLines(notice) || [
+      "- 사회복지사 자격증 소지자",
+      "- 경력자의 경우 4호봉 이하 지원 가능",
+      "- 운전 가능자 우대",
+      "- 보훈 관련 법령에 따른 취업지원대상자 우대",
+      "- 만 60세 미만",
+    ]),
     "",
     "",
     "4. 근무조건",
